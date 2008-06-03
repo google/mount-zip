@@ -4,7 +4,7 @@
 //                                                                        //
 //  This program is free software; you can redistribute it and/or modify  //
 //  it under the terms of the GNU Library General Public License as       //
-//  published by the Free Software Foundation; either version 3 of the    //
+//  published by the Free Software Foundation; either version 2 of the    //
 //  License, or (at your option) any later version.                       //
 //                                                                        //
 //  This program is distributed in the hope that it will be useful,       //
@@ -343,6 +343,27 @@ int main(int argc, char *argv[]) {
     fusezip_oper.open       =   fusezip_open;
     fusezip_oper.read       =   fusezip_read;
     fusezip_oper.release    =   fusezip_release;
-    return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
+
+// We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
+// return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
+
+    struct fuse *fuse;
+    char *mountpoint;
+    int multithreaded;
+    int res;
+
+    fuse = fuse_setup(argc - 1, argv + 1, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, zip_file);
+    if (fuse == NULL) {
+        return 1;
+    }
+
+    res = fuse_loop(fuse);
+
+    fuse_teardown(fuse, mountpoint);
+    if (res == -1) {
+        return 1;
+    }
+
+    return 0;
 }
 
