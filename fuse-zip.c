@@ -33,8 +33,8 @@ static void fusezip_destroy(void *data) {
 }
 
 static struct fuse_operations fuzezip_oper = {
-    .init	=   fusezip_init,
-    .destroy	=   fusezip_destroy
+    .init       =   fusezip_init,
+    .destroy    =   fusezip_destroy
 };
 
 void print_usage() {
