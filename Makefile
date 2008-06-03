@@ -1,4 +1,4 @@
-DEST=fuze-zip
+DEST=fuse-zip
 CLEANFILES=$(DEST)
 LIBS=`pkg-config fuse --cflags --libs` `pkg-config libzip --cflags --libs` -lzip
 
@@ -10,9 +10,9 @@ clean:
 
 test: $(DEST)
 	mkdir -p testDir
-	./$(DEST) testDir
-	ls testDir
-	cat testDir/hello
+	./$(DEST) test.zip testDir
+	ls testDir || true
+	cat testDir/hello || true
 	fusermount -u testDir
 	rmdir testDir
 
