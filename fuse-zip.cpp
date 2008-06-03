@@ -67,6 +67,7 @@ public:
 
     void build_tree() {
         root_node = new fusezip_node(-1, strdup(""));
+        root_node->is_dir = true;
         insert(root_node);
 
         int n = zip_get_num_files(m_zip);
@@ -103,10 +104,6 @@ public:
         }
     }
 
-    inline const fusezip_node *get_root_node() {
-        return root_node;
-    }
-
     filemap_t files;
 };
 
@@ -123,6 +120,16 @@ static void fusezip_destroy(void *v_data) {
     delete data;
 }
 
+fusezip_node *get_file_node(const char *fname) {
+    fusezip_data *data = (fusezip_data*)fuse_get_context()->private_data;
+    filemap_t::iterator i = data->files.find(fname);
+    if (i == data->files.end()) {
+        return NULL;
+    } else {
+        return i->second;
+    }
+}
+
 static int fusezip_getattr(const char *path, struct stat *stbuf) {
     int res = 0;
 
@@ -130,15 +137,18 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
     if (*path == '\0') {
         return -ENOENT;
     }
-    if (strcmp(path, "/") == 0) {
+    fusezip_node *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (node->is_dir) {
         stbuf->st_mode = S_IFDIR | 0755;
-        stbuf->st_nlink = 2;
-/*    } else if (strcmp(path, hello_path) == 0) {
-            stbuf->st_mode = S_IFREG | 0444;
-            stbuf->st_nlink = 1;
-            stbuf->st_size = strlen(hello_str); */
+        stbuf->st_nlink = 2 + node->childs.size();
     } else {
-        res = -ENOENT;
+        stbuf->st_mode = S_IFREG | 0444;
+        stbuf->st_nlink = 1;
+        //TODO
+        //stbuf->st_size = strlen(hello_str);
     }
 
     return res;
@@ -154,13 +164,7 @@ static int fusezip_readdir (const char *path, void *buf, fuse_fill_dir_t filler,
     filler(buf, ".", NULL, 0);
     filler(buf, "..", NULL, 0);
     
-    fusezip_data *data = (fusezip_data*)fuse_get_context()->private_data;
-/*    for (filemap_t::const_iterator i = data->files.begin(); i != data->files.end(); ++i) {
-        if (i->second->id!=-1) {
-            filler(buf, i->second->name, NULL, 0);
-        }
-    }*/
-    fusezip_node *node = data->files[path +1];
+    fusezip_node *node = get_file_node(path + 1);
     if (node == NULL) {
         return -ENOENT;
     }
