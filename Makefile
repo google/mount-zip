@@ -9,12 +9,3 @@ $(DEST): fuse-zip.cpp
 clean:
 	rm -f $(CLEANFILES)
 
-test: $(DEST)
-	mkdir -p testDir
-	./$(DEST) test.zip testDir
-	ls -l testDir || true
-	ls testDir/a || true
-	cat testDir/lszip.c || true
-	fusermount -u testDir
-	rmdir testDir
-
