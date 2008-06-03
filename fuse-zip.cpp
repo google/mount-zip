@@ -1,9 +1,9 @@
 //TODO: insert license header
 
 #define FUSE_USE_VERSION 26
-#define _FILE_OFFSET_BITS 64
 #define PROGRAM "fuse-zip"
 #define ERROR_STR_BUF_LEN 0x100
+#define SKIP_BUFFER_LENGTH (1024*1024)
 
 #include <fuse.h>
 #include <zip.h>
@@ -46,14 +46,12 @@ typedef map <const char*, fusezip_node*, ltstr> filemap_t;
 
 class fusezip_data {
 private:
-    fusezip_node *root_node;
-
     inline void insert(fusezip_node *node) {
         files[node->full_name] = node;
     }
 public:
-    fusezip_data(struct zip *zip_file) {
-        m_zip = zip_file;
+    fusezip_data(struct zip *z) {
+        m_zip = z;
         build_tree();
     }
 
@@ -66,8 +64,9 @@ public:
         }
     }
 
+    //TODO: move tree building into main()
     void build_tree() {
-        root_node = new fusezip_node(-1, strdup(""));
+        fusezip_node *root_node = new fusezip_node(-1, strdup(""));
         root_node->is_dir = true;
         insert(root_node);
 
@@ -115,11 +114,16 @@ public:
     struct zip *m_zip;
 };
 
+struct file_handle {
+    struct zip_file *zf;
+    off_t pos;
+};
+
 static void *fusezip_init(struct fuse_conn_info *conn) {
     struct fuse_context *context = fuse_get_context();
-    struct zip *zip_file = (struct zip*)context->private_data;
+    struct zip *z = (struct zip*)context->private_data;
 
-    fusezip_data *data = new fusezip_data(zip_file);
+    fusezip_data *data = new fusezip_data(z);
     return data;
 }
 
@@ -229,19 +233,50 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
         zip_error_get(get_zip(), NULL, &err);
         return err;
     }
-    fi->fh = (uint64_t)f;
+    struct file_handle *fh = new file_handle();
+    fh->zf = f;
+    fh->pos = 0;
+    fi->fh = (uint64_t)fh;
 
     return 0;
 }
 
 static int fusezip_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-//    struct zip_file *f = (zip_file*)fi->fh;
+    struct file_handle *fh = (file_handle*)fi->fh;
+    struct zip_file *f = fh->zf;
 
-    return 0;
+    if (fh->pos > offset) {
+        // It is terrible, but there are no other way to rewind file :(
+        int err;
+        err = zip_fclose(f);
+        if (err != 0) {
+            return -EIO;
+        }
+        err = fusezip_open(path, fi);
+        if (err != 0) {
+            return err;
+        }
+    }
+    // skipping to offset ...
+    off_t count = offset - fh->pos;
+    while (count > 0) {
+        static char bb[SKIP_BUFFER_LENGTH];
+        off_t r = SKIP_BUFFER_LENGTH;
+        if (r > count) {
+            r = count;
+        }
+        int rr = zip_fread(f, bb, r);
+        if (r != rr) {
+            return -EIO;
+        }
+    }
+
+    return zip_fread(f, buf, size);
 }
 
 static int fusezip_release (const char *path, struct fuse_file_info *fi) {
-    struct zip_file *f = (zip_file*)fi->fh;
+    struct file_handle *fh = (file_handle*)fi->fh;
+    struct zip_file *f = fh->zf;
     return zip_fclose(f);
 }
 
