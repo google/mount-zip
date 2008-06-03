@@ -24,23 +24,24 @@ struct ltstr {
 
 class fusezip_node {
 public:
-    fusezip_node(int id, char *name) {
+    fusezip_node(int id, char *full_name) {
         this->id = id;
-        this->name = name;
+        this->full_name = full_name;
+        this->name = full_name;
         this->is_dir=false;
     }
 
     ~fusezip_node() {
-        free(name);
+        free(full_name);
     }
 
-    char *name;
+    char *name, *full_name;
     bool is_dir;
     int id;
     list<fusezip_node*> childs;
 };
 
-typedef map <const char *, fusezip_node*, ltstr> filemap_t; 
+typedef map <const char*, fusezip_node*, ltstr> filemap_t; 
 
 class fusezip_data {
 private:
@@ -48,7 +49,7 @@ private:
     fusezip_node *root_node;
 
     inline void insert(fusezip_node *node) {
-        files[node->name] = node;
+        files[node->full_name] = node;
     }
 public:
     fusezip_data(struct zip *zip_file) {
@@ -72,33 +73,39 @@ public:
 
         int n = zip_get_num_files(m_zip);
         for (int i = 0; i < n; ++i) {
-            char *fname = strdup(zip_get_name(m_zip, i, 0));
-            if (fname == NULL) {
+            char *fullname = strdup(zip_get_name(m_zip, i, 0));
+            if (fullname == NULL) {
+                //TODO: may be throw error?
                 continue;
             }
 
-            fusezip_node *node = new fusezip_node(i, fname);
-            char *lsl = fname;
+            fusezip_node *node = new fusezip_node(i, fullname);
+            char *lsl = fullname;
             while (*lsl++) {}
-            lsl--;
-            while (lsl >= fname && *lsl-- != '/') {}
+            while (lsl >= fullname && *lsl-- != '/') {}
             lsl++;
             // If the last symbol in file name is '/' then it is a directory
             if (*(lsl+1) == '\0') {
                 // It will produce two \0s at the end of file name. I think that it is not a problem
                 *lsl = '\0';
                 node->is_dir = true;
-                while (lsl >= fname && *lsl-- != '/') {}
+                while (lsl >= fullname && *lsl-- != '/') {}
                 lsl++;
             }
 
             // Adding new child to parent node. For items without '/' in fname it will be root_node.
             char c = *lsl;
             *lsl = '\0';
-            filemap_t::iterator parent = files.find(fname);
+            filemap_t::iterator parent = files.find(fullname);
             assert(parent != files.end());
             parent->second->childs.push_back(node);
             *lsl = c;
+            
+            // Setting short name of node
+            if (c == '/') {
+                lsl++;
+            }
+            node->name = lsl;
 
             insert(node);
         }
