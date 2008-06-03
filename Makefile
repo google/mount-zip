@@ -1,6 +1,6 @@
 DEST=fuse-zip
 CLEANFILES=$(DEST)
-LIBS=`pkg-config fuse --cflags --libs` `pkg-config libzip --cflags --libs` -lzip
+LIBS=`pkg-config fuse --cflags --libs` `pkg-config libzip --cflags --libs`
 WARN=-Wall
 
 $(DEST): fuse-zip.cpp
@@ -13,6 +13,7 @@ test: $(DEST)
 	mkdir -p testDir
 	./$(DEST) test.zip testDir
 	ls testDir || true
+	ls testDir/a || true
 	cat testDir/hello || true
 	fusermount -u testDir
 	rmdir testDir
