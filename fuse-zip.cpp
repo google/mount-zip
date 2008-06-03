@@ -32,11 +32,6 @@ static void fusezip_destroy(void *data) {
     free(root_node);
 }
 
-static struct fuse_operations fuzezip_oper = {
-    .init       =   fusezip_init,
-    .destroy    =   fusezip_destroy
-};
-
 void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
 }
@@ -56,6 +51,9 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    return fuse_main(argc - 1, argv + 1, &fuzezip_oper, zip_file);
+    static struct fuse_operations fusezip_oper;
+    fusezip_oper.init       =   fusezip_init;
+    fusezip_oper.destroy    =   fusezip_destroy;
+    return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
 }
 
