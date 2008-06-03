@@ -183,8 +183,11 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
         return -ENOENT;
     }
     struct zip_stat zstat;
-    //TODO: handle error
-    zip_stat_index(get_zip(), node->id, 0, &zstat);
+    if (zip_stat_index(get_zip(), node->id, 0, &zstat) != 0) {
+        int err;
+        zip_error_get(get_zip(), NULL, &err);
+        return err;
+    }
     if (node->is_dir) {
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2 + node->childs.size();
@@ -304,6 +307,7 @@ static int fusezip_read(const char *path, char *buf, size_t size, off_t offset, 
 static int fusezip_release (const char *path, struct fuse_file_info *fi) {
     struct file_handle *fh = (file_handle*)fi->fh;
     struct zip_file *f = fh->zf;
+    //TODO: handle error
     zip_fclose(f);
     delete fh;
     return 0;
@@ -316,7 +320,7 @@ void print_usage() {
 int main(int argc, char *argv[]) {
     //TODO: think about workaround
     if (sizeof(void*) > sizeof(uint64_t)) {
-        fprintf(stderr,"%s: Because of FUSE limitation this program cannot be run on your system\n", PROGRAM);
+        fprintf(stderr,"%s: This program cannot be run on your system because of FUSE design limitation\n", PROGRAM);
         return EXIT_FAILURE;
     }
     if (argc < 2) {
