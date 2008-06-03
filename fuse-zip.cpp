@@ -1,6 +1,7 @@
 //TODO: insert license header
 
 #define FUSE_USE_VERSION 26
+#define _FILE_OFFSET_BITS 64
 #define PROGRAM "fuse-zip"
 #define ERROR_STR_BUF_LEN 0x100
 
@@ -173,7 +174,7 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
     return res;
 }
 
-static int fusezip_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
+static int fusezip_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
     (void) offset;
     (void) fi;
 
@@ -194,7 +195,7 @@ static int fusezip_readdir (const char *path, void *buf, fuse_fill_dir_t filler,
     return 0;    
 }
 
-static int fusezip_statfs (const char *path, struct statvfs *buf) {
+static int fusezip_statfs(const char *path, struct statvfs *buf) {
     (void) path;
 
     buf->f_bsize = 1;
@@ -212,11 +213,48 @@ static int fusezip_statfs (const char *path, struct statvfs *buf) {
     return 0;
 }
 
+static int fusezip_open(const char *path, struct fuse_file_info *fi) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    //TODO: change in rw version
+    if ((fi->flags & (O_WRONLY | O_RDWR)) != 0) {
+        return -EROFS;
+    }
+   
+    struct zip_file *f = zip_fopen(get_zip(), path + 1, fi->flags);
+    if (f == NULL) {
+        //TODO: handle errors more accurate
+        int err;
+        zip_error_get(get_zip(), NULL, &err);
+        return err;
+    }
+    fi->fh = (uint64_t)f;
+
+    return 0;
+}
+
+static int fusezip_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+//    struct zip_file *f = (zip_file*)fi->fh;
+
+    return 0;
+}
+
+static int fusezip_release (const char *path, struct fuse_file_info *fi) {
+    struct zip_file *f = (zip_file*)fi->fh;
+    return zip_fclose(f);
+}
+
 void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
 }
 
 int main(int argc, char *argv[]) {
+    //TODO: think about workaround
+    if (sizeof(void*) > sizeof(uint64_t)) {
+        fprintf(stderr,"%s: Because of FUSE limitation this program cannot be run on your system\n", PROGRAM);
+        return EXIT_FAILURE;
+    }
     if (argc < 2) {
         print_usage();
         return EXIT_FAILURE;
@@ -238,6 +276,9 @@ int main(int argc, char *argv[]) {
     fusezip_oper.readdir    =   fusezip_readdir;
     fusezip_oper.getattr    =   fusezip_getattr;
     fusezip_oper.statfs     =   fusezip_statfs;
+    fusezip_oper.open       =   fusezip_open;
+    fusezip_oper.read       =   fusezip_read;
+    fusezip_oper.release    =   fusezip_release;
     return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
 }
 
