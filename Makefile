@@ -12,9 +12,9 @@ clean:
 test: $(DEST)
 	mkdir -p testDir
 	./$(DEST) test.zip testDir
-	ls testDir || true
+	ls -l testDir || true
 	ls testDir/a || true
-	cat testDir/hello || true
+	cat testDir/lszip.c || true
 	fusermount -u testDir
 	rmdir testDir
 

@@ -45,7 +45,6 @@ typedef map <const char*, fusezip_node*, ltstr> filemap_t;
 
 class fusezip_data {
 private:
-    struct zip *m_zip;
     fusezip_node *root_node;
 
     inline void insert(fusezip_node *node) {
@@ -112,6 +111,7 @@ public:
     }
 
     filemap_t files;
+    struct zip *m_zip;
 };
 
 static void *fusezip_init(struct fuse_conn_info *conn) {
@@ -137,6 +137,11 @@ fusezip_node *get_file_node(const char *fname) {
     }
 }
 
+inline struct zip *get_zip() {
+    fusezip_data *data = (fusezip_data*)fuse_get_context()->private_data;
+    return data->m_zip;
+}
+
 static int fusezip_getattr(const char *path, struct stat *stbuf) {
     int res = 0;
 
@@ -148,15 +153,18 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
     if (node == NULL) {
         return -ENOENT;
     }
+    struct zip_stat zstat;
+    zip_stat_index(get_zip(), node->id, 0, &zstat);
     if (node->is_dir) {
-        stbuf->st_mode = S_IFDIR | 0755;
+        stbuf->st_mode = S_IFDIR | 0555;
         stbuf->st_nlink = 2 + node->childs.size();
     } else {
         stbuf->st_mode = S_IFREG | 0444;
         stbuf->st_nlink = 1;
-        //TODO
-        //stbuf->st_size = strlen(hello_str);
     }
+    stbuf->st_ino = node->id;
+    stbuf->st_size = zstat.size;
+    stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = zstat.mtime;
 
     return res;
 }
