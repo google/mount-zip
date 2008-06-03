@@ -127,8 +127,12 @@ static void fusezip_destroy(void *v_data) {
     delete data;
 }
 
+inline fusezip_data *get_data() {
+    return (fusezip_data*)fuse_get_context()->private_data;
+}
+
 fusezip_node *get_file_node(const char *fname) {
-    fusezip_data *data = (fusezip_data*)fuse_get_context()->private_data;
+    fusezip_data *data = get_data();
     filemap_t::iterator i = data->files.find(fname);
     if (i == data->files.end()) {
         return NULL;
@@ -138,8 +142,7 @@ fusezip_node *get_file_node(const char *fname) {
 }
 
 inline struct zip *get_zip() {
-    fusezip_data *data = (fusezip_data*)fuse_get_context()->private_data;
-    return data->m_zip;
+    return get_data()->m_zip;
 }
 
 static int fusezip_getattr(const char *path, struct stat *stbuf) {
@@ -154,6 +157,7 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
         return -ENOENT;
     }
     struct zip_stat zstat;
+    //TODO: handle error
     zip_stat_index(get_zip(), node->id, 0, &zstat);
     if (node->is_dir) {
         stbuf->st_mode = S_IFDIR | 0555;
@@ -190,6 +194,24 @@ static int fusezip_readdir (const char *path, void *buf, fuse_fill_dir_t filler,
     return 0;    
 }
 
+static int fusezip_statfs (const char *path, struct statvfs *buf) {
+    (void) path;
+
+    buf->f_bsize = 1;
+    //TODO: set this field to archive size
+    buf->f_blocks = 0;
+
+    //TODO: change in rw version
+    buf->f_bfree = 0;
+    buf->f_bavail = 0;
+    buf->f_ffree = 0;
+
+    buf->f_files = get_data()->files.size() - 1;
+    buf->f_namemax = 255;
+
+    return 0;
+}
+
 void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
 }
@@ -215,6 +237,7 @@ int main(int argc, char *argv[]) {
     fusezip_oper.destroy    =   fusezip_destroy;
     fusezip_oper.readdir    =   fusezip_readdir;
     fusezip_oper.getattr    =   fusezip_getattr;
+    fusezip_oper.statfs     =   fusezip_statfs;
     return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
 }
 
