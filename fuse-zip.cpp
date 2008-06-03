@@ -99,15 +99,18 @@ public:
             fusezip_node *node = new fusezip_node(i, fullname);
             char *lsl = fullname;
             while (*lsl++) {}
-            while (lsl >= fullname && *lsl-- != '/') {}
-            lsl++;
+            lsl--;
+            while (lsl > fullname && *lsl != '/') {
+                lsl--;
+            }
             // If the last symbol in file name is '/' then it is a directory
             if (*(lsl+1) == '\0') {
                 // It will produce two \0s at the end of file name. I think that it is not a problem
                 *lsl = '\0';
                 node->is_dir = true;
-                while (lsl >= fullname && *lsl-- != '/') {}
-                lsl++;
+                while (lsl > fullname && *lsl != '/') {
+                    lsl--;
+                }
             }
 
             // Adding new child to parent node. For items without '/' in fname it will be root_node.
@@ -183,7 +186,7 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
     //TODO: handle error
     zip_stat_index(get_zip(), node->id, 0, &zstat);
     if (node->is_dir) {
-        stbuf->st_mode = S_IFDIR | 0555;
+        stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2 + node->childs.size();
     } else {
         stbuf->st_mode = S_IFREG | 0444;
@@ -246,7 +249,6 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
    
     struct zip_file *f = zip_fopen(get_zip(), path + 1, fi->flags);
     if (f == NULL) {
-        //TODO: handle errors more accurate
         int err;
         zip_error_get(get_zip(), NULL, &err);
         return err;
@@ -256,6 +258,14 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
     fh->pos = 0;
     fi->fh = (uint64_t)fh;
 
+    return 0;
+}
+
+ssize_t _zip_fread(void *f, void *buf, size_t size) {
+    (void) f;
+    (void) buf;
+
+    memset(buf, size, 0);
     return 0;
 }
 
@@ -270,32 +280,41 @@ static int fusezip_read(const char *path, char *buf, size_t size, off_t offset, 
         if (err != 0) {
             return -EIO;
         }
-        err = fusezip_open(path, fi);
-        if (err != 0) {
+        struct zip_file *f = zip_fopen(get_zip(), path + 1, fi->flags);
+        if (f == NULL) {
+            int err;
+            zip_error_get(get_zip(), NULL, &err);
             return err;
         }
+        fh->zf = f;
+        fh->pos = 0;
     }
     // skipping to offset ...
-    off_t count = offset - fh->pos;
+    ssize_t count = offset - fh->pos;
     while (count > 0) {
         static char bb[SKIP_BUFFER_LENGTH];
-        off_t r = SKIP_BUFFER_LENGTH;
+        ssize_t r = SKIP_BUFFER_LENGTH;
         if (r > count) {
             r = count;
         }
-        int rr = zip_fread(f, bb, r);
-        if (r != rr) {
+        ssize_t rr = zip_fread(f, bb, r);
+        if (rr < 0) {
             return -EIO;
         }
+        count -= rr;
     }
 
-    return zip_fread(f, buf, size);
+    ssize_t nr = zip_fread(f, buf, size);
+    fh->pos += nr;
+    return nr;
 }
 
 static int fusezip_release (const char *path, struct fuse_file_info *fi) {
     struct file_handle *fh = (file_handle*)fi->fh;
     struct zip_file *f = fh->zf;
-    return zip_fclose(f);
+    zip_fclose(f);
+    delete fh;
+    return 0;
 }
 
 void print_usage() {
