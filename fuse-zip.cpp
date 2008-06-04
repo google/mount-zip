@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <limits.h>
 
 #include <map>
 #include <list>
@@ -41,13 +42,16 @@ struct ltstr {
     }
 };
 
+struct file_handle;
+
 class fusezip_node {
 public:
     fusezip_node(int id, char *full_name) {
         this->id = id;
         this->full_name = full_name;
         this->name = full_name;
-        this->is_dir=false;
+        this->is_dir = false;
+        this->open_count = 0;
     }
 
     ~fusezip_node() {
@@ -58,6 +62,8 @@ public:
     bool is_dir;
     int id;
     list<fusezip_node*> childs;
+    int open_count;
+    file_handle *fh;
 };
 
 typedef map <const char*, fusezip_node*, ltstr> filemap_t; 
@@ -138,6 +144,7 @@ public:
 struct file_handle {
     struct zip_file *zf;
     off_t pos;
+    fusezip_node *node;
 };
 
 static void *fusezip_init(struct fuse_conn_info *conn) {
@@ -250,7 +257,18 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
         return -EROFS;
     }
    
-    struct zip_file *f = zip_fopen(get_zip(), path + 1, fi->flags);
+    fusezip_node *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (node->open_count == INT_MAX) {
+        return -EMFILE;
+    }
+    if (node->open_count++) {
+        fi->fh = (uint64_t)node->fh;
+        return 0;
+    }
+    struct zip_file *f = zip_fopen_index(get_zip(), node->id, fi->flags);
     if (f == NULL) {
         int err;
         zip_error_get(get_zip(), NULL, &err);
@@ -260,6 +278,7 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
     fh->zf = f;
     fh->pos = 0;
     fi->fh = (uint64_t)fh;
+    fh->node = node;
 
     return 0;
 }
@@ -309,6 +328,7 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
     struct zip_file *f = fh->zf;
     //TODO: handle error
     zip_fclose(f);
+    fh->node->open_count--;
     delete fh;
     return 0;
 }
