@@ -183,7 +183,7 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
         return -ENOENT;
     }
     struct zip_stat zstat;
-    if (zip_stat_index(get_zip(), node->id, 0, &zstat) != 0) {
+    if (node->id != -1 && zip_stat_index(get_zip(), node->id, 0, &zstat) != 0) {
         int err;
         zip_error_get(get_zip(), NULL, &err);
         return err;
