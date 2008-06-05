@@ -329,15 +329,7 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
-static int fusezip_unlink(const char *path) {
-    if (*path == '\0') {
-        return -ENOENT;
-    }
-    fusezip_node *node = get_file_node(path + 1);
-    if (node == NULL) {
-        return -ENOENT;
-    }
-
+int remove_node(fusezip_node *node) {
     // Removing from parent and files map
     get_data()->files.erase(node->full_name);
     node->parent->childs.remove(node);
@@ -349,6 +341,37 @@ static int fusezip_unlink(const char *path) {
     } else {
         return 0;
     }
+}
+
+static int fusezip_unlink(const char *path) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    fusezip_node *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (node->is_dir) {
+        return -EISDIR;
+    }
+    return remove_node(node);
+}
+
+static int fusezip_rmdir(const char *path) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    fusezip_node *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (!node->is_dir) {
+        return -ENOTDIR;
+    }
+    if (!node->childs.empty()) {
+        return -ENOTEMPTY;
+    }
+    return remove_node(node);
 }
 
 void print_usage() {
@@ -387,6 +410,7 @@ int main(int argc, char *argv[]) {
     fusezip_oper.read       =   fusezip_read;
     fusezip_oper.release    =   fusezip_release;
     fusezip_oper.unlink     =   fusezip_unlink;
+    fusezip_oper.rmdir      =   fusezip_rmdir;
 
 // We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
 // return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
