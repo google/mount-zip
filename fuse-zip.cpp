@@ -4,7 +4,7 @@
 //                                                                        //
 //  This program is free software; you can redistribute it and/or modify  //
 //  it under the terms of the GNU Library General Public License as       //
-//  published by the Free Software Foundation; either version 2 of the    //
+//  published by the Free Software Foundation; either version 3 of the    //
 //  License, or (at your option) any later version.                       //
 //                                                                        //
 //  This program is distributed in the hope that it will be useful,       //
@@ -373,16 +373,16 @@ int main(int argc, char *argv[]) {
 
     fuse = fuse_setup(argc - 1, argv + 1, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, data);
     if (fuse == NULL) {
-        return 1;
+        return EXIT_FAILURE;
     }
 
     res = fuse_loop(fuse);
 
     fuse_teardown(fuse, mountpoint);
     if (res == -1) {
-        return 1;
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
