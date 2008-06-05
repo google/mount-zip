@@ -52,12 +52,48 @@ typedef map <const char*, fusezip_node*, ltstr> filemap_t;
 
 class fusezip_node {
 public:
-    fusezip_node(int id, char *full_name) {
+    fusezip_node(filemap_t &files, int id, const char *fname) {
         this->id = id;
-        this->full_name = full_name;
-        this->name = full_name;
         this->is_dir = false;
         this->open_count = 0;
+
+        assert(fname != NULL);
+        this->full_name = strdup(fname);
+        if (*fname == '\0') {
+            this->name = this->full_name;
+            this->is_dir = true;
+        } else {
+            char *lsl = full_name;
+            while (*lsl++) {}
+            lsl--;
+            while (lsl > full_name && *lsl != '/') {
+                lsl--;
+            }
+            // If the last symbol in file name is '/' then it is a directory
+            if (*(lsl+1) == '\0') {
+                // It will produce two \0s at the end of file name. I think that it is not a problem
+                *lsl = '\0';
+                this->is_dir = true;
+                while (lsl > full_name && *lsl != '/') {
+                    lsl--;
+                }
+            }
+            // Adding new child to parent node. For items without '/' in fname it will be root_node.
+            char c = *lsl;
+            *lsl = '\0';
+            // Searching for parent node...
+            filemap_t::iterator parent = files.find(this->full_name);
+            assert(parent != files.end());
+            parent->second->childs.push_back(this);
+            this->parent = parent->second;
+            *lsl = c;
+            // Setting short name of node
+            if (c == '/') {
+                lsl++;
+            }
+            this->name = lsl;
+        }
+        files[this->full_name] = this;
     }
 
     ~fusezip_node() {
@@ -74,10 +110,6 @@ public:
 };
 
 class fusezip_data {
-private:
-    inline void insert(fusezip_node *node) {
-        files[node->full_name] = node;
-    }
 public:
     filemap_t files;
     struct zip *m_zip;
@@ -95,50 +127,16 @@ public:
             delete i->second;
         }
     }
+
 private:
     void build_tree() {
-        fusezip_node *root_node = new fusezip_node(ROOT_NODE_INDEX, strdup(""));
+        fusezip_node *root_node = new fusezip_node(files, ROOT_NODE_INDEX, "");
         root_node->is_dir = true;
-        insert(root_node);
 
         int n = zip_get_num_files(m_zip);
         for (int i = 0; i < n; ++i) {
-            char *fullname = strdup(zip_get_name(m_zip, i, 0));
-            assert(fullname != NULL);
-
-            fusezip_node *node = new fusezip_node(i, fullname);
-            char *lsl = fullname;
-            while (*lsl++) {}
-            lsl--;
-            while (lsl > fullname && *lsl != '/') {
-                lsl--;
-            }
-            // If the last symbol in file name is '/' then it is a directory
-            if (*(lsl+1) == '\0') {
-                // It will produce two \0s at the end of file name. I think that it is not a problem
-                *lsl = '\0';
-                node->is_dir = true;
-                while (lsl > fullname && *lsl != '/') {
-                    lsl--;
-                }
-            }
-
-            // Adding new child to parent node. For items without '/' in fname it will be root_node.
-            char c = *lsl;
-            *lsl = '\0';
-            filemap_t::iterator parent = files.find(fullname);
-            assert(parent != files.end());
-            parent->second->childs.push_back(node);
-            node->parent = parent->second;
-            *lsl = c;
-            
-            // Setting short name of node
-            if (c == '/') {
-                lsl++;
-            }
-            node->name = lsl;
-
-            insert(node);
+            fusezip_node *node = new fusezip_node(files, i, zip_get_name(m_zip, i, 0));
+            (void) node;
         }
     }
 };
@@ -254,6 +252,9 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
     fusezip_node *node = get_file_node(path + 1);
     if (node == NULL) {
         return -ENOENT;
+    }
+    if (node->is_dir) {
+        return -EISDIR;
     }
     if (node->open_count == INT_MAX) {
         return -EMFILE;
@@ -374,6 +375,22 @@ static int fusezip_rmdir(const char *path) {
     return remove_node(node);
 }
 
+static int fusezip_mkdir(const char *path, mode_t mode) {
+    (void) mode;
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    int idx = zip_add_dir(get_zip(), path + 1);
+    if (idx < 0) {
+        int err;
+        zip_error_get(get_zip(), NULL, &err);
+        return err;
+    }
+    fusezip_node *node = new fusezip_node(get_data()->files, idx, path + 1);
+    node->is_dir = true;
+    return 0;
+}
+
 void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
 }
@@ -411,6 +428,7 @@ int main(int argc, char *argv[]) {
     fusezip_oper.release    =   fusezip_release;
     fusezip_oper.unlink     =   fusezip_unlink;
     fusezip_oper.rmdir      =   fusezip_rmdir;
+    fusezip_oper.mkdir      =   fusezip_mkdir;
 
 // We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
 // return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
