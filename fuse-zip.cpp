@@ -257,6 +257,7 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
         return -EMFILE;
     }
     if (node->open_count++) {
+        // Reusing existing file handle
         fi->fh = (uint64_t)node->fh;
         return 0;
     }
@@ -318,10 +319,11 @@ static int fusezip_read(const char *path, char *buf, size_t size, off_t offset, 
 static int fusezip_release (const char *path, struct fuse_file_info *fi) {
     struct file_handle *fh = (file_handle*)fi->fh;
     struct zip_file *f = fh->zf;
-    //TODO: handle error
-    zip_fclose(f);
-    fh->node->open_count--;
-    delete fh;
+    if (--fh->node->open_count) {
+        //TODO: handle error
+        zip_fclose(f);
+        delete fh;
+    }
     return 0;
 }
 
