@@ -22,6 +22,7 @@
 #define PROGRAM "fuse-zip"
 #define ERROR_STR_BUF_LEN 0x100
 #define SKIP_BUFFER_LENGTH (1024*1024)
+#define ROOT_NODE_INDEX (-1)
 
 #include <fuse.h>
 #include <zip.h>
@@ -42,7 +43,11 @@ struct ltstr {
     }
 };
 
+class fusezip_node;
 struct file_handle;
+
+typedef list <fusezip_node*> nodelist_t;
+typedef map <const char*, fusezip_node*, ltstr> filemap_t; 
 
 class fusezip_node {
 public:
@@ -61,12 +66,10 @@ public:
     char *name, *full_name;
     bool is_dir;
     int id;
-    list<fusezip_node*> childs;
+    nodelist_t childs;
     int open_count;
     file_handle *fh;
 };
-
-typedef map <const char*, fusezip_node*, ltstr> filemap_t; 
 
 class fusezip_data {
 private:
@@ -74,6 +77,9 @@ private:
         files[node->full_name] = node;
     }
 public:
+    filemap_t files;
+    struct zip *m_zip;
+
     fusezip_data(struct zip *z) {
         m_zip = z;
         build_tree();
@@ -87,9 +93,9 @@ public:
             delete i->second;
         }
     }
-
+private:
     void build_tree() {
-        fusezip_node *root_node = new fusezip_node(-1, strdup(""));
+        fusezip_node *root_node = new fusezip_node(ROOT_NODE_INDEX, strdup(""));
         root_node->is_dir = true;
         insert(root_node);
 
@@ -132,9 +138,6 @@ public:
             insert(node);
         }
     }
-
-    filemap_t files;
-    struct zip *m_zip;
 };
 
 struct file_handle {
@@ -147,9 +150,8 @@ static void *fusezip_init(struct fuse_conn_info *conn) {
     return fuse_get_context()->private_data;
 }
 
-static void fusezip_destroy(void *v_data) {
-    fusezip_data *data = (fusezip_data*)v_data;
-    delete data;
+static void fusezip_destroy(void *data) {
+    delete (fusezip_data*)data;
 }
 
 inline fusezip_data *get_data() {
@@ -171,8 +173,6 @@ inline struct zip *get_zip() {
 }
 
 static int fusezip_getattr(const char *path, struct stat *stbuf) {
-    int res = 0;
-
     memset(stbuf, 0, sizeof(struct stat));
     if (*path == '\0') {
         return -ENOENT;
@@ -182,7 +182,7 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
         return -ENOENT;
     }
     struct zip_stat zstat;
-    if (node->id != -1 && zip_stat_index(get_zip(), node->id, 0, &zstat) != 0) {
+    if (node->id != ROOT_NODE_INDEX && zip_stat_index(get_zip(), node->id, 0, &zstat) != 0) {
         int err;
         zip_error_get(get_zip(), NULL, &err);
         return err;
@@ -191,14 +191,14 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2 + node->childs.size();
     } else {
-        stbuf->st_mode = S_IFREG | 0444;
+        stbuf->st_mode = S_IFREG | 0644;
         stbuf->st_nlink = 1;
     }
     stbuf->st_ino = node->id;
     stbuf->st_size = zstat.size;
     stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = zstat.mtime;
 
-    return res;
+    return 0;
 }
 
 static int fusezip_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
@@ -208,14 +208,13 @@ static int fusezip_readdir(const char *path, void *buf, fuse_fill_dir_t filler, 
     if (*path == '\0') {
         return -ENOENT;
     }
-    filler(buf, ".", NULL, 0);
-    filler(buf, "..", NULL, 0);
-    
     fusezip_node *node = get_file_node(path + 1);
     if (node == NULL) {
         return -ENOENT;
     }
-    for (list<fusezip_node*>::const_iterator i = node->childs.begin(); i != node->childs.end(); ++i) {
+    filler(buf, ".", NULL, 0);
+    filler(buf, "..", NULL, 0);
+    for (nodelist_t::const_iterator i = node->childs.begin(); i != node->childs.end(); ++i) {
         filler(buf, (*i)->name, NULL, 0);
     }
 
