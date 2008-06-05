@@ -46,6 +46,7 @@ struct ltstr {
 class fusezip_node;
 struct file_handle;
 
+//TODO: replace with set or hash_set
 typedef list <fusezip_node*> nodelist_t;
 typedef map <const char*, fusezip_node*, ltstr> filemap_t; 
 
@@ -69,6 +70,7 @@ public:
     nodelist_t childs;
     int open_count;
     file_handle *fh;
+    fusezip_node *parent;
 };
 
 class fusezip_data {
@@ -127,6 +129,7 @@ private:
             filemap_t::iterator parent = files.find(fullname);
             assert(parent != files.end());
             parent->second->childs.push_back(node);
+            node->parent = parent->second;
             *lsl = c;
             
             // Setting short name of node
@@ -326,6 +329,28 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
+static int fusezip_unlink(const char *path) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    fusezip_node *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+
+    // Removing from parent and files map
+    get_data()->files.erase(node->full_name);
+    node->parent->childs.remove(node);
+
+    int id = node->id;
+    delete node;
+    if (zip_delete (get_zip(), id) != 0) {
+        return -ENOENT;
+    } else {
+        return 0;
+    }
+}
+
 void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
 }
@@ -361,6 +386,7 @@ int main(int argc, char *argv[]) {
     fusezip_oper.open       =   fusezip_open;
     fusezip_oper.read       =   fusezip_read;
     fusezip_oper.release    =   fusezip_release;
+    fusezip_oper.unlink     =   fusezip_unlink;
 
 // We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
 // return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
