@@ -88,7 +88,6 @@ public:
         }
     }
 
-    //TODO: move tree building into main()
     void build_tree() {
         fusezip_node *root_node = new fusezip_node(-1, strdup(""));
         root_node->is_dir = true;
@@ -97,10 +96,7 @@ public:
         int n = zip_get_num_files(m_zip);
         for (int i = 0; i < n; ++i) {
             char *fullname = strdup(zip_get_name(m_zip, i, 0));
-            if (fullname == NULL) {
-                //TODO: may be throw error?
-                continue;
-            }
+            assert(fullname != NULL);
 
             fusezip_node *node = new fusezip_node(i, fullname);
             char *lsl = fullname;
@@ -148,11 +144,7 @@ struct file_handle {
 };
 
 static void *fusezip_init(struct fuse_conn_info *conn) {
-    struct fuse_context *context = fuse_get_context();
-    struct zip *z = (struct zip*)context->private_data;
-
-    fusezip_data *data = new fusezip_data(z);
-    return data;
+    return fuse_get_context()->private_data;
 }
 
 static void fusezip_destroy(void *v_data) {
@@ -357,6 +349,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s: cannot open zip archive %s: %s\n", PROGRAM, argv[1], err_str);
         return EXIT_FAILURE;
     }
+    fusezip_data *data = new fusezip_data(zip_file);
 
     static struct fuse_operations fusezip_oper;
     fusezip_oper.init       =   fusezip_init;
@@ -376,7 +369,7 @@ int main(int argc, char *argv[]) {
     int multithreaded;
     int res;
 
-    fuse = fuse_setup(argc - 1, argv + 1, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, zip_file);
+    fuse = fuse_setup(argc - 1, argv + 1, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, data);
     if (fuse == NULL) {
         return 1;
     }
