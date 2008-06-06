@@ -34,6 +34,7 @@
 
 #include <map>
 #include <list>
+#include <queue>
 
 using namespace std;
 
@@ -51,15 +52,12 @@ typedef list <fusezip_node*> nodelist_t;
 typedef map <const char*, fusezip_node*, ltstr> filemap_t; 
 
 class fusezip_node {
-public:
-    fusezip_node(filemap_t &files, int id, const char *fname) {
-        this->id = id;
-        this->is_dir = false;
-        this->open_count = 0;
-
+private:
+    void parse_name(char *fname) {
         assert(fname != NULL);
-        this->full_name = strdup(fname);
+        this->full_name = fname;
         if (*fname == '\0') {
+            // in case of root directory of a virtual filesystem
             this->name = this->full_name;
             this->is_dir = true;
         } else {
@@ -78,7 +76,21 @@ public:
                     lsl--;
                 }
             }
+            // Setting short name of node
+            if (*lsl == '/') {
+                lsl++;
+            }
+            this->name = lsl;
+        }
+    }
+
+    void attach(filemap_t &files) {
+        if (*full_name != '\0') {
             // Adding new child to parent node. For items without '/' in fname it will be root_node.
+            char *lsl = name;
+            if (lsl > full_name) {
+                lsl--;
+            }
             char c = *lsl;
             *lsl = '\0';
             // Searching for parent node...
@@ -87,17 +99,38 @@ public:
             parent->second->childs.push_back(this);
             this->parent = parent->second;
             *lsl = c;
-            // Setting short name of node
-            if (c == '/') {
-                lsl++;
-            }
-            this->name = lsl;
         }
         files[this->full_name] = this;
     }
 
+public:
+    fusezip_node(filemap_t &files, int id, const char *fname) {
+        this->id = id;
+        this->is_dir = false;
+        this->open_count = 0;
+        parse_name(strdup(fname));
+        attach(files);
+    }
+
     ~fusezip_node() {
         free(full_name);
+    }
+
+    void detach(filemap_t &files) {
+        files.erase(full_name);
+        parent->childs.remove(this);
+    }
+
+    void rename(filemap_t &filemap, char *fname) {
+        detach(filemap);
+        free(full_name);
+        parse_name(fname);
+        attach(filemap);
+    }
+
+    void rename_wo_reparenting(char *new_name) {
+        free(full_name);
+        parse_name(new_name);
     }
 
     char *name, *full_name;
@@ -331,9 +364,7 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
 }
 
 int remove_node(fusezip_node *node) {
-    // Removing from parent and files map
-    get_data()->files.erase(node->full_name);
-    node->parent->childs.remove(node);
+    node->detach(get_data()->files);
 
     int id = node->id;
     delete node;
@@ -391,12 +422,67 @@ static int fusezip_mkdir(const char *path, mode_t mode) {
     return 0;
 }
 
+static int fusezip_rename(const char *path, const char *new_path) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    fusezip_node *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (*new_path == '\0') {
+        return -EINVAL;
+    }
+    fusezip_node *new_node = get_file_node(new_path + 1);
+    if (new_node != NULL) {
+        remove_node(new_node);
+    }
+
+    int len = strlen(new_path);
+    char *new_name;
+    if (!node->is_dir) {
+        len--;
+    }
+    new_name = (char*)malloc(len + 1);
+    strcpy(new_name, new_path + 1);
+    if (node->is_dir) {
+        new_name[len - 1] = '/';
+        new_name[len] = '\0';
+    }
+
+    struct zip *z = get_zip();
+    // Renaming directory and its content recursively
+    if (node->is_dir) {
+        queue<fusezip_node*> q;
+        q.push(node);
+        while (!q.empty()) {
+            fusezip_node *n = q.front();
+            fprintf(stderr, "%s\n", n->full_name);
+            q.pop();
+            for (nodelist_t::const_iterator i = n->childs.begin(); i != n->childs.end(); ++i) {
+                fusezip_node *nn = *i;
+                q.push(nn);
+                char *name = (char*)malloc(len + strlen(nn->name) + 1);
+                strcpy(name, new_name);
+                strcpy(name + len, nn->name);
+                fprintf(stderr, "$ %s\n", name);
+                nn->rename_wo_reparenting(name);
+                int res = zip_rename(z, nn->id, name);
+                assert(res == 0);
+            }
+        }
+    }
+    zip_rename(z, node->id, new_name);
+    // Must be called after loop because new_name will be truncated
+    node->rename(get_data()->files, new_name);
+    return 0;
+}
+
 void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
 }
 
 int main(int argc, char *argv[]) {
-    //TODO: think about workaround
     if (sizeof(void*) > sizeof(uint64_t)) {
         fprintf(stderr,"%s: This program cannot be run on your system because of FUSE design limitation\n", PROGRAM);
         return EXIT_FAILURE;
@@ -408,8 +494,7 @@ int main(int argc, char *argv[]) {
     
     int err;
     struct zip *zip_file;
-    //TODO: add ZIP_CREATE in rw version
-    if ((zip_file = zip_open(argv[1], ZIP_CHECKCONS, &err)) == NULL) {
+    if ((zip_file = zip_open(argv[1], ZIP_CHECKCONS | ZIP_CREATE, &err)) == NULL) {
         char err_str[ERROR_STR_BUF_LEN];
         zip_error_to_str(err_str, ERROR_STR_BUF_LEN, err, errno);
         fprintf(stderr, "%s: cannot open zip archive %s: %s\n", PROGRAM, argv[1], err_str);
@@ -429,6 +514,7 @@ int main(int argc, char *argv[]) {
     fusezip_oper.unlink     =   fusezip_unlink;
     fusezip_oper.rmdir      =   fusezip_rmdir;
     fusezip_oper.mkdir      =   fusezip_mkdir;
+    fusezip_oper.rename     =   fusezip_rename;
 
 // We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
 // return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
@@ -442,14 +528,8 @@ int main(int argc, char *argv[]) {
     if (fuse == NULL) {
         return EXIT_FAILURE;
     }
-
     res = fuse_loop(fuse);
-
     fuse_teardown(fuse, mountpoint);
-    if (res == -1) {
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
+    return (res == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
