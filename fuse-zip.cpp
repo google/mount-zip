@@ -457,7 +457,6 @@ static int fusezip_rename(const char *path, const char *new_path) {
         q.push(node);
         while (!q.empty()) {
             fusezip_node *n = q.front();
-            fprintf(stderr, "%s\n", n->full_name);
             q.pop();
             for (nodelist_t::const_iterator i = n->childs.begin(); i != n->childs.end(); ++i) {
                 fusezip_node *nn = *i;
@@ -465,7 +464,6 @@ static int fusezip_rename(const char *path, const char *new_path) {
                 char *name = (char*)malloc(len + strlen(nn->name) + 1);
                 strcpy(name, new_name);
                 strcpy(name + len, nn->name);
-                fprintf(stderr, "$ %s\n", name);
                 nn->rename_wo_reparenting(name);
                 int res = zip_rename(z, nn->id, name);
                 assert(res == 0);
