@@ -1,11 +1,18 @@
 DEST=fuse-zip
-CLEANFILES=$(DEST)
-LIBS=`pkg-config fuse --cflags --libs` `pkg-config libzip --cflags --libs`
-WARN=-Wall
+LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
+CXXFLAGS=-Wall $(shell pkg-config fuse --cflags) $(shell pkg-config libzip --cflags)
+SOURCES=fuse-zip.cpp
+OBJECTS=$(SOURCES:.cpp=.o)
+CLEANFILES=$(DEST) $(OBJECTS)
 INSTALLPREFIX=
 
-$(DEST): fuse-zip.cpp
-	$(CXX) $(CXXFLAGS) $(WARN) $(LIBS) fuse-zip.cpp -o $(DEST)
+all: $(SOURCES) $(DEST)
+
+$(DEST): $(OBJECTS)
+	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+
+.cpp.o:
+	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 clean:
 	rm -f $(CLEANFILES)
