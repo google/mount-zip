@@ -29,6 +29,7 @@ private:
     BigBuffer *buffer;
     FuseZipData *data;
     bool saving;
+    int open_count;
 
     void parse_name(char *fname);
     void attach();

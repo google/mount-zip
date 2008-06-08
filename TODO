@@ -1,3 +1,2 @@
-* handle memory allocation errors
-* throw ziperrors which can return error codes
-* replace int-s in fread to ssize_t
+* write memory cache to /tmp on fsync()
+

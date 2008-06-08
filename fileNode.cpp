@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 
 #include "fileNode.h"
 #include "fuseZipData.h"
@@ -54,6 +55,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
         free(full_name);
         throw;
     }
+    this->open_count = 0;
 }
 
 FileNode::~FileNode() {
@@ -133,7 +135,10 @@ void FileNode::rename_wo_reparenting(char *new_name) {
 }
 
 int FileNode::open() {
-    if (!changed) {
+    if (open_count == INT_MAX) {
+        return -EMFILE;
+    }
+    if (!changed && open_count++ == 0) {
         try {
             buffer = new BigBuffer(data->m_zip, id, stat.size);
         }
@@ -158,7 +163,7 @@ int FileNode::write(const char *buf, size_t size, off_t offset) {
 
 int FileNode::close() {
     stat.size = buffer->len;
-    if (!changed) {
+    if (!changed && --open_count == 0) {
         delete buffer;
     }
     return 0;
