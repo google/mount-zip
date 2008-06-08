@@ -50,7 +50,6 @@ public:
     bool is_dir;
     int id;
     nodelist_t childs;
-    int open_count;
     FileNode *parent;
 
     bool changed;
