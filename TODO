@@ -1,7 +1,3 @@
 * handle memory allocation errors
-* move file opening to FileHandler implementations
 * throw ziperrors which can return error codes
-* compare performance of RoHandler and RwHandler on reading operations
 * replace int-s in fread to ssize_t
-* read() must be const
-* arrays must be deleted with [] !!!

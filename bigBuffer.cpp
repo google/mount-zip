@@ -6,21 +6,21 @@ BigBuffer::BigBuffer(): len(0) {
 BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
     //TODO: handle errors
-    char *buf = new char[chunkSize];
+    char *buf = (char*)malloc(chunkSize);
     ssize_t nr;
     while ((nr = zip_fread(zf, buf, chunkSize)) > 0) {
         chunks.push_back(buf);
-        buf = new char[chunkSize];
+        buf = (char*)malloc(chunkSize);
     }
     //TODO: if (nr < 0) throw zipexception()
-    delete buf;
+    free(buf);
     zip_fclose(zf);
 }
 
 BigBuffer::~BigBuffer() {
     for (chunks_t::iterator i = chunks.begin(); i != chunks.end(); ++i) {
         if (*i != NULL) {
-            delete *i;
+            free(*i);
         }
     }
 }
@@ -68,7 +68,7 @@ int BigBuffer::write(const char *buf, size_t size, off_t offset) {
             w = size;
         }
         if (chunks[chunk] == NULL) {
-            chunks[chunk] = new char[chunkSize];
+            chunks[chunk] = (char*)malloc(chunkSize);
         }
         memcpy(chunks[chunk] + pos, buf, w);
         size -= w;
