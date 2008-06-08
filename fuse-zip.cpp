@@ -21,7 +21,6 @@
 #define FUSE_USE_VERSION 26
 #define PROGRAM "fuse-zip"
 #define ERROR_STR_BUF_LEN 0x100
-#define ROOT_NODE_INDEX (-1)
 
 #include <fuse.h>
 #include <zip.h>
@@ -37,57 +36,32 @@
 
 #include "types.h"
 #include "fileNode.h"
-#include "fileHandler.h"
-#include "roHandler.h"
+#include "fuseZipData.h"
 
 using namespace std;
 
-class fusezip_data {
-public:
-    filemap_t files;
-    struct zip *m_zip;
-
-    fusezip_data(struct zip *z) {
-        m_zip = z;
-        build_tree();
-    }
-
-    ~fusezip_data() {
-        zip_close(m_zip);
-        //TODO: handle error code of zip_close
-
-        for (filemap_t::iterator i = files.begin(); i != files.end(); ++i) {
-            delete i->second;
-        }
-    }
-
-private:
-    void build_tree() {
-        FileNode *root_node = new FileNode(files, ROOT_NODE_INDEX, "");
-        root_node->is_dir = true;
-
-        int n = zip_get_num_files(m_zip);
-        for (int i = 0; i < n; ++i) {
-            FileNode *node = new FileNode(files, i, zip_get_name(m_zip, i, 0));
-            (void) node;
-        }
-    }
-};
-
 static void *fusezip_init(struct fuse_conn_info *conn) {
+    (void) conn;
     return fuse_get_context()->private_data;
 }
 
 static void fusezip_destroy(void *data) {
-    delete (fusezip_data*)data;
+    FuseZipData *d = (FuseZipData*)data;
+    // Saving changed data
+    for (filemap_t::const_iterator i = d->files.begin(); i != d->files.end(); ++i) {
+        if (i->second->changed != 0) {
+            i->second->save();
+        }
+    }
+    delete d;
 }
 
-inline fusezip_data *get_data() {
-    return (fusezip_data*)fuse_get_context()->private_data;
+inline FuseZipData *get_data() {
+    return (FuseZipData*)fuse_get_context()->private_data;
 }
 
 FileNode *get_file_node(const char *fname) {
-    fusezip_data *data = get_data();
+    FuseZipData *data = get_data();
     filemap_t::iterator i = data->files.find(fname);
     if (i == data->files.end()) {
         return NULL;
@@ -109,12 +83,7 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
     if (node == NULL) {
         return -ENOENT;
     }
-    struct zip_stat zstat;
-    if (node->id != ROOT_NODE_INDEX && zip_stat_index(get_zip(), node->id, 0, &zstat) != 0) {
-        int err;
-        zip_error_get(get_zip(), NULL, &err);
-        return err;
-    }
+    struct zip_stat &zstat = node->stat;
     if (node->is_dir) {
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2 + node->childs.size();
@@ -146,7 +115,7 @@ static int fusezip_readdir(const char *path, void *buf, fuse_fill_dir_t filler, 
         filler(buf, (*i)->name, NULL, 0);
     }
 
-    return 0;    
+    return 0;
 }
 
 static int fusezip_statfs(const char *path, struct statvfs *buf) {
@@ -171,11 +140,6 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
     if (*path == '\0') {
         return -ENOENT;
     }
-    //TODO: change in rw version
-    if ((fi->flags & (O_WRONLY | O_RDWR)) != 0) {
-        return -EROFS;
-    }
-   
     FileNode *node = get_file_node(path + 1);
     if (node == NULL) {
         return -ENOENT;
@@ -186,50 +150,54 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
     if (node->open_count == INT_MAX) {
         return -EMFILE;
     }
-    if (node->open_count++) {
-        // Reusing existing file handle
-        fi->fh = (uint64_t)node->fh;
-        return 0;
+    //TODO: errors
+    node->open();
+    fi->fh = (uint64_t)node;
+
+    return 0;
+}
+
+static int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    (void) mode;
+
+    if (*path == '\0') {
+        return -EACCES;
     }
-    struct zip_file *f = zip_fopen_index(get_zip(), node->id, fi->flags);
-    if (f == NULL) {
-        int err;
-        zip_error_get(get_zip(), NULL, &err);
-        return err;
+    FileNode *node = get_file_node(path + 1);
+    if (node != NULL) {
+        return -EEXIST;
     }
-    FileHandler *fh = new RoHandler(get_zip(), f, node);
-    fi->fh = (uint64_t)fh;
+    node = new FileNode(get_data(), path + 1);
+    fi->fh = (uint64_t)node;
 
     return 0;
 }
 
 static int fusezip_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    FileHandler *fh = (FileHandler*)fi->fh;
-    return fh->read(buf, size, offset, fi);
+    (void) path;
+
+    return ((FileNode*)fi->fh)->read(buf, size, offset);
 }
 
 int fusezip_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    FileHandler *fh = (FileHandler*)fi->fh;
-    return fh->write(buf, size, offset, fi);
+    (void) path;
+
+    return ((FileNode*)fi->fh)->write(buf, size, offset);
 }
 
 static int fusezip_release (const char *path, struct fuse_file_info *fi) {
-    struct FileHandler *fh = (FileHandler*)fi->fh;
-    int res = fh->close();
-    delete fh;
-    return res;
+    (void) path;
+
+    return ((FileNode*)fi->fh)->close();
 }
 
 int remove_node(FileNode *node) {
-    node->detach(get_data()->files);
+    node->detach();
 
     int id = node->id;
     delete node;
-    if (zip_delete (get_zip(), id) != 0) {
-        return -ENOENT;
-    } else {
-        return 0;
-    }
+    zip_delete (get_zip(), id);
+    return 0;
 }
 
 static int fusezip_unlink(const char *path) {
@@ -274,7 +242,7 @@ static int fusezip_mkdir(const char *path, mode_t mode) {
         zip_error_get(get_zip(), NULL, &err);
         return err;
     }
-    FileNode *node = new FileNode(get_data()->files, idx, path + 1);
+    FileNode *node = new FileNode(get_data(), path + 1, idx);
     node->is_dir = true;
     return 0;
 }
@@ -329,7 +297,7 @@ static int fusezip_rename(const char *path, const char *new_path) {
     }
     zip_rename(z, node->id, new_name);
     // Must be called after loop because new_name will be truncated
-    node->rename(get_data()->files, new_name);
+    node->rename(new_name);
     return 0;
 }
 
@@ -346,7 +314,7 @@ int main(int argc, char *argv[]) {
         print_usage();
         return EXIT_FAILURE;
     }
-    
+
     int err;
     struct zip *zip_file;
     if ((zip_file = zip_open(argv[1], ZIP_CHECKCONS | ZIP_CREATE, &err)) == NULL) {
@@ -355,7 +323,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s: cannot open zip archive %s: %s\n", PROGRAM, argv[1], err_str);
         return EXIT_FAILURE;
     }
-    fusezip_data *data = new fusezip_data(zip_file);
+    FuseZipData *data = new FuseZipData(zip_file);
 
     static struct fuse_operations fusezip_oper;
     fusezip_oper.init       =   fusezip_init;
@@ -371,6 +339,7 @@ int main(int argc, char *argv[]) {
     fusezip_oper.rmdir      =   fusezip_rmdir;
     fusezip_oper.mkdir      =   fusezip_mkdir;
     fusezip_oper.rename     =   fusezip_rename;
+    fusezip_oper.create     =   fusezip_create;
 
 // We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
 // return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);

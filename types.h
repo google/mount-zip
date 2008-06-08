@@ -6,6 +6,7 @@
 
 class FileNode;
 class FileHandler;
+class FuseZipData;
 
 struct ltstr {
     bool operator() (const char* s1, const char* s2) const {
@@ -15,7 +16,7 @@ struct ltstr {
 
 //TODO: replace with set or hash_set
 typedef std::list <FileNode*> nodelist_t;
-typedef std::map <const char*, FileNode*, ltstr> filemap_t; 
+typedef std::map <const char*, FileNode*, ltstr> filemap_t;
 
 #endif
 
