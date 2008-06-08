@@ -34,7 +34,6 @@ struct ltstr {
     }
 };
 
-//TODO: replace with set or hash_set
 typedef std::list <FileNode*> nodelist_t;
 typedef std::map <const char*, FileNode*, ltstr> filemap_t;
 

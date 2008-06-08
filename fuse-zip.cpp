@@ -302,6 +302,43 @@ static int fusezip_rename(const char *path, const char *new_path) {
     return 0;
 }
 
+static int fusezip_chmod(const char *, mode_t) {
+    return 0;
+}
+
+static int fusezip_chown(const char *, uid_t, gid_t) {
+    return 0;
+}
+
+static int fusezip_flush(const char *, struct fuse_file_info *) {
+    return 0;
+}
+
+static int fusezip_fsync(const char *, int, struct fuse_file_info *) {
+    return 0;
+}
+
+static int fusezip_fsyncdir(const char *, int, struct fuse_file_info *) {
+    return 0;
+}
+
+static int fusezip_opendir(const char *, struct fuse_file_info *) {
+  return 0;
+}
+
+static int fusezip_releasedir(const char *, struct fuse_file_info *) {
+    return 0;
+}
+
+static int fusezip_access(const char *, int) {
+    return 0;
+}
+
+static int fusezip_utimens(const char *, const struct timespec tv[2]) {
+    (void) tv;
+    return 0;
+}
+
 void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
 }
@@ -324,8 +361,9 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s: cannot open zip archive %s: %s\n", PROGRAM, argv[1], err_str);
         return EXIT_FAILURE;
     }
+    FuseZipData *data;
     try {
-        FuseZipData *data = new FuseZipData(zip_file);
+        data = new FuseZipData(zip_file);
     }
     catch (std::bad_alloc) {
       fprintf(stderr, "%s: no enough memory\n", PROGRAM);
@@ -351,6 +389,15 @@ int main(int argc, char *argv[]) {
     fusezip_oper.mkdir      =   fusezip_mkdir;
     fusezip_oper.rename     =   fusezip_rename;
     fusezip_oper.create     =   fusezip_create;
+    fusezip_oper.chmod      =   fusezip_chmod;
+    fusezip_oper.chown      =   fusezip_chown;
+    fusezip_oper.flush      =   fusezip_flush;
+    fusezip_oper.fsync      =   fusezip_fsync;
+    fusezip_oper.fsyncdir   =   fusezip_fsyncdir;
+    fusezip_oper.opendir    =   fusezip_opendir;
+    fusezip_oper.releasedir =   fusezip_releasedir;
+    fusezip_oper.access     =   fusezip_access;
+    fusezip_oper.utimens    =   fusezip_utimens;
 
 // We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
 // return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
