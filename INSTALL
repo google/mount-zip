@@ -1,0 +1,25 @@
+You need the following libraries:
+
+libfuse >= 2.6  http://fuse.sourceforge.net
+libzip >= 0.8   http://www.nih.at/libzip/
+
+The following tools are required:
+
+C++ compiler    g++ 4.2.3 or other modern C++ compiler
+pkg-config      http://pkg-config.freedesktop.org/
+GNU make        http://www.gnu.org/software/make/
+
+To build fuse-zip do the following:
+
+$ make
+
+To install do:
+
+# make install
+
+as root or use sudo.
+
+To uninstall:
+
+# make uninstall
+
