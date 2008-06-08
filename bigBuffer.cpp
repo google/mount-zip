@@ -74,6 +74,8 @@ int BigBuffer::read(char *buf, size_t size, off_t offset) const {
         }
         if (chunks[chunk] != NULL) {
             memcpy(buf, chunks[chunk] + pos, r);
+        } else {
+            memset(buf, 0, r);
         }
         size -= r;
         nread += r;
