@@ -26,10 +26,18 @@
 
 class FileNode {
 private:
+    enum nodeState {
+        CLOSED,
+        OPENED,
+        CHANGED,
+        NEW
+    };
+
     BigBuffer *buffer;
     FuseZipData *data;
-    bool saving;
     int open_count;
+    nodeState state;
+    bool saving;
 
     void parse_name(char *fname);
     void attach();
@@ -48,13 +56,16 @@ public:
     int save();
     int truncate(off_t offset);
 
+    inline bool isChanged() const {
+        return state == CHANGED || state == NEW;
+    }
+
     char *name, *full_name;
     bool is_dir;
     int id;
     nodelist_t childs;
     FileNode *parent;
 
-    bool changed;
     struct zip_stat stat;
 };
 #endif

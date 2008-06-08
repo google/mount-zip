@@ -43,7 +43,7 @@ static void fusezip_destroy(void *data) {
     FuseZipData *d = (FuseZipData*)data;
     // Saving changed data
     for (filemap_t::const_iterator i = d->files.begin(); i != d->files.end(); ++i) {
-        if (i->second->changed != 0) {
+        if (i->second->isChanged()) {
             i->second->save();
         }
     }
@@ -201,10 +201,10 @@ static int fusezip_truncate(const char *path, off_t offset) {
         return -EISDIR;
     }
     int res;
-    if (res = node->open()) {
+    if ((res = node->open()) != 0) {
         return res;
     }
-    if (res = node->truncate(offset)) {
+    if ((res = node->truncate(offset)) != 0) {
         return res;
     }
     return node->close();

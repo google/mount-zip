@@ -29,14 +29,16 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
     this->saving = false;
     this->id = id;
     this->is_dir = false;
-    this->changed = (id == -2);
-    if (this->changed) {
+    this->open_count = 0;
+    if (id == -2) {
+        state = NEW;
         buffer = new BigBuffer();
         if (!buffer) {
             throw std::bad_alloc();
         }
         zip_stat_init(&stat);
     } else {
+        state = CLOSED;
         if (id != -1) {
             zip_stat_index(data->m_zip, this->id, 0, &stat);
         } else {
@@ -55,12 +57,12 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
         free(full_name);
         throw;
     }
-    this->open_count = 0;
 }
 
 FileNode::~FileNode() {
     free(full_name);
-    if (changed && !saving) {
+    // If saving is true, buffer will be deleted later in BigBuffer::zipUserFunctionCallback
+    if (state == OPENED || (state == CHANGED && !saving)) {
         delete buffer;
     }
 }
@@ -135,10 +137,19 @@ void FileNode::rename_wo_reparenting(char *new_name) {
 }
 
 int FileNode::open() {
-    if (open_count == INT_MAX) {
-        return -EMFILE;
+    if (state == NEW) {
+        return 0;
     }
-    if (!changed && open_count++ == 0) {
+    if (state == OPENED) {
+        if (open_count == INT_MAX) {
+            return -EMFILE;
+        } else {
+            ++open_count;
+        }
+    }
+    if (state == CLOSED) {
+        open_count = 1;
+        state = OPENED;
         try {
             buffer = new BigBuffer(data->m_zip, id, stat.size);
         }
@@ -157,27 +168,32 @@ int FileNode::read(char *buf, size_t size, off_t offset) const {
 }
 
 int FileNode::write(const char *buf, size_t size, off_t offset) {
-    changed = true;
+    if (state == OPENED) {
+        state = CHANGED;
+    }
     return buffer->write(buf, size, offset);
 }
 
 int FileNode::close() {
     stat.size = buffer->len;
-    if (!changed && --open_count == 0) {
+    if (state == OPENED && --open_count == 0) {
         delete buffer;
+        state = CLOSED;
     }
     return 0;
 }
 
 int FileNode::save() {
-    int res = buffer->saveToZip(data->m_zip, full_name);
-    saving = true;
+    int res = buffer->saveToZip(data->m_zip, full_name, state == NEW, id);
+    if (res == 0) {
+        saving = true;
+    }
     return res;
 }
 
 int FileNode::truncate(off_t offset) {
-    if (changed || open_count > 0) {
-        changed = true;
+    if (state != CLOSED) {
+        state = CHANGED;
         return buffer->truncate(offset);
     } else {
         return -EBADF;

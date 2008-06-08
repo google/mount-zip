@@ -162,11 +162,15 @@ ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, 
     }
 }
 
-int BigBuffer::saveToZip(struct zip *z, const char *fname) {
+int BigBuffer::saveToZip(struct zip *z, const char *fname, bool newFile, int index) {
     struct zip_source *s;
     struct CallBackStruct *cbs = new CallBackStruct();
     cbs->buf = this;
-    if ((s=zip_source_function(z, zipUserFunctionCallback, cbs)) == NULL || zip_add(z, fname, s) < 0) {
+    if ((s=zip_source_function(z, zipUserFunctionCallback, cbs)) == NULL) {
+        zip_source_free(s);
+        return -ENOMEM;
+    }
+    if ((newFile && zip_add(z, fname, s) < 0) || (!newFile && zip_replace(z, index, s) < 0)) {
         zip_source_free(s);
         return -ENOMEM;
     }

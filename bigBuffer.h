@@ -44,7 +44,7 @@ public:
 
     int read(char *buf, size_t size, off_t offset) const;
     int write(const char *buf, size_t size, off_t offset);
-    int saveToZip(struct zip *z, const char *fname);
+    int saveToZip(struct zip *z, const char *fname, bool newFile, int index);
     int truncate(off_t offset);
 };
 
