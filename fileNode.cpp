@@ -174,3 +174,13 @@ int FileNode::save() {
     saving = true;
     return res;
 }
+
+int FileNode::truncate(off_t offset) {
+    if (changed || open_count > 0) {
+        changed = true;
+        return buffer->truncate(offset);
+    } else {
+        return -EBADF;
+    }
+}
+

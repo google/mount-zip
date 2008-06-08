@@ -183,6 +183,33 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
     return ((FileNode*)fi->fh)->close();
 }
 
+static int fusezip_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi) {
+    (void) path;
+
+    return ((FileNode*)fi->fh)->truncate(offset);
+}
+
+static int fusezip_truncate(const char *path, off_t offset) {
+    if (*path == '\0') {
+        return -EACCES;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (node->is_dir) {
+        return -EISDIR;
+    }
+    int res;
+    if (res = node->open()) {
+        return res;
+    }
+    if (res = node->truncate(offset)) {
+        return res;
+    }
+    return node->close();
+}
+
 int remove_node(FileNode *node) {
     node->detach();
     int id = node->id;
@@ -398,6 +425,8 @@ int main(int argc, char *argv[]) {
     fusezip_oper.releasedir =   fusezip_releasedir;
     fusezip_oper.access     =   fusezip_access;
     fusezip_oper.utimens    =   fusezip_utimens;
+    fusezip_oper.ftruncate  =   fusezip_ftruncate;
+    fusezip_oper.truncate   =   fusezip_truncate;
 
 // We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
 // return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
@@ -415,3 +444,4 @@ int main(int argc, char *argv[]) {
     fuse_teardown(fuse, mountpoint);
     return (res == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+

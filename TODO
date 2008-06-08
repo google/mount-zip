@@ -1,2 +1,5 @@
 * write memory cache to /tmp on fsync()
+* incapsulate chunks of BigBuffer into classes
+* fill buffer with zeroes if block are NULL
+* does not allow write() while opened read-only
 

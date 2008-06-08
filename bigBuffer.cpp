@@ -115,6 +115,19 @@ int BigBuffer::write(const char *buf, size_t size, off_t offset) {
     return nwritten;
 }
 
+int BigBuffer::truncate(off_t offset) {
+    if (offset < len) {
+        for (unsigned int i = (offset + chunkSize - 1)/chunkSize + 1; i < chunks.size(); ++i) {
+            if (chunks[i] != NULL) {
+                free(chunks[i]);
+            }
+        }
+    }
+    len = offset;
+    chunks.resize((len + chunkSize - 1)/chunkSize, NULL);
+    return 0;
+}
+
 struct CallBackStruct {
     size_t pos;
     BigBuffer *buf;

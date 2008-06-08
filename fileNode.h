@@ -46,6 +46,7 @@ public:
     int write(const char *buf, size_t size, off_t offset);
     int close();
     int save();
+    int truncate(off_t offset);
 
     char *name, *full_name;
     bool is_dir;
