@@ -24,14 +24,8 @@
 
 #include <fuse.h>
 #include <zip.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
-#include <assert.h>
-#include <limits.h>
 
-#include <map>
-#include <list>
 #include <queue>
 
 #include "types.h"
@@ -125,7 +119,7 @@ static int fusezip_statfs(const char *path, struct statvfs *buf) {
     //TODO: set this field to archive size
     buf->f_blocks = 0;
 
-    //TODO: change in rw version
+    //TODO: may be set to amount of free space on file system?
     buf->f_bfree = 0;
     buf->f_bavail = 0;
     buf->f_ffree = 0;
@@ -147,14 +141,9 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
     if (node->is_dir) {
         return -EISDIR;
     }
-    if (node->open_count == INT_MAX) {
-        return -EMFILE;
-    }
-    //TODO: errors
-    node->open();
     fi->fh = (uint64_t)node;
 
-    return 0;
+    return node->open();
 }
 
 static int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
@@ -168,9 +157,12 @@ static int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *
         return -EEXIST;
     }
     node = new FileNode(get_data(), path + 1);
+    if (!node) {
+        return -ENOMEM;
+    }
     fi->fh = (uint64_t)node;
 
-    return 0;
+    return node->open();
 }
 
 static int fusezip_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
@@ -193,11 +185,13 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
 
 int remove_node(FileNode *node) {
     node->detach();
-
     int id = node->id;
     delete node;
-    zip_delete (get_zip(), id);
-    return 0;
+    if (id >= 0) {
+        return (zip_delete (get_zip(), id) == 0)? 0 : -ENOENT;
+    } else {
+        return 0;
+    }
 }
 
 static int fusezip_unlink(const char *path) {
@@ -238,11 +232,12 @@ static int fusezip_mkdir(const char *path, mode_t mode) {
     }
     int idx = zip_add_dir(get_zip(), path + 1);
     if (idx < 0) {
-        int err;
-        zip_error_get(get_zip(), NULL, &err);
-        return err;
+        return -ENOMEM;
     }
     FileNode *node = new FileNode(get_data(), path + 1, idx);
+    if (!node) {
+        return -ENOMEM;
+    }
     node->is_dir = true;
     return 0;
 }
@@ -269,6 +264,9 @@ static int fusezip_rename(const char *path, const char *new_path) {
         len--;
     }
     new_name = (char*)malloc(len + 1);
+    if (new_path == NULL) {
+        return -ENOMEM;
+    }
     strcpy(new_name, new_path + 1);
     if (node->is_dir) {
         new_name[len - 1] = '/';
@@ -287,11 +285,14 @@ static int fusezip_rename(const char *path, const char *new_path) {
                 FileNode *nn = *i;
                 q.push(nn);
                 char *name = (char*)malloc(len + strlen(nn->name) + 1);
+                if (name == NULL) {
+                    //TODO: check that we are have enough memory before entering this loop
+                    return -ENOMEM;
+                }
                 strcpy(name, new_name);
                 strcpy(name + len, nn->name);
                 nn->rename_wo_reparenting(name);
-                int res = zip_rename(z, nn->id, name);
-                assert(res == 0);
+                zip_rename(z, nn->id, name);
             }
         }
     }
@@ -323,7 +324,17 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s: cannot open zip archive %s: %s\n", PROGRAM, argv[1], err_str);
         return EXIT_FAILURE;
     }
-    FuseZipData *data = new FuseZipData(zip_file);
+    try {
+        FuseZipData *data = new FuseZipData(zip_file);
+    }
+    catch (std::bad_alloc) {
+      fprintf(stderr, "%s: no enough memory\n", PROGRAM);
+      return EXIT_FAILURE;
+    }
+    catch (std::exception) {
+        fprintf(stderr, "%s: ZIP file corrupted\n", PROGRAM);
+        return EXIT_FAILURE;
+    }
 
     static struct fuse_operations fusezip_oper;
     fusezip_oper.init       =   fusezip_init;
@@ -357,4 +368,3 @@ int main(int argc, char *argv[]) {
     fuse_teardown(fuse, mountpoint);
     return (res == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-

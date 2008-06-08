@@ -18,6 +18,9 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
+#include <stdlib.h>
+#include <errno.h>
+
 #include "bigBuffer.h"
 
 BigBuffer::BigBuffer(): len(0) {
@@ -25,16 +28,25 @@ BigBuffer::BigBuffer(): len(0) {
 
 BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
-    //TODO: handle errors
     char *buf = (char*)malloc(chunkSize);
+    if (buf == NULL) {
+        throw std::bad_alloc();
+    }
     ssize_t nr;
     while ((nr = zip_fread(zf, buf, chunkSize)) > 0) {
         chunks.push_back(buf);
         buf = (char*)malloc(chunkSize);
+        if (buf == NULL) {
+            for (chunks_t::iterator i = chunks.begin(); i != chunks.end(); ++i) {
+                free(*i);
+            }
+            throw std::bad_alloc();
+        }
     }
-    //TODO: if (nr < 0) throw zipexception()
     free(buf);
-    zip_fclose(zf);
+    if (zip_fclose(zf)) {
+        throw new std::exception();
+    }
 }
 
 BigBuffer::~BigBuffer() {
@@ -47,7 +59,7 @@ BigBuffer::~BigBuffer() {
 
 int BigBuffer::read(char *buf, size_t size, off_t offset) const {
     if (offset > len) {
-        return -1;
+        return -EINVAL;
     }
     int chunk = offset / chunkSize;
     int pos = offset % chunkSize;
@@ -89,6 +101,9 @@ int BigBuffer::write(const char *buf, size_t size, off_t offset) {
         }
         if (chunks[chunk] == NULL) {
             chunks[chunk] = (char*)malloc(chunkSize);
+            if (!chunks[chunk]) {
+                return -EIO;
+            }
         }
         memcpy(chunks[chunk] + pos, buf, w);
         size -= w;
@@ -140,9 +155,7 @@ int BigBuffer::saveToZip(struct zip *z, const char *fname) {
     cbs->buf = this;
     if ((s=zip_source_function(z, zipUserFunctionCallback, cbs)) == NULL || zip_add(z, fname, s) < 0) {
         zip_source_free(s);
-
-        //TODO: more correct error
-        return -1;
+        return -ENOMEM;
     }
     return 0;
 }

@@ -31,8 +31,6 @@ FuseZipData::FuseZipData(struct zip *z) {
 
 FuseZipData::~FuseZipData() {
     zip_close(m_zip);
-    //TODO: handle error code of zip_close
-
     for (filemap_t::iterator i = files.begin(); i != files.end(); ++i) {
         delete i->second;
     }

@@ -19,6 +19,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include <assert.h>
+#include <errno.h>
 
 #include "fileNode.h"
 #include "fuseZipData.h"
@@ -27,20 +28,31 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
     this->saving = false;
     this->id = id;
     this->is_dir = false;
-    this->open_count = 0;
-    parse_name(strdup(fname));
-    attach();
     this->changed = (id == -2);
     if (this->changed) {
         buffer = new BigBuffer();
+        if (!buffer) {
+            throw std::bad_alloc();
+        }
         zip_stat_init(&stat);
     } else {
-        //TODO: handle error
         if (id != -1) {
             zip_stat_index(data->m_zip, this->id, 0, &stat);
         } else {
             zip_stat_init(&stat);
         }
+    }
+    char *t = strdup(fname);
+    if (t == NULL) {
+        throw std::bad_alloc();
+    }
+    parse_name(t);
+    try {
+        attach();
+    }
+    catch (...) {
+        free(full_name);
+        throw;
     }
 }
 
@@ -93,7 +105,9 @@ void FileNode::attach() {
         *lsl = '\0';
         // Searching for parent node...
         filemap_t::iterator parent = data->files.find(this->full_name);
-        assert(parent != data->files.end());
+        if (parent == data->files.end()) {
+            throw std::exception();
+        }
         parent->second->childs.push_back(this);
         this->parent = parent->second;
         *lsl = c;
@@ -120,9 +134,16 @@ void FileNode::rename_wo_reparenting(char *new_name) {
 
 int FileNode::open() {
     if (!changed) {
-        buffer = new BigBuffer(data->m_zip, id, stat.size);
+        try {
+            buffer = new BigBuffer(data->m_zip, id, stat.size);
+        }
+        catch (std::bad_alloc) {
+            return -ENOMEM;
+        }
+        catch (std::exception) {
+            return -EIO;
+        }
     }
-    //TODO: error
     return 0;
 }
 
