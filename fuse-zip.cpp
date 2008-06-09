@@ -44,10 +44,14 @@ static void fusezip_destroy(void *data) {
     // Saving changed data
     for (filemap_t::const_iterator i = d->files.begin(); i != d->files.end(); ++i) {
         if (i->second->isChanged()) {
-            i->second->save();
+            int res = i->second->save();
+            if (res != 0) {
+//                fprintf(stderr, "Error while saving file %s: %d\n\n", i->second->full_name, res);
+            }
         }
     }
     delete d;
+//    _log("destroy() finished");
 }
 
 inline FuseZipData *get_data() {
@@ -390,7 +394,7 @@ int main(int argc, char *argv[]) {
     }
     FuseZipData *data;
     try {
-        data = new FuseZipData(zip_file);
+        data = new FuseZipData(zip_file, get_current_dir_name());
     }
     catch (std::bad_alloc) {
       fprintf(stderr, "%s: no enough memory\n", PROGRAM);

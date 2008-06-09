@@ -1,6 +1,6 @@
 DEST=fuse-zip
 LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
-CXXFLAGS=-Wall -Wextra $(shell pkg-config fuse --cflags) $(shell pkg-config libzip --cflags)
+CXXFLAGS:=$(CXXFLAGS) -Wall -Wextra $(shell pkg-config fuse --cflags) $(shell pkg-config libzip --cflags)
 SOURCES=fuse-zip.cpp fileNode.cpp bigBuffer.cpp fuseZipData.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 CLEANFILES=$(DEST) $(OBJECTS)

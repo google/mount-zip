@@ -2,4 +2,4 @@
 * incapsulate chunks of BigBuffer into classes
 * does not allow write() while opened read-only
 * fill free space with zeros after truncate() or write() call
-
+* error logging via syslog()

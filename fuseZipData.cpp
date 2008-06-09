@@ -24,16 +24,28 @@
 
 #include "fuseZipData.h"
 
-FuseZipData::FuseZipData(struct zip *z) {
-    m_zip = z;
+FuseZipData::FuseZipData(struct zip *z, char *cwd): m_cwd(cwd), m_zip(z) {
+    if (cwd == NULL) {
+        throw std::bad_alloc();
+    }
     build_tree();
 }
 
 FuseZipData::~FuseZipData() {
-    zip_close(m_zip);
+    if (chdir(m_cwd) != 0) {
+        //TODO: handle this error
+        if (chdir(getenv("TMP")) != 0) {
+            chdir("/tmp");
+        }
+    }
+    int res = zip_close(m_zip);
+    if (res != 0) {
+//        fprintf(stderr, "Error while closing archive: %s\n", zip_strerror(m_zip));
+    }
     for (filemap_t::iterator i = files.begin(); i != files.end(); ++i) {
         delete i->second;
     }
+    free(m_cwd);
 }
 
 void FuseZipData::build_tree() {
