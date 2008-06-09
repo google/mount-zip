@@ -25,6 +25,7 @@
 #include <fuse.h>
 #include <zip.h>
 #include <errno.h>
+#include <syslog.h>
 
 #include <queue>
 
@@ -46,12 +47,12 @@ static void fusezip_destroy(void *data) {
         if (i->second->isChanged()) {
             int res = i->second->save();
             if (res != 0) {
-//                fprintf(stderr, "Error while saving file %s: %d\n\n", i->second->full_name, res);
+                syslog(LOG_ERR, "Error while saving file %s in ZIP archive: %d", i->second->full_name, res);
             }
         }
     }
     delete d;
-//    _log("destroy() finished");
+    syslog(LOG_INFO, "File system unmounted");
 }
 
 inline FuseZipData *get_data() {
@@ -371,7 +372,7 @@ static int fusezip_utimens(const char *, const struct timespec tv[2]) {
 }
 
 void print_usage() {
-    printf("USAGE: %s <zip-file> [fusermount options]\n", PROGRAM);
+    printf("USAGE: %s <zip-file> [fusermount options] <mount-point>\n", PROGRAM);
 }
 
 int main(int argc, char *argv[]) {
@@ -383,6 +384,7 @@ int main(int argc, char *argv[]) {
         print_usage();
         return EXIT_FAILURE;
     }
+    openlog(PROGRAM, LOG_PID, LOG_USER);
 
     int err;
     struct zip *zip_file;

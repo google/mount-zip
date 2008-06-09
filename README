@@ -35,6 +35,7 @@ $ fuse-zip foobar.zip /tmp/zipArchive -ovolname="zip"
 (do something with the mounted file system)
 $ fusermount -u /tmp/zipArchive
 
+Look at /var/log/user.log in case of any errors.
 
 
 PERFORMANCE

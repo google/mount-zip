@@ -21,6 +21,7 @@
 #define ROOT_NODE_INDEX (-1)
 
 #include <zip.h>
+#include <syslog.h>
 
 #include "fuseZipData.h"
 
@@ -33,14 +34,14 @@ FuseZipData::FuseZipData(struct zip *z, char *cwd): m_cwd(cwd), m_zip(z) {
 
 FuseZipData::~FuseZipData() {
     if (chdir(m_cwd) != 0) {
-        //TODO: handle this error
+        syslog(LOG_ERR, "Unable to chdir() to archive directory %s. Trying to save file into /tmp", m_cwd);
         if (chdir(getenv("TMP")) != 0) {
             chdir("/tmp");
         }
     }
     int res = zip_close(m_zip);
     if (res != 0) {
-//        fprintf(stderr, "Error while closing archive: %s\n", zip_strerror(m_zip));
+        syslog(LOG_ERR, "Error while closing archive: %s", zip_strerror(m_zip));
     }
     for (filemap_t::iterator i = files.begin(); i != files.end(); ++i) {
         delete i->second;
