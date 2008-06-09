@@ -6,7 +6,7 @@ exec tclsh "$0" "$@"
 package require Tcl 8.4
 
 # source files
-set linuxSources "linux-sources"
+set linuxSources [ file normalize "linux-sources" ]
 set cdImage "/home/share/Soft/Linux_dist/debian-40r1-amd64-CD-1.iso"
 
 # utilities
@@ -14,13 +14,15 @@ set fuseZip "../fuse-zip"
 set fusermount "fusermount"
 set kioCopy "kio_copy/kio_copy"
 set uzip "/usr/share/mc/extfs/uzip"
+
 set zip "zip"
+set unzip "unzip"
 
 # print real user system, in seconds
 set timeCmd "/usr/bin/time -f \"%e\t%U\t%S\" -o /dev/stdout"
 
 # paths
-set tmpDir "fusezip-tests-temp"
+set tmpDir [ file normalize "fusezip-tests-temp" ]
 set mountPoint "$tmpDir/mount-point"
 set extractDir "$tmpDir/extract-dir"
 set archive "$tmpDir/archive.zip"
@@ -32,25 +34,36 @@ set participants {
 }
 
 set tests {
-    zip-random      "Compress files generated from /dev/urandom and /dev/zero"
-    unzip-random    "Uncompress files generated from /dev/urandom and /dev/zero"
+    zip-zero        "Compress file generated from /dev/zero"
+    unzip-zero      "Uncompress file generated from /dev/zero"
+    zip-urandom     "Compress file generated from /dev/urandom"
+    unzip-urandom   "Uncompress file generated from /dev/urandom"
+    zip-mixed       "Compress files generated from /dev/{urandom,zero}"
+    unzip-mixed     "Uncompress files generated from /dev/{urandom,zero}"
+
+    zip-linuxsrc    "Compress linux kernel sources"
+    unzip-linuxsrc  "Uncompress linux kernel sources"
 }
+
+#debug
+#set tests {
+#    zip-linuxsrc    "compress linux sources"
+#    unzip-linuxsrc    "compress linux sources"
+#}
 
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
 
-proc prepareRandomData {} {
+proc prepareRandomData {args} {
     global extractDir
 
-    set size 100
+    set size 50
 
-    puts "Generating random data... "
-    puts -nonewline "Generating random data... "
     file mkdir $extractDir/data
-    exec dd if=/dev/urandom of=$extractDir/data/random bs=1M count=$size > /dev/null 2> /dev/null
-    exec dd if=/dev/zero of=$extractDir/data/zero bs=1M count=$size > /dev/null 2> /dev/null
-    puts "OK"
+    foreach type $args {
+        exec dd if=/dev/$type of=$extractDir/data/$type bs=1M count=$size > /dev/null 2> /dev/null
+    }
 }
 
 proc cleanRandomData {} {
@@ -59,54 +72,117 @@ proc cleanRandomData {} {
     file delete -force $extractDir/data
 }
 
+proc prepareArchive {dir file} {
+    global zip archive
+
+    set w [ pwd ]
+    cd $dir
+    exec $zip -r $archive $file
+    cd $w
+}
+
 proc prepareData {action} {
+    puts "Generating data... "
+    puts -nonewline "Generating data... "
     switch -exact $action {
-        zip-random {
-            prepareRandomData
+        zip-urandom {
+            prepareRandomData urandom
+        }
+        zip-zero {
+            prepareRandomData zero
+        }
+        zip-mixed {
+            prepareRandomData urandom zero
+        }
+        unzip-urandom {
+            prepareRandomData urandom
+            prepareArchive $::extractDir data
+            cleanRandomData
+        }
+        unzip-zero {
+            prepareRandomData zero
+            prepareArchive $::extractDir data
+            cleanRandomData
+        }
+        unzip-mixed {
+            prepareRandomData urandom zero
+            prepareArchive $::extractDir data
+            cleanRandomData
+        }
+        zip-linuxsrc {
+            exec cp -r -t $::extractDir $::linuxSources
+        }
+        unzip-linuxsrc {
+            prepareArchive $::linuxSources .
         }
     }
+    puts "OK"
 }
 
 proc cleanData {action} {
-    global archive
+    global archive extractDir
 
     switch -exact $action {
-        zip-random {
+        zip-urandom -
+        zip-zero -
+        zip-mixed {
             cleanRandomData
-        }
-        unzip-random {
-            file delete $archive
         }
     }
 }
 
-###############################################################################
-# TESTS
-###############################################################################
+proc cleanTestData {action} {
+    global archive extractDir
+
+    switch -glob $action {
+        zip-* {
+            file delete $archive
+        }
+        unzip-* {
+            file delete -force $extractDir
+            file mkdir $extractDir
+        }
+    }
+}
+
+proc checkArchive {} {
+    global archive unzip
+
+    if [ catch {
+        exec $unzip -t $archive
+    } err ] {
+        error "Archive $archive is corrupted! $err"
+    }
+}
 
 proc timeExec {args} {
     global timeCmd
     return [ eval [ concat exec $timeCmd $args ] ]
 }
 
+###############################################################################
+# TESTS
+###############################################################################
+
 proc fusezipExec {cmd} {
     global fuseZip archive mountPoint fusermount
-    return [ timeExec sh -c "\
-        $fuseZip $archive $mountPoint & pid=\$!;\
+    set res [ timeExec sh -c "\
+        $fuseZip $archive $mountPoint;\
         $cmd;\
-        $fusermount -u -z $mountPoint;\
-        wait \$pid;\
+        $fusermount -uz $mountPoint;\
     " ]
+    checkArchive
+    return $res
 }
 
 proc fuse-zip {action} {
-    global mountPoint extractDir
+    global mountPoint extractDir linuxSources
 
-    switch -exact $action {
-        zip-random {
-            return [ fusezipExec "cp -r -t $mountPoint $extractDir/data" ]
+    switch -glob $action {
+        zip-* {
+            return [ fusezipExec "cp -r -t $mountPoint $extractDir" ]
         }
-        unzip-random {
+        unzip-* {
             return [ fusezipExec "cp -r $mountPoint/* $extractDir" ]
         }
         default {
@@ -118,12 +194,12 @@ proc fuse-zip {action} {
 proc kio-zip {action} {
     global archive extractDir kioCopy
 
-    switch -exact $action {
-        zip-random {
+    switch -glob $action {
+        zip-* {
             return "n/a n/a n/a"
         }
-        unzip-random {
-            return [ timeExec $kioCopy zip://[ file normalize $archive ] file://$extractDir ]
+        unzip-* {
+            return [ timeExec $kioCopy zip://$archive file://$extractDir/content ]
         }
         default {
             error "Action $action not implemented"
@@ -134,21 +210,23 @@ proc kio-zip {action} {
 proc mc-uzip {action} {
     global zip uzip archive extractDir
 
-    switch -exact $action {
-        zip-random {
-            # mc vfs cannot create empty archives
+    switch -glob $action {
+        zip-* {
+            # mc uzip cannot handle empty files
             exec $zip $archive $::argv0
             return [ timeExec sh -c "\
-                $uzip mkdir $archive data
-                $uzip copyin $archive data/random $extractDir/data/random;\
-                $uzip copyin $archive data/zero $extractDir/data/zero;\
+                find $extractDir -type d | cut -b 2- | tail -n +2 | while read f;\
+                do $uzip mkdir $archive \$f; done;\
+                find $extractDir -type d | cut -b 2- | while read f;\
+                do $uzip mkdir $archive \$f /\$f; done;\
             " ]
         }
-        unzip-random {
-            file mkdir $extractDir/data
+        unzip-* {
             return [ timeExec sh -c "\
-                $uzip copyout $archive data/random $extractDir/data/random;\
-                $uzip copyout $archive data/zero $extractDir/data/zero;\
+                $uzip list $archive | cut -b 64- | grep /\\\$ | while read f;\
+                do mkdir -p $extractDir/\$f; done;\
+                $uzip list $archive | cut -b 64- | grep -v /\\\$ | while read f;\
+                do $uzip copyout $archive \$f $extractDir/\$f; done;\
             " ]
         }
         default {
@@ -166,6 +244,8 @@ puts "# VFS performance tester #"
 puts "##########################"
 puts ""
 
+file mkdir $tmpDir
+file delete -force $tmpDir
 file mkdir $tmpDir $mountPoint $extractDir
 
 set results ""
@@ -181,6 +261,7 @@ if [ catch {
             lappend res $p [ $p $t ]
 
             puts "OK"
+            cleanTestData $t
         }
         cleanData $t
         lappend results $t $l $res
@@ -190,6 +271,8 @@ if [ catch {
     puts "Error message: $err"
 
     catch {exec $fusermount -uz $mountPoint}
+exit
+
     file delete -force $tmpDir $mountPoint $extractDir
     exit
 }
