@@ -1,3 +1,9 @@
+//
+// Contributed by Alex Custov (nickname alex_custov at linux.org.ru)
+//
+// License: GPL
+//
+
 #include <kapplication.h>
 #include <kcmdlineargs.h>
 #include <kaboutdata.h> 

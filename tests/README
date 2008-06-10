@@ -1,0 +1,40 @@
+ABOUT
+
+Test suite for comparing performance of virtual filesystems.
+
+You need Tcl 8.4 or later to run it.
+
+The following virtual file systems can be tested:
+
+fuse-zip    >=0.2.0         FUSE filesystem to mount, extract and modify ZIP
+                            archives (http://fuse-zip.googlecode.com)
+kio-zip     part of KDE3    KDE virtual filesystem
+mc-uzip     part of mc      Midnight Commander VFS module
+gfvs-fuse   >=0.2.4         Gnome userspace virtual filesystem - fuse bridge
+unpackfs    >=0.0.6         Filesystem based on fuse (filesystem in userspace)
+                            for transparent unpacking of archives
+                            (http://savannah.nongnu.org/projects/unpackfs/)
+avfs-fuse   >=0.9.8         AVFS is a system, which enables all programs to
+                            look inside archived or compressed files, or
+                            access remote files without recompiling the
+                            programs or changing the kernel
+                            (http://sourceforge.net/projects/avf/)
+fusej-zip   2.4-prerelease1 FUSE-J provides Java binding for FUSE. It comes
+                            with the "proof-of-concept" ZIP filesystem which
+                            seems to be pretty stable.
+                            (http://sourceforge.net/projects/fuse-j)
+
+
+USAGE
+
+# ./run-tests.tcl
+
+Make sure that none of testing participants are not running on starting tests.
+
+
+
+AUTHORS
+
+Main module -- Alexander Galanin, license: LGPLv2 or later
+kio_copy    -- Alex Custov, license: GPL
+

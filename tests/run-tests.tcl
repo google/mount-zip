@@ -1,6 +1,26 @@
 #!/bin/sh
 
-#restart usinf tclsh \
+############################################################################
+#    Copyright (C) 2008 by Alexander Galanin                               #
+#    gaa.nnov@mail.ru                                                      #
+#                                                                          #
+#    This program is free software; you can redistribute it and/or modify  #
+#    it under the terms of the GNU Library General Public License as       #
+#    published by the Free Software Foundation; either version 3 of the    #
+#    License, or (at your option) any later version.                       #
+#                                                                          #
+#    This program is distributed in the hope that it will be useful,       #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of        #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         #
+#    GNU General Public License for more details.                          #
+#                                                                          #
+#    You should have received a copy of the GNU Library General Public     #
+#    License along with this program; if not, write to the                 #
+#    Free Software Foundation, Inc.,                                       #
+#    51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               #
+############################################################################
+
+#restart using tclsh \
 exec tclsh "$0" "$@"
 
 package require Tcl 8.4
@@ -42,10 +62,10 @@ set participants {
 # fusej-zip -- have problems with mounting
 
 set tests {
-    zip-zero        "Compress file generated from /dev/zero"
-    unzip-zero      "Uncompress file generated from /dev/zero"
-    zip-urandom     "Compress file generated from /dev/urandom"
-    unzip-urandom   "Uncompress file generated from /dev/urandom"
+    zip-zero        "Compress files generated from /dev/zero"
+    unzip-zero      "Uncompress files generated from /dev/zero"
+    zip-urandom     "Compress files generated from /dev/urandom"
+    unzip-urandom   "Uncompress files generated from /dev/urandom"
     zip-mixed       "Compress files generated from /dev/{urandom,zero}"
     unzip-mixed     "Uncompress files generated from /dev/{urandom,zero}"
 
@@ -58,7 +78,7 @@ set tests {
     add-big-big     "Add big file to big archive"
 
     zip-linuxsrc    "Compress linux kernel sources"
-    unzip-linuxsrc  "Uncompress linux kernel sources"
+    unzip-linuxsrc  "Uncompress (a part of) linux kernel sources"
 }
 
 ###############################################################################
@@ -129,7 +149,8 @@ proc prepareData {action} {
             exec cp -r -t $::extractDir $::linuxSources
         }
         unzip-linuxsrc {
-            prepareArchive $::linuxSources .
+            # Compressing not full sources because mc-uzip is too sloooow :)
+            prepareArchive $::linuxSources drivers
         }
         add-* {
             set a [ lrange [ split $action "-" ] 1 2 ]
@@ -183,11 +204,13 @@ proc cleanData {action} {
 }
 
 proc cleanTestData {action} {
-    global archive extractDir
+    global archive extractDir mountPoint
 
     switch -glob $action {
         zip-* {
             file delete $archive
+            file delete -force $mountPoint
+            file mkdir $mountPoint
         }
         extract-one-* -
         unzip-* {
@@ -314,11 +337,17 @@ proc mc-uzip {action} {
 
 proc gvfsExec {args} {
     global gvfsdArchive archive
-    set res [ timeExec sh -c "
-        $gvfsdArchive file=$archive > /dev/null 2> /dev/null &
-        $args;
-        gvfs-mount -u `gvfs-mount -l | grep [ file tail $archive ] | awk '{print \$4}'`
-    " ]
+
+    set res [ timeExec sh -c "$gvfsdArchive file=$archive 2> /dev/null |
+        (
+            awk \"/register_mount_callback/ {
+                system(\\\"$args\\\");
+                system(\\\"gvfs-mount -u `gvfs-mount -l | grep [ file tail $archive ] | cut -d ' ' -f 4`\\\");
+                exit;
+            }\";
+            cat > /dev/null
+        )" \
+    ]
     return $res
 }
 
