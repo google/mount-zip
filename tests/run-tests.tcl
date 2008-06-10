@@ -15,6 +15,7 @@ set kioCopy "kio_copy/kio_copy"
 set uzip "/usr/share/mc/extfs/uzip"
 set gvfsdArchive "/usr/lib/gvfs/gvfsd-archive"
 set unpackfsBinary "unpackfs-0.0.6/src/unpackfs"
+set avfsBinary "avfs-0.9.8/fuse/avfsd"
 
 set zip "zip"
 set unzip "unzip"
@@ -54,6 +55,22 @@ set tests {
 
     zip-linuxsrc    "Compress linux kernel sources"
     unzip-linuxsrc  "Uncompress linux kernel sources"
+}
+
+#debug
+set tests {
+    unzip-zero      "Uncompress file generated from /dev/zero"
+    unzip-urandom   "Uncompress file generated from /dev/urandom"
+    unzip-mixed     "Uncompress files generated from /dev/{urandom,zero}"
+    extract-one-1   "Extract one file from archive with many files"
+    extract-one-2   "Extract one file from big archive"
+    unzip-linuxsrc  "Uncompress linux kernel sources"
+}
+
+set participants {
+    fuse-zip
+    unpackfs
+    avfs-fuse
 }
 
 ###############################################################################
@@ -363,6 +380,32 @@ proc unpackfs {action} {
     }
 }
 
+proc avfsExec {args} {
+    global avfsBinary mountPoint
+    return [ eval [ concat [ list fuseExec "$avfsBinary $mountPoint" "avfsd" ] $args ] ]
+}
+
+proc avfs-fuse {action} {
+    global extractDir mountPoint archive
+
+    set dir $mountPoint/$archive#
+    switch -glob $action {
+        add-* -
+        zip-* {
+            return "n/a n/a n/a"
+        }
+        unzip-* {
+            return [ avfsExec cp -r $dir/* $extractDir ]
+        }
+        extract-one-* {
+            return [ avfsExec cp -r $dir/data/file $extractDir ]
+        }
+        default {
+            error "Action $action not implemented"
+        }
+    }
+}
+
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -393,6 +436,7 @@ if [ catch {
                 puts "FAILED"
                 puts "Error: $err"
                 lappend res $p "FAIL FAIL FAIL"
+                gets stdin
             } else {
                 puts "OK"
             }
