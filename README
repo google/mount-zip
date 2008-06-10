@@ -7,7 +7,9 @@ With fuse-zip you really can work with ZIP archives as real directories.
 Unlike KIO or Gnome VFS, it can be used in any application without 
 modifications.
 
-Currently all base filesystem operations are supported.
+Unlike other FUSE filesystems, only fuse-zip provides write support to ZIP
+archives. Also, fuse-zip is faster that all known implementations on large
+archives with many files.
 
 You can download fuse-zip at 
 http://code.google.com/p/fuse-zip/downloads/list
@@ -38,10 +40,11 @@ $ fusermount -u /tmp/zipArchive
 Look at /var/log/user.log in case of any errors.
 
 
+
 PERFORMANCE
 
-fuse-zip have the same performance(on a small archives) with commonly used
-virtual filesystems like KIO, Gnome GVFS, mc vfs, unpackfs, avfs.
+On a small archives fuse-zip have the same performance with commonly used
+virtual filesystems like KIO, Gnome GVFS, mc vfs, unpackfs, avfs, fuse-j-zip.
 But on large archives with many file (like zipped Linux kernel sources)
 fuse-zip have the greatest speed.
 You can download test suite from the web-site and make sure that it is true.

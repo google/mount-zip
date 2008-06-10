@@ -3,8 +3,8 @@ LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
 CXXFLAGS:=$(CXXFLAGS) -Wall -Wextra $(shell pkg-config fuse --cflags) $(shell pkg-config libzip --cflags)
 SOURCES=fuse-zip.cpp fileNode.cpp bigBuffer.cpp fuseZipData.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
-CLEANFILES=$(DEST) $(OBJECTS)
-DOCFILES=LICENSE README INSTALL
+CLEANFILES=$(OBJECTS)
+DOCFILES=LICENSE README INSTALL changelog
 INSTALLPREFIX=
 
 all: $(SOURCES) $(DEST)
@@ -14,6 +14,9 @@ $(DEST): $(OBJECTS)
 
 .cpp.o:
 	$(CXX) -c $(CXXFLAGS) $< -o $@
+
+distclean: clean
+	rm -f $(DEST)
 
 clean:
 	rm -f $(CLEANFILES)

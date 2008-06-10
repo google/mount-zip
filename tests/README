@@ -27,8 +27,11 @@ fusej-zip   2.4-prerelease1 FUSE-J provides Java binding for FUSE. It comes
 
 USAGE
 
+Edit paths in the head of run-tests.tcl before running it.
+
 # ./run-tests.tcl
 
+Test reaults will be saved into 'logs' subdirectory.
 Make sure that none of testing participants are not running on starting tests.
 
 

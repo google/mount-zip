@@ -3,3 +3,4 @@
 * does not allow write() while opened read-only
 * fill free space with zeros after truncate() or write() call
 * operate with archive without libzip
+* allow files without parent dir (like 'a/b/c') and with relative path (like '../a/b/c')

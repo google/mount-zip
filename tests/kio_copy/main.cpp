@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 {
     KAboutData aboutData("kiocopy", "KIOCopy", "0.1.0", "KIOCopy",
             KAboutData::License_GPL, "(c) 2008, Me",
-            QString::null, "http://bgg.net ", QString::null);
+            QString::null, "http://localhost", QString::null);
 KCmdLineArgs::init(argc, argv, &aboutData);
     KCmdLineArgs::addCmdLineOptions(options);
     KCmdLineArgs *kargs = KCmdLineArgs::parsedArgs();
