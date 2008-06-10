@@ -58,8 +58,8 @@ set participants {
     gvfs-fuse
     unpackfs
     avfs-fuse
+    fusej-zip
 }
-# fusej-zip -- have problems with mounting
 
 set tests {
     zip-zero        "Compress files generated from /dev/zero"
@@ -338,7 +338,7 @@ proc mc-uzip {action} {
 proc gvfsExec {args} {
     global gvfsdArchive archive
 
-    set res [ timeExec sh -c "$gvfsdArchive file=$archive 2> /dev/null |
+    return [ timeExec sh -c "$gvfsdArchive file=$archive 2> /dev/null |
         (
             awk \"/register_mount_callback/ {
                 system(\\\"$args\\\");
@@ -348,7 +348,6 @@ proc gvfsExec {args} {
             cat > /dev/null
         )" \
     ]
-    return $res
 }
 
 proc gvfs-fuse {action} {
@@ -427,10 +426,18 @@ proc avfs-fuse {action} {
 proc fusejExec {args} {
     global archive mountPoint fuseJClasspath jdkHome
 
-    # problem here: can not determine when filesystem is mounted
-    set fuseJMount "LD_LIBRARY_PATH=$fuseJClasspath/jni:/usr/lib $jdkHome/bin/java -classpath $fuseJClasspath/build:$fuseJClasspath/lib/commons-logging-1.0.4.jar -Dorg.apache.commons.logging.Log=fuse.logging.FuseLog fuse.zipfs.ZipFilesystem -s -f $mountPoint $archive 2> /dev/null & sleep 10"
-
-    return [ eval [ concat [ list fuseExec $fuseJMount "java" ] $args ] ]
+    set fuseJMount "LD_LIBRARY_PATH=$fuseJClasspath/jni:/usr/lib $jdkHome/bin/java -classpath $fuseJClasspath/build:$fuseJClasspath/lib/commons-logging-1.0.4.jar -Dorg.apache.commons.logging.Log=fuse.logging.FuseLog fuse.zipfs.ZipFilesystem -s -f $mountPoint $archive 2>&1"
+    return [ timeExec sh -c "$fuseJMount |
+        (
+            awk \"/.*Mounting filesystem.*/ {
+                system(\\\"sleep 0.01\\\");
+                system(\\\"$args\\\");
+                system(\\\"fusermount -uz $mountPoint\\\");
+                exit;
+            }\";
+            cat > /dev/null
+        )" \
+    ]
 }
 
 proc fusej-zip {action} {
