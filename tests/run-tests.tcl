@@ -7,7 +7,6 @@ package require Tcl 8.4
 
 # source files
 set linuxSources [ file normalize "linux-sources" ]
-set cdImage "/home/share/Soft/Linux_dist/debian-40r1-amd64-CD-1.iso"
 
 # utilities
 set fuseZip "../fuse-zip"
@@ -41,6 +40,9 @@ set tests {
     zip-mixed       "Compress files generated from /dev/{urandom,zero}"
     unzip-mixed     "Uncompress files generated from /dev/{urandom,zero}"
 
+    extract-one-1   "Extract one file from archive with many files"
+    extract-one-2   "Extract one file from big archive"
+
     add-small-small "Add small file to small archive"
     add-small-big   "Add small file to big archive"
     add-big-small   "Add big file to small archive"
@@ -50,7 +52,7 @@ set tests {
     unzip-linuxsrc  "Uncompress linux kernel sources"
 }
 
-##debug
+#debug
 #set tests {
 #}
 
@@ -133,6 +135,24 @@ proc prepareData {action} {
             file delete -force $::extractDir/data
             exec cp $::archive $::archive.copy
         }
+        extract-one-1 {
+            file mkdir $::extractDir/data
+            for {set i 0} {$i < 100} {incr i} {
+                makeFile data/$i small
+            }
+            makeFile data/file small
+            prepareArchive $::extractDir data
+            file delete -force $::extractDir/data
+        }
+        extract-one-2 {
+            file mkdir $::extractDir/data
+            for {set i 0} {$i < 3} {incr i} {
+                makeFile data/$i big
+            }
+            makeFile data/file small
+            prepareArchive $::extractDir data
+            file delete -force $::extractDir/data
+        }
     }
     puts "OK"
 }
@@ -141,7 +161,9 @@ proc cleanData {action} {
     global archive extractDir
 
     switch -glob $action {
+        extract-one-* -
         zip-* {
+            file delete $archive
             file delete -force $extractDir
             file mkdir $extractDir
         }
@@ -160,6 +182,7 @@ proc cleanTestData {action} {
         zip-* {
             file delete $archive
         }
+        extract-one-* -
         unzip-* {
             file delete -force $extractDir
             file mkdir $extractDir
@@ -212,6 +235,9 @@ proc fuse-zip {action} {
         unzip-* {
             return [ fusezipExec "cp -r $mountPoint/* $extractDir" ]
         }
+        extract-one-* {
+            return [ fusezipExec "cp -r $mountPoint/data/file $extractDir" ]
+        }
         default {
             error "Action $action not implemented"
         }
@@ -228,6 +254,9 @@ proc kio-zip {action} {
         }
         unzip-* {
             return [ timeExec $kioCopy zip://$archive file://$extractDir/content ]
+        }
+        extract-one-* {
+            return [ timeExec $kioCopy zip://$archive/data/file file://$extractDir/content ]
         }
         default {
             error "Action $action not implemented"
@@ -257,6 +286,9 @@ proc mc-uzip {action} {
                 $uzip list $archive | cut -b 64- | grep -v /\\\$ | while read f;\
                 do $uzip copyout $archive \$f $extractDir/\$f; done;\
             " ]
+        }
+        extract-one-* {
+            return [ timeExec $uzip copyout $archive data/file $extractDir/file ]
         }
         default {
             error "Action $action not implemented"
