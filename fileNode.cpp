@@ -26,7 +26,6 @@
 #include "fuseZipData.h"
 
 FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
-    this->saving = false;
     this->id = id;
     this->is_dir = false;
     this->open_count = 0;
@@ -61,8 +60,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
 
 FileNode::~FileNode() {
     free(full_name);
-    // If saving is true, buffer will be deleted later in BigBuffer::zipUserFunctionCallback
-    if (state == OPENED || (state == CHANGED && !saving)) {
+    if (state == OPENED || state == CHANGED) {
         delete buffer;
     }
 }
@@ -184,11 +182,7 @@ int FileNode::close() {
 }
 
 int FileNode::save() {
-    int res = buffer->saveToZip(data->m_zip, full_name, state == NEW, id);
-    if (res == 0) {
-        saving = true;
-    }
-    return res;
+    return buffer->saveToZip(data->m_zip, full_name, state == NEW, id);
 }
 
 int FileNode::truncate(off_t offset) {

@@ -37,7 +37,6 @@ private:
     FuseZipData *data;
     int open_count;
     nodeState state;
-    bool saving;
 
     void parse_name(char *fname);
     void attach();

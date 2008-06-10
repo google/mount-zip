@@ -154,7 +154,6 @@ ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, 
             return sizeof(struct zip_stat);
         }
         case ZIP_SOURCE_FREE: {
-            delete b->buf;
             delete b;
             return 0;
         }
