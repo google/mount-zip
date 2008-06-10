@@ -13,6 +13,8 @@ set fuseZip "../fuse-zip"
 set fusermount "fusermount"
 set kioCopy "kio_copy/kio_copy"
 set uzip "/usr/share/mc/extfs/uzip"
+set gvfsdArchive "/usr/lib/gvfs/gvfsd-archive"
+set unpackfsBinary "unpackfs-0.0.6/src/unpackfs"
 
 set zip "zip"
 set unzip "unzip"
@@ -22,7 +24,7 @@ set timeCmd "/usr/bin/time -f \"%e\t%U\t%S\" -o /dev/stdout"
 
 # paths
 set tmpDir [ file normalize "fusezip-tests-temp" ]
-set mountPoint "$tmpDir/mount-point"
+set mountPoint "$tmpDir/mountpoint-subdir/mount-point"
 set extractDir "$tmpDir/extract-dir"
 set archive "$tmpDir/archive.zip"
 
@@ -30,6 +32,8 @@ set participants {
     fuse-zip
     kio-zip
     mc-uzip
+    gvfs-fuse
+    unpackfs
 }
 
 set tests {
@@ -51,10 +55,6 @@ set tests {
     zip-linuxsrc    "Compress linux kernel sources"
     unzip-linuxsrc  "Uncompress linux kernel sources"
 }
-
-#debug
-#set tests {
-#}
 
 ###############################################################################
 # FUNCTIONS
@@ -93,8 +93,8 @@ proc makeFile {name size} {
 }
 
 proc prepareData {action} {
-    puts "Generating data... "
-    puts -nonewline "Generating data... "
+    puts -nonewline "Generating data for $action... "
+    flush stdout
     switch -glob $action {
         zip-urandom {
             prepareRandomData urandom
@@ -164,11 +164,13 @@ proc cleanData {action} {
         extract-one-* -
         zip-* {
             file delete $archive
+            exec chmod -R a+wx $extractDir
             file delete -force $extractDir
             file mkdir $extractDir
         }
         add-* {
             file delete $::archive.copy
+            exec chmod -R a+wx $extractDir
             file delete -force $extractDir
             file mkdir $extractDir
         }
@@ -184,6 +186,7 @@ proc cleanTestData {action} {
         }
         extract-one-* -
         unzip-* {
+            exec chmod -R a+wx $extractDir
             file delete -force $extractDir
             file mkdir $extractDir
         }
@@ -212,16 +215,24 @@ proc timeExec {args} {
 # TESTS
 ###############################################################################
 
-proc fusezipExec {cmd} {
-    global fuseZip archive mountPoint fusermount
-    set res [ timeExec sh -c "\
-        $fuseZip $archive $mountPoint;\
-        $cmd;\
-        $fusermount -uz $mountPoint;\
-        while \[ -n `pgrep fuse-zip`\"\" \];do sleep 0.1s;done;\
+proc fuseExec {mountCmd binary args} {
+    global mountPoint fusermount
+    set res [ timeExec sh -c "
+        $mountCmd;
+        $args;
+        $fusermount -uz $mountPoint;
+        while \[ -n `pgrep $binary`\"\" \];
+        do
+            sleep 0.1s;
+        done;
     " ]
     checkArchive
     return $res
+}
+
+proc fuseZipExec {args} {
+    global fuseZip archive mountPoint
+    return [ eval [ concat [ list fuseExec "$fuseZip $archive $mountPoint" "fuse-zip" ] $args ] ]
 }
 
 proc fuse-zip {action} {
@@ -230,13 +241,13 @@ proc fuse-zip {action} {
     switch -glob $action {
         add-* -
         zip-* {
-            return [ fusezipExec "cp -r -t $mountPoint $extractDir" ]
+            return [ fuseZipExec cp -r -t $mountPoint $extractDir ]
         }
         unzip-* {
-            return [ fusezipExec "cp -r $mountPoint/* $extractDir" ]
+            return [ fuseZipExec cp -r $mountPoint/* $extractDir ]
         }
         extract-one-* {
-            return [ fusezipExec "cp -r $mountPoint/data/file $extractDir" ]
+            return [ fuseZipExec cp -r $mountPoint/data/file $extractDir ]
         }
         default {
             error "Action $action not implemented"
@@ -296,6 +307,62 @@ proc mc-uzip {action} {
     }
 }
 
+proc gvfsExec {args} {
+    global gvfsdArchive archive
+    set res [ timeExec sh -c "\
+        $gvfsdArchive file=$archive > /dev/null 2> /dev/null & pid=\$!;
+        $args;
+        gvfs-mount -u `gvfs-mount -l | grep [ file tail $archive ] | awk '{print \$4}'`
+    " ]
+    return $res
+}
+
+proc gvfs-fuse {action} {
+    global archive extractDir
+
+    switch -glob $action {
+        add-* -
+        zip-* {
+            return "n/a n/a n/a"
+        }
+        unzip-* {
+            return [ gvfsExec cp -r -t $extractDir "$::env(HOME)/.gvfs/[ file tail $archive ]/*"  ]
+        }
+        extract-one-* {
+            return [ gvfsExec cp -r -t $extractDir "$::env(HOME)/.gvfs/[ file tail $archive ]/data/file"  ]
+        }
+        default {
+            error "Action $action not implemented"
+        }
+    }
+}
+
+proc unpackFsExec {args} {
+    global unpackfsBinary mountPoint
+    return [ eval [ concat [ list fuseExec "$unpackfsBinary -c unpackfs.config $mountPoint" "unpackfs" ] $args ] ]
+}
+
+proc unpackfs {action} {
+    global extractDir mountPoint archive
+
+    set dir $mountPoint/[ file rootname $archive ]
+    switch -glob $action {
+        add-* -
+        zip-* {
+            return "n/a n/a n/a"
+        }
+        unzip-* {
+            return [ unpackFsExec cp -r $dir/* $extractDir ]
+        }
+        extract-one-* {
+            return [ unpackFsExec cp -r $dir/data/file $extractDir ]
+        }
+        default {
+            error "Action $action not implemented"
+        }
+    }
+}
+
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -306,6 +373,7 @@ puts "##########################"
 puts ""
 
 file mkdir $tmpDir
+exec chmod -R a+wx $tmpDir
 file delete -force $tmpDir
 file mkdir $tmpDir $mountPoint $extractDir
 
@@ -316,12 +384,18 @@ if [ catch {
         set res ""
         prepareData $t
         foreach p $participants {
-            puts "Running test $t for $p... "
             puts -nonewline "Running test $t for $p... "
+            flush stdout
 
-            lappend res $p [ $p $t ]
-
-            puts "OK"
+            if [ catch {
+                lappend res $p [ $p $t ]
+            } err ] {
+                puts "FAILED"
+                puts "Error: $err"
+                lappend res $p "FAIL FAIL FAIL"
+            } else {
+                puts "OK"
+            }
             cleanTestData $t
         }
         cleanData $t
@@ -331,23 +405,31 @@ if [ catch {
 } err ] {
     puts "FAILED"
     puts "Error message: $err"
+    puts "Error info: $errorInfo"
 
     catch {exec $fusermount -uz $mountPoint}
-exit
 
-    file delete -force $tmpDir $mountPoint $extractDir
+    exec chmod -R a+wx $tmpDir
+    file delete -force $tmpDir
     exit
 }
 
-file delete -force $tmpDir $mountPoint $extractDir
+exec chmod -R a+wx $tmpDir
+file delete -force $tmpDir
+
+file mkdir logs
 
 puts ""
-puts "Program\t\treal\tuser\tsystem"
-foreach {test label res} $results {
-    puts "Test: $label \($test\)"
-    foreach {p t} $res {
-        puts "  $p\t[ join $t \t ]"
-    }
-    puts ""
-}
 
+set f [ open logs/[ clock format ].log "w" ]
+foreach fd "stdout $f" {
+    puts $fd "Program\t\treal\tuser\tsystem"
+    foreach {test label res} $results {
+        puts $fd "Test: $label \($test\)"
+            foreach {p t} $res {
+            puts $fd "  $p\t[ join $t \t ]"
+        }
+        puts $fd ""
+    }
+}
+close $f
