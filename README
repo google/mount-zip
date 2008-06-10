@@ -40,18 +40,20 @@ Look at /var/log/user.log in case of any errors.
 
 PERFORMANCE
 
-As shown with tests ...
+fuse-zip have the same performance(on a small archives) with commonly used
+virtual filesystems like KIO, Gnome GVFS, mc vfs, unpackfs, avfs.
+But on large archives with many file (like zipped Linux kernel sources)
+fuse-zip have the greatest speed.
+You can download test suite from the web-site and make sure that it is true.
 
 
 
 HINTS
 
 1. Added/changed files resides into memory until you unmount file system.
-
 2. Adding/unpacking very big files(more than one half of available memory)
    may cause your system swapping.
    It is a good idea to use zip/unzip in that case :)
-
 3. After adding/modifying files in archive it will be repacked at filesystem
    unmount. Hence, your file system must have enough space to keep tempopary
    files.

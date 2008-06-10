@@ -421,7 +421,7 @@ file mkdir logs
 
 puts ""
 
-set f [ open logs/[ clock format ].log "w" ]
+set f [ open logs/[ clock format [ clock seconds ] ].log "w" ]
 foreach fd "stdout $f" {
     puts $fd "Program\t\treal\tuser\tsystem"
     foreach {test label res} $results {
