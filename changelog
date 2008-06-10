@@ -1,0 +1,16 @@
+2008-06-11 Alexander Galanin <gaa.nnov@mail.ru>
+
+	* Released 0.2.0:
+	- implemented all functions to mount archive read-write
+	- big internal refactoring
+	- added performance tests
+	- fixed problem with simultaneous file access
+	- fixed problem with one-character file names
+	* Known limitations:
+	- archives with items like '../../somefile' recognited as broken
+
+2008-06-04 Alexander Galanin <gaa.nnov@mail.ru>
+
+	* Initial release 0.1.0:
+	- implemented all base functions for read-only archive support
+
