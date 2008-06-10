@@ -16,6 +16,8 @@ set uzip "/usr/share/mc/extfs/uzip"
 set gvfsdArchive "/usr/lib/gvfs/gvfsd-archive"
 set unpackfsBinary "unpackfs-0.0.6/src/unpackfs"
 set avfsBinary "avfs-0.9.8/fuse/avfsd"
+set fuseJClasspath "fuse-j-2.4-prerelease1"
+set jdkHome "/usr/lib/jvm/java-6-sun-1.6.0.06/"
 
 set zip "zip"
 set unzip "unzip"
@@ -35,7 +37,9 @@ set participants {
     mc-uzip
     gvfs-fuse
     unpackfs
+    avfs-fuse
 }
+# fusej-zip -- have problems with mounting
 
 set tests {
     zip-zero        "Compress file generated from /dev/zero"
@@ -55,22 +59,6 @@ set tests {
 
     zip-linuxsrc    "Compress linux kernel sources"
     unzip-linuxsrc  "Uncompress linux kernel sources"
-}
-
-#debug
-set tests {
-    unzip-zero      "Uncompress file generated from /dev/zero"
-    unzip-urandom   "Uncompress file generated from /dev/urandom"
-    unzip-mixed     "Uncompress files generated from /dev/{urandom,zero}"
-    extract-one-1   "Extract one file from archive with many files"
-    extract-one-2   "Extract one file from big archive"
-    unzip-linuxsrc  "Uncompress linux kernel sources"
-}
-
-set participants {
-    fuse-zip
-    unpackfs
-    avfs-fuse
 }
 
 ###############################################################################
@@ -300,19 +288,19 @@ proc mc-uzip {action} {
         zip-* {
             # mc uzip cannot handle empty files
             exec $zip $archive $::argv0
-            return [ timeExec sh -c "\
-                find $extractDir -type d | cut -b 2- | tail -n +2 | while read f;\
-                do $uzip mkdir $archive \$f; done;\
-                find $extractDir -type f | cut -b 2- | while read f;\
-                do $uzip copyin $archive \$f /\$f; done;\
+            return [ timeExec sh -c "
+                find $extractDir -type d | cut -b 2- | tail -n +2 | while read f;
+                do $uzip mkdir $archive \$f; done;
+                find $extractDir -type f | cut -b 2- | while read f;
+                do $uzip copyin $archive \$f /\$f; done;
             " ]
         }
         unzip-* {
-            return [ timeExec sh -c "\
-                $uzip list $archive | cut -b 64- | grep /\\\$ | while read f;\
-                do mkdir -p $extractDir/\$f; done;\
-                $uzip list $archive | cut -b 64- | grep -v /\\\$ | while read f;\
-                do $uzip copyout $archive \$f $extractDir/\$f; done;\
+            return [ timeExec sh -c "
+                $uzip list $archive | cut -b 64- | grep /\\\$ | while read f;
+                do mkdir -p $extractDir/\$f; done;
+                $uzip list $archive | cut -b 64- | grep -v /\\\$ | while read f;
+                do $uzip copyout $archive \$f $extractDir/\$f; done;
             " ]
         }
         extract-one-* {
@@ -326,8 +314,8 @@ proc mc-uzip {action} {
 
 proc gvfsExec {args} {
     global gvfsdArchive archive
-    set res [ timeExec sh -c "\
-        $gvfsdArchive file=$archive > /dev/null 2> /dev/null & pid=\$!;
+    set res [ timeExec sh -c "
+        $gvfsdArchive file=$archive > /dev/null 2> /dev/null &
         $args;
         gvfs-mount -u `gvfs-mount -l | grep [ file tail $archive ] | awk '{print \$4}'`
     " ]
@@ -406,6 +394,36 @@ proc avfs-fuse {action} {
     }
 }
 
+
+proc fusejExec {args} {
+    global archive mountPoint fuseJClasspath jdkHome
+
+    # problem here: can not determine when filesystem is mounted
+    set fuseJMount "LD_LIBRARY_PATH=$fuseJClasspath/jni:/usr/lib $jdkHome/bin/java -classpath $fuseJClasspath/build:$fuseJClasspath/lib/commons-logging-1.0.4.jar -Dorg.apache.commons.logging.Log=fuse.logging.FuseLog fuse.zipfs.ZipFilesystem -s -f $mountPoint $archive 2> /dev/null & sleep 10"
+
+    return [ eval [ concat [ list fuseExec $fuseJMount "java" ] $args ] ]
+}
+
+proc fusej-zip {action} {
+    global extractDir mountPoint archive
+
+    switch -glob $action {
+        add-* -
+        zip-* {
+            return "n/a n/a n/a"
+        }
+        unzip-* {
+            return [ fusejExec cp -r $mountPoint/* $extractDir ]
+        }
+        extract-one-* {
+            return [ fusejExec cp -r $mountPoint/data/file $extractDir ]
+        }
+        default {
+            error "Action $action not implemented"
+        }
+    }
+}
+
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -436,7 +454,6 @@ if [ catch {
                 puts "FAILED"
                 puts "Error: $err"
                 lappend res $p "FAIL FAIL FAIL"
-                gets stdin
             } else {
                 puts "OK"
             }
