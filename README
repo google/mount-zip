@@ -37,6 +37,11 @@ $ fuse-zip foobar.zip /tmp/zipArchive -ovolname="zip"
 (do something with the mounted file system)
 $ fusermount -u /tmp/zipArchive
 
+If ZIP file does not exists, it will be created after filesystem unmounting.
+
+Be patient. Wait for fuse-zip process finish after unmounting especially on
+a big archives.
+
 Look at /var/log/user.log in case of any errors.
 
 
@@ -53,11 +58,25 @@ You can download test suite from the web-site and make sure that it is true.
 
 HINTS
 
-1. Added/changed files resides into memory until you unmount file system.
-2. Adding/unpacking very big files(more than one half of available memory)
-   may cause your system swapping.
-   It is a good idea to use zip/unzip in that case :)
-3. After adding/modifying files in archive it will be repacked at filesystem
-   unmount. Hence, your file system must have enough space to keep tempopary
-   files.
+ 1. Added/changed files resides into memory until you unmount file system.
+ 2. Adding/unpacking very big files(more than one half of available memory)
+    may cause your system swapping.
+    It is a good idea to use zip/unzip in that case :)
+ 3. After adding/modifying files in archive it will be repacked at filesystem
+    unmount. Hence, your file system must have enough space to keep tempopary
+    files.
+
+
+
+REPORTING BUGS
+
+Include the following information into a bug report:
+
+ 1. steps to reproduce problem
+ 2. grep fuse-zip /var/log/user.log
+ 3. version of libfuse
+ 4. version of libzip
+ 5. uname -a
+ 6. df -h
+ 7. free -m
 

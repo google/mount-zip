@@ -396,7 +396,28 @@ int main(int argc, char *argv[]) {
     }
     FuseZipData *data;
     try {
-        data = new FuseZipData(zip_file, get_current_dir_name());
+        char *cwd;
+#ifdef _GNU_SOURCE__
+        cwd = get_current_dir_name();
+#else
+#if (PATH_MAX <= 0)
+#error Something wrong with your system
+#endif
+        int size = PATH_MAX;
+        cwd = (char*)malloc(size + 1);
+        if (cwd == NULL) {
+            throw std::bad_alloc();
+        }
+        while (getcwd(cwd, size) == NULL) {
+            free(cwd);
+            size += PATH_MAX;
+            cwd = (char*)malloc(size + 1);
+            if (cwd == NULL) {
+                throw std::bad_alloc();
+            }
+        }
+#endif
+        data = new FuseZipData(zip_file, cwd);
     }
     catch (std::bad_alloc) {
       fprintf(stderr, "%s: no enough memory\n", PROGRAM);
