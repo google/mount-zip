@@ -397,7 +397,7 @@ int main(int argc, char *argv[]) {
     FuseZipData *data;
     try {
         char *cwd;
-#ifdef _GNU_SOURCE__
+#ifdef _GNU_SOURCE
         cwd = get_current_dir_name();
 #else
 #if (PATH_MAX <= 0)
