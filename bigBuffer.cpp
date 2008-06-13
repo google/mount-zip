@@ -18,8 +18,8 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <errno.h>
+#include <cerrno>
+#include <cstdlib>
 
 #include "bigBuffer.h"
 
@@ -64,7 +64,7 @@ int BigBuffer::read(char *buf, size_t size, off_t offset) const {
     int chunk = offset / chunkSize;
     int pos = offset % chunkSize;
     int nread = 0;
-    if ((signed)(size + offset) > len) {
+    if (size > unsigned(len - offset)) {
         size = len - offset;
     }
     while (size > 0) {
@@ -93,7 +93,7 @@ int BigBuffer::write(const char *buf, size_t size, off_t offset) {
     for (unsigned int i = chunks.size(); i <= (offset + size) / chunkSize; ++i) {
         chunks.push_back(NULL);
     }
-    if ((signed)(size + offset) > len) {
+    if (len < offset || size > unsigned(len - offset)) {
         len = size + offset;
     }
     while (size > 0) {

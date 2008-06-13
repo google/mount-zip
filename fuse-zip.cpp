@@ -24,11 +24,11 @@
 
 #include <fuse.h>
 #include <zip.h>
-#include <errno.h>
 #include <syslog.h>
-#include <string.h>
-#include <stdlib.h>
 
+#include <cerrno>
+#include <cstring>
+#include <cstdlib>
 #include <queue>
 
 #include "types.h"

@@ -18,9 +18,8 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
-#include <assert.h>
-#include <errno.h>
-#include <limits.h>
+#include <cerrno>
+#include <climits>
 
 #include "fileNode.h"
 #include "fuseZipData.h"
@@ -66,7 +65,6 @@ FileNode::~FileNode() {
 }
 
 void FileNode::parse_name(char *fname) {
-    assert(fname != NULL);
     this->full_name = fname;
     if (*fname == '\0') {
         // in case of root directory of a virtual filesystem

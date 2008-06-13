@@ -21,7 +21,6 @@
 #ifndef BIG_BUFFER_H
 #define BIG_BUFFER_H
 
-#include <unistd.h>
 #include <zip.h>
 
 #include <vector>
@@ -34,7 +33,7 @@ private:
 
     chunks_t chunks;
 
-    static ssize_t zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd);
+    static off_t zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd);
 public:
     ssize_t len;
 
