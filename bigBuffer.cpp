@@ -45,7 +45,7 @@ BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     }
     free(buf);
     if (zip_fclose(zf)) {
-        throw new std::exception();
+        throw std::exception();
     }
 }
 

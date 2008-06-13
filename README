@@ -42,6 +42,13 @@ If ZIP file does not exists, it will be created after filesystem unmounting.
 Be patient. Wait for fuse-zip process finish after unmounting especially on
 a big archives.
 
+If you want to specify character set conversion for file names in archive,
+use the following fusermount options:
+
+  -omodules=iconv,from_code=$charset1,to_code=$charset2
+
+See FUSE documentation for details.
+
 Look at /var/log/user.log in case of any errors.
 
 

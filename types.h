@@ -21,6 +21,8 @@
 #ifndef FUSEZIP_TYPES_H
 #define FUSEZIP_TYPES_H
 
+#include <string.h>
+
 #include <list>
 #include <map>
 

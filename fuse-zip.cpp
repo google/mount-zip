@@ -26,6 +26,8 @@
 #include <zip.h>
 #include <errno.h>
 #include <syslog.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include <queue>
 
@@ -148,7 +150,15 @@ static int fusezip_open(const char *path, struct fuse_file_info *fi) {
     }
     fi->fh = (uint64_t)node;
 
-    return node->open();
+    try {
+        return node->open();
+    }
+    catch (std::bad_alloc) {
+        return -ENOMEM;
+    }
+    catch (std::exception) {
+        return -EIO;
+    }
 }
 
 static int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
@@ -305,33 +315,38 @@ static int fusezip_rename(const char *path, const char *new_path) {
         new_name[len] = '\0';
     }
 
-    struct zip *z = get_zip();
-    // Renaming directory and its content recursively
-    if (node->is_dir) {
-        queue<FileNode*> q;
-        q.push(node);
-        while (!q.empty()) {
-            FileNode *n = q.front();
-            q.pop();
-            for (nodelist_t::const_iterator i = n->childs.begin(); i != n->childs.end(); ++i) {
-                FileNode *nn = *i;
-                q.push(nn);
-                char *name = (char*)malloc(len + strlen(nn->name) + 1);
-                if (name == NULL) {
-                    //TODO: check that we are have enough memory before entering this loop
-                    return -ENOMEM;
+    try {
+        struct zip *z = get_zip();
+        // Renaming directory and its content recursively
+        if (node->is_dir) {
+            queue<FileNode*> q;
+            q.push(node);
+            while (!q.empty()) {
+                FileNode *n = q.front();
+                q.pop();
+                for (nodelist_t::const_iterator i = n->childs.begin(); i != n->childs.end(); ++i) {
+                    FileNode *nn = *i;
+                    q.push(nn);
+                    char *name = (char*)malloc(len + strlen(nn->name) + 1);
+                    if (name == NULL) {
+                        //TODO: check that we are have enough memory before entering this loop
+                        return -ENOMEM;
+                    }
+                    strcpy(name, new_name);
+                    strcpy(name + len, nn->name);
+                    nn->rename_wo_reparenting(name);
+                    zip_rename(z, nn->id, name);
                 }
-                strcpy(name, new_name);
-                strcpy(name + len, nn->name);
-                nn->rename_wo_reparenting(name);
-                zip_rename(z, nn->id, name);
             }
         }
+        zip_rename(z, node->id, new_name);
+        // Must be called after loop because new_name will be truncated
+        node->rename(new_name);
+        return 0;
     }
-    zip_rename(z, node->id, new_name);
-    // Must be called after loop because new_name will be truncated
-    node->rename(new_name);
-    return 0;
+    catch (...) {
+        return -EIO;
+    }
 }
 
 static int fusezip_chmod(const char *, mode_t) {
@@ -454,9 +469,6 @@ int main(int argc, char *argv[]) {
     fusezip_oper.utimens    =   fusezip_utimens;
     fusezip_oper.ftruncate  =   fusezip_ftruncate;
     fusezip_oper.truncate   =   fusezip_truncate;
-
-// We cannot use fuse_main to initialize FUSE because libzip are have problems with thread safety.
-// return fuse_main(argc - 1, argv + 1, &fusezip_oper, zip_file);
 
     struct fuse *fuse;
     char *mountpoint;

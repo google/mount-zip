@@ -10,9 +10,9 @@ tmp="$dir/$id"
 mkdir "$tmp"
 cp -t "$tmp" *.cpp *.h Makefile INSTALL LICENSE README changelog
 
-rm -f "$id.tar.bz2"
+rm -f "$id.tar.gz"
 cd "$dir"
-tar -cvjf "$pwd/$id.tar.bz2" "$id"
+tar -cvjf "$pwd/$id.tar.gz" "$id"
 cd "$pwd"
 
 # make tests tarball
