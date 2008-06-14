@@ -1,5 +1,7 @@
 #!/bin/sh
 
+make all doc || exit 1
+
 dir=`mktemp -d`
 pwd=`pwd`
 

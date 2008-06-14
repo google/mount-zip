@@ -5,11 +5,15 @@ FUSEFLAGS=$(shell pkg-config fuse --cflags)
 ZIPFLAGS=$(shell pkg-config libzip --cflags)
 SOURCES=fuse-zip.cpp fileNode.cpp bigBuffer.cpp fuseZipData.cpp libZipWrapper.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
-CLEANFILES=$(OBJECTS)
+MANSRC=fuse-zip.1
+MAN=fuse-zip.1.gz
+CLEANFILES=$(OBJECTS) $(MAN)
 DOCFILES=LICENSE README INSTALL changelog
 INSTALLPREFIX=/usr
 
 all: $(DEST)
+
+doc: $(MAN)
 
 $(DEST): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
@@ -27,16 +31,19 @@ distclean: clean
 clean:
 	rm -f $(CLEANFILES)
 
-install: $(DEST)
+$(MAN): $(MANSRC)
+	gzip -c9 $< > $@
+
+install: all doc
 	mkdir -p "$(INSTALLPREFIX)/bin"
-	install -m 755 -s -t "$(INSTALLPREFIX)/usr/bin" "$(DEST)"
+	install -m 755 -s -t "$(INSTALLPREFIX)/bin" "$(DEST)"
 	mkdir -p "$(INSTALLPREFIX)/share/doc/$(DEST)"
 	cp $(DOCFILES) "$(INSTALLPREFIX)/share/doc/$(DEST)"
 	mkdir -p "$(INSTALLPREFIX)/share/man/man1"
-	cp fuse-zip.1.gz "$(INSTALLPREFIX)/share/man/man1"
+	cp $(MAN) "$(INSTALLPREFIX)/share/man/man1"
 
 uninstall:
 	rm "$(INSTALLPREFIX)/bin/$(DEST)"
 	rm -r "$(INSTALLPREFIX)/share/doc/$(DEST)"
-	rm "$(INSTALLPREFIX)/share/man/man1/fuse-zip.1.gz"
+	rm "$(INSTALLPREFIX)/share/man/man1/$(MAN)"
 
