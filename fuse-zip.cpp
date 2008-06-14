@@ -25,6 +25,7 @@
 #include <fuse.h>
 #include <zip.h>
 #include <syslog.h>
+#include <sys/xattr.h>
 
 #include <cerrno>
 #include <cstring>
@@ -349,6 +350,22 @@ static int fusezip_rename(const char *path, const char *new_path) {
     }
 }
 
+static int fusezip_setxattr(const char *, const char *, const char *, size_t, int) {
+    return -ENOTSUP;
+}
+
+static int fusezip_getxattr(const char *, const char *, char *, size_t) {
+    return -ENOTSUP;
+}
+
+static int fusezip_listxattr(const char *, char *, size_t) {
+    return -ENOTSUP;
+}
+
+static int fusezip_removexattr(const char *, const char *) {
+    return -ENOTSUP;
+}
+
 static int fusezip_chmod(const char *, mode_t) {
     return 0;
 }
@@ -469,6 +486,10 @@ int main(int argc, char *argv[]) {
     fusezip_oper.utimens    =   fusezip_utimens;
     fusezip_oper.ftruncate  =   fusezip_ftruncate;
     fusezip_oper.truncate   =   fusezip_truncate;
+    fusezip_oper.setxattr   =   fusezip_setxattr;
+    fusezip_oper.getxattr   =   fusezip_getxattr;
+    fusezip_oper.listxattr  =   fusezip_listxattr;
+    fusezip_oper.removexattr=   fusezip_removexattr;
 
     struct fuse *fuse;
     char *mountpoint;

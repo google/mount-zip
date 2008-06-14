@@ -4,7 +4,5 @@
 * fill free space with zeros after truncate() or write() call
 * operate with archive without libzip
 * allow files without parent dir (like 'a/b/c') and with relative path (like '../a/b/c')
-* add stubs for *xattr()
-* headers problem in gcc 4.3.1
 * new files have The Epoch date
 * file size problem on 32-bit
