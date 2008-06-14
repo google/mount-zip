@@ -8,7 +8,8 @@ The following virtual file systems can be tested:
 
 fuse-zip    >=0.2.0         FUSE filesystem to mount, extract and modify ZIP
                             archives (http://fuse-zip.googlecode.com)
-kio-zip     part of KDE3    KDE virtual filesystem
+kio-zip     part of KDE3    KDE virtual filesystem zip://
+kio-krarc   part of KDE3    KDE virtual filesystem krarc://
 mc-uzip     part of mc      Midnight Commander VFS module
 gfvs-fuse   >=0.2.4         Gnome userspace virtual filesystem - fuse bridge
 unpackfs    >=0.0.6         Filesystem based on fuse (filesystem in userspace)
@@ -33,7 +34,7 @@ Edit paths in the head of run-tests.tcl before running it.
 
 Test reaults will be saved into 'logs' subdirectory.
 Make sure that none of testing participants are not running on starting tests.
-
+Please, run at least one KDE application in background.
 
 
 AUTHORS

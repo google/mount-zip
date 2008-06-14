@@ -303,6 +303,31 @@ proc kio-zip {action} {
     }
 }
 
+proc kio-krarc {action} {
+    global archive extractDir kioCopy zip
+
+    switch -glob $action {
+        add-* -
+        zip-* {
+            # krarc:// cannot handle empty files
+            exec $zip $archive $::argv0
+            return [ timeExec $kioCopy file://$extractDir krarc://$archive/data ]
+        }
+        unzip-linuxsrc {
+            return [ timeExec $kioCopy krarc://$archive/drivers file://$extractDir/content ]
+        }
+        unzip-* {
+            return [ timeExec $kioCopy krarc://$archive/data file://$extractDir/content ]
+        }
+        extract-one-* {
+            return [ timeExec $kioCopy krarc://$archive/data/file file://$extractDir/content ]
+        }
+        default {
+            error "Action $action not implemented"
+        }
+    }
+}
+
 proc mc-uzip {action} {
     global zip uzip archive extractDir
 
@@ -520,11 +545,11 @@ puts ""
 
 set f [ open logs/[ clock format [ clock seconds ] ].log "w" ]
 foreach fd "stdout $f" {
-    puts $fd "Program\t\treal\tuser\tsystem"
+    puts $fd "|| Program || real || user || system ||"
     foreach {test label res} $results {
-        puts $fd "Test: $label \($test\)"
+        puts $fd "== $label \($test\) =="
             foreach {p t} $res {
-            puts $fd "  $p\t[ join $t \t ]"
+            puts $fd [ join [ list "|| $p\t||" [ join $t "\t|| " ] " ||" ] ]
         }
         puts $fd ""
     }
