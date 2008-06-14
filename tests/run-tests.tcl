@@ -54,6 +54,7 @@ set archive "$tmpDir/archive.zip"
 set participants {
     fuse-zip
     kio-zip
+    kio-krarc
     mc-uzip
     gvfs-fuse
     unpackfs
