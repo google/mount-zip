@@ -24,6 +24,7 @@
 
 #include <fuse.h>
 #include <zip.h>
+#include <unistd.h>
 #include <syslog.h>
 #include <sys/xattr.h>
 
@@ -35,6 +36,7 @@
 #include "types.h"
 #include "fileNode.h"
 #include "fuseZipData.h"
+#include "libZipWrapper.h"
 
 using namespace std;
 
@@ -85,7 +87,8 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
     if (node == NULL) {
         return -ENOENT;
     }
-    struct zip_stat &zstat = node->stat;
+    struct zip_stat_64 zstat;
+    zip_stat_assign_64_to_default(&zstat, &node->stat);
     if (node->is_dir) {
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2 + node->childs.size();

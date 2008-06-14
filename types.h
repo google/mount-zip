@@ -26,7 +26,6 @@
 #include <map>
 
 class FileNode;
-class FileHandler;
 class FuseZipData;
 
 struct ltstr {

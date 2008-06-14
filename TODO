@@ -5,4 +5,4 @@
 * operate with archive without libzip
 * allow files without parent dir (like 'a/b/c') and with relative path (like '../a/b/c')
 * new files have The Epoch date
-* file size problem on 32-bit
+* archive comment as xattr?
