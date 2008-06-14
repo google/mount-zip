@@ -8,11 +8,11 @@ id="fuse-zip-`basename "$pwd"`"
 tmp="$dir/$id"
 
 mkdir "$tmp"
-cp -t "$tmp" *.cpp *.h Makefile INSTALL LICENSE README changelog
+cp -t "$tmp" *.cpp *.h Makefile INSTALL LICENSE README changelog fuse-zip.1.gz
 
 rm -f "$id.tar.gz"
 cd "$dir"
-tar -cvjf "$pwd/$id.tar.gz" "$id"
+tar -cvzf "$pwd/$id.tar.gz" "$id"
 cd "$pwd"
 
 # make tests tarball
@@ -24,9 +24,9 @@ mkdir "$tmp/kio_copy"
 cp -t "$tmp" tests/README tests/run-tests.tcl tests/unpackfs.config
 cp -t "$tmp/kio_copy" tests/kio_copy/kio_copy.pro tests/kio_copy/main.cpp
 
-rm -rf "$id.tar.bz2"
+rm -rf "$id.tar.gz"
 cd "$dir"
-tar -cvjf "$pwd/$id.tar.bz2" "$id"
+tar -cvzf "$pwd/$id.tar.gz" "$id"
 cd "$pwd"
 
 rm -rf "$dir"

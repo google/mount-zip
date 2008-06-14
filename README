@@ -1,41 +1,42 @@
-ABOUT
+= ABOUT =
 
-fuse-zip is a FUSE file system to navigate, extract, create and modify ZIP 
+fuse-zip is a FUSE file system to navigate, extract, create and modify ZIP
 archives based in libzip implemented in C++.
 
 With fuse-zip you really can work with ZIP archives as real directories.
-Unlike KIO or Gnome VFS, it can be used in any application without 
+Unlike KIO or Gnome VFS, it can be used in any application without
 modifications.
 
-Unlike other FUSE filesystems, only fuse-zip provides write support to ZIP
+Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
 archives. Also, fuse-zip is faster that all known implementations on large
 archives with many files.
 
-You can download fuse-zip at 
-http://code.google.com/p/fuse-zip/downloads/list
+You can download fuse-zip at http://code.google.com/p/fuse-zip
 
 
 
-AUTHOR
+= AUTHOR =
 
 Alexander Galanin
-    E-mail: gaa.nnov _AT_ mail.ru
-    XMPP:   gaa _AT_ jabber.ru
+  * E-mail: gaa.nnov _AT_ mail.ru
+  * XMPP:   gaa _AT_ jabber.ru
 
 
 
-LICENSE
+= LICENSE =
 
-fuse-zip are licensed under GNU LGPL v2. See LICENSE for details.
+fuse-zip are licensed under GNU LGPL v2.
 
 
 
-USAGE
+= USAGE =
 
+{{{
 $ mkdir /tmp/zipArchive
 $ fuse-zip foobar.zip /tmp/zipArchive -ovolname="zip"
 (do something with the mounted file system)
 $ fusermount -u /tmp/zipArchive
+}}}
 
 If ZIP file does not exists, it will be created after filesystem unmounting.
 
@@ -53,37 +54,18 @@ Look at /var/log/user.log in case of any errors.
 
 
 
-PERFORMANCE
+= PERFORMANCE =
 
 On a small archives fuse-zip have the same performance with commonly used
 virtual filesystems like KIO, Gnome GVFS, mc vfs, unpackfs, avfs, fuse-j-zip.
 But on large archives with many file (like zipped Linux kernel sources)
 fuse-zip have the greatest speed.
 You can download test suite from the web-site and make sure that it is true.
+See PerformancePage for details.
 
 
+= HINTS =
 
-HINTS
-
- 1. Added/changed files resides into memory until you unmount file system.
- 2. Adding/unpacking very big files(more than one half of available memory)
-    may cause your system swapping.
-    It is a good idea to use zip/unzip in that case :)
- 3. After adding/modifying files in archive it will be repacked at filesystem
-    unmount. Hence, your file system must have enough space to keep tempopary
-    files.
-
-
-
-REPORTING BUGS
-
-Include the following information into a bug report:
-
- 1. steps to reproduce problem
- 2. grep fuse-zip /var/log/user.log
- 3. version of libfuse
- 4. version of libzip
- 5. uname -a
- 6. df -h
- 7. free -m
-
+# Added/changed files resides into memory until you unmount file system.
+# Adding/unpacking very big files(more than one half of available memory) may cause your system swapping. It is a good idea to use zip/unzip in that case :)
+# After adding/modifying files in archive it will be repacked at filesystem unmount. Hence, your file system must have enough space to keep tempopary files.

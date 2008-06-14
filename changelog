@@ -1,3 +1,12 @@
+2008-06-14 Alexander Galanin <gaa.nnov@mail.ru>
+
+	* Released 0.2.1:
+	- fixed bug with file size on 32-bit systems
+	- fixed compilation problems on non-GNU platforms
+	- fixed compilation problems on GCC 4.3+
+	- added stubs for *xattr() system calls
+	- more checks for error cases
+
 2008-06-11 Alexander Galanin <gaa.nnov@mail.ru>
 
 	* Released 0.2.0:

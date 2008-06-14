@@ -32,8 +32,11 @@ install: $(DEST)
 	install -m 755 -s -t "$(INSTALLPREFIX)/usr/bin" "$(DEST)"
 	mkdir -p "$(INSTALLPREFIX)/usr/share/doc/$(DEST)"
 	cp -t "$(INSTALLPREFIX)/usr/share/doc/$(DEST)" $(DOCFILES)
+	mkdir -p "$(INSTALLPREFIX)/usr/share/man/man1"
+	cp -t "$(INSTALLPREFIX)/usr/share/man/man1" fuse-zip.1.gz
 
 uninstall:
 	rm "$(INSTALLPREFIX)/usr/bin/$(DEST)"
 	rm -r "$(INSTALLPREFIX)/usr/share/doc/$(DEST)"
+	rm "$(INSTALLPREFIX)/usr/share/man/man1/fuse-zip.1.gz"
 
