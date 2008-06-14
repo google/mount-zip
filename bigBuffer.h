@@ -26,6 +26,8 @@
 
 #include <vector>
 
+#include "types.h"
+
 class BigBuffer {
 private:
     typedef std::vector<char*> chunks_t;
@@ -36,16 +38,16 @@ private:
 
     static ssize_t zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd);
 public:
-    off64_t len;
+    offset_t len;
 
     BigBuffer();
     BigBuffer(struct zip *z, int nodeId, ssize_t length);
     ~BigBuffer();
 
-    int read(char *buf, size_t size, off64_t offset) const;
-    int write(const char *buf, size_t size, off64_t offset);
+    int read(char *buf, size_t size, offset_t offset) const;
+    int write(const char *buf, size_t size, offset_t offset);
     int saveToZip(struct zip *z, const char *fname, bool newFile, int index);
-    int truncate(off64_t offset);
+    int truncate(offset_t offset);
 };
 
 #endif

@@ -51,11 +51,11 @@ public:
     void rename_wo_reparenting(char *new_name);
 
     int open();
-    int read(char *buf, size_t size, off64_t offset) const;
-    int write(const char *buf, size_t size, off64_t offset);
+    int read(char *buf, size_t size, offset_t offset) const;
+    int write(const char *buf, size_t size, offset_t offset);
     int close();
     int save();
-    int truncate(off64_t offset);
+    int truncate(offset_t offset);
 
     inline bool isChanged() const {
         return state == CHANGED || state == NEW;

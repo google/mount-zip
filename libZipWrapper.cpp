@@ -10,7 +10,7 @@ void zip_stat_assign_64_to_default(struct zip_stat_64 *dest, const struct zip_st
     dest->comp_method = src->comp_method;
     dest->encryption_method = src->encryption_method;
 
-    dest->size = off64_t(src->size);
-    dest->comp_size = off64_t(src->comp_size);
+    dest->size = offset_t(src->size);
+    dest->comp_size = offset_t(src->comp_size);
 }
 

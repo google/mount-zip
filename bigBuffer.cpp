@@ -57,7 +57,7 @@ BigBuffer::~BigBuffer() {
     }
 }
 
-int BigBuffer::read(char *buf, size_t size, off64_t offset) const {
+int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     if (offset > len) {
         return -EINVAL;
     }
@@ -86,7 +86,7 @@ int BigBuffer::read(char *buf, size_t size, off64_t offset) const {
     return nread;
 }
 
-int BigBuffer::write(const char *buf, size_t size, off64_t offset) {
+int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
     int chunk = offset / chunkSize;
     int pos = offset % chunkSize;
     int nwritten = 0;
@@ -117,7 +117,7 @@ int BigBuffer::write(const char *buf, size_t size, off64_t offset) {
     return nwritten;
 }
 
-int BigBuffer::truncate(off64_t offset) {
+int BigBuffer::truncate(offset_t offset) {
     if (offset < len) {
         for (unsigned int i = (offset + chunkSize - 1)/chunkSize + 1; i < chunks.size(); ++i) {
             if (chunks[i] != NULL) {

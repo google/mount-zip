@@ -12,6 +12,10 @@
 //
 
 #include <unistd.h>
+#include <sys/types.h>
+#include <ctime>
+
+#include "types.h"
 
 struct zip_stat_64 {
     const char *name;                   /* name of the file */
@@ -19,9 +23,9 @@ struct zip_stat_64 {
     unsigned int crc;                   /* crc of file data */
     time_t mtime;                       /* modification time */
 //modified type
-    off64_t size;                       /* size of file (uncompressed) */
+    offset_t size;                       /* size of file (uncompressed) */
 //modified type
-    off64_t comp_size;                  /* size of file (compressed) */
+    offset_t comp_size;                  /* size of file (compressed) */
     unsigned short comp_method;         /* compression method used */
     unsigned short encryption_method;   /* encryption method used */
 };
