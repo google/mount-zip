@@ -1,0 +1,78 @@
+.\" '\" t
+.\" ** The above line should force tbl to be a preprocessor **
+.\" Man page for fuse-zip
+.TH "fuse-zip" "1" "June 2008" "FUSE filesystem to read and modify ZIP archives" "FUSE filesystem to read and modify ZIP archives"
+.SH "NAME"
+fuse\-zip \- a FUSE filesystem for zip archives with write support
+.SH "SYNOPSIS"
+.\" The general command line
+.B fuse\-zip
+zip\-file
+.RI [\| fusermount
+.RI \| options \|]
+mount\-point
+.SH "OPTIONS"
+.TP
+\fB-h\fP
+print help
+.TP
+\fB-V\fP
+print version
+.TP
+\fB-o opt[,opt...]\fP
+mount options
+.TP
+\fB-q\fP
+quiet
+.TP
+\fB-f\fP
+don't detach from terminal
+.TP
+\fB-d\fP
+turn on debugging, also implies -f
+.PP
+If you want to specify character set conversion for file names in archive,
+use the following fusermount options:
+
+  -omodules=iconv,from_code=$charset1,to_code=$charset2
+
+See FUSE documentation for details.
+.SH "DESCRIPTION"
+.B fuse\-zip
+is a fuse filesystem, that enables any program to work with a ZIP archive as thow it is a plain directory.
+Unlike KIO or Gnome VFS, it can be used in any application without modifications.
+
+Unlike other FUSE filesystems, only fuse\-zip provides write support to ZIP archives.
+Also, fuse\-zip is faster that all known implementations on large archives with many files. 
+.SH "USAGE"
+General usage would look like this
+
+.TS
+tab (@);
+l l.
+1@mkdir\ /tmp/zipArchive
+2@fuse\-zip foobar.zip /tmp/zipArchive \-ovolname="zip"
+3@(do something with the mounted file system)
+4@fusermount \-u /tmp/zipArchive
+.TE
+.PP
+Be patient. Wait for fuse-zip process finish after unmounting, especially on a big archives.
+.SH "FILES"
+.TP 
+.if !'po4a'hide' .I /var/log/user.log
+see this file in case any errors occur
+.SH "SEE ALSO"
+.BR fusermount (1).
+.SH "LICENSE"
+.
+This is Free Software; this software is licensed under the LGPL version 2, as published by the Free Software Foundation, or later.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+.
+.SH "AUTHORS"
+.
+Alexander Galanin <gaa.nnov@mail.ru>.
+.br 
+.
+This manual page was originally written by Kirill Zaitsev <teferiincub@gmail.com>. Updated by Alexander Galanin.
+
+
