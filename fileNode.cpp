@@ -21,6 +21,7 @@
 #include <cerrno>
 #include <climits>
 #include <ctime>
+#include <cstdlib>
 
 #include "fileNode.h"
 #include "fuseZipData.h"

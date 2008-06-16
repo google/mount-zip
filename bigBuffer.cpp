@@ -20,6 +20,7 @@
 
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 
 #include "bigBuffer.h"
 #include "fileNode.h"
