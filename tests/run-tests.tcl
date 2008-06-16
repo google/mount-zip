@@ -550,7 +550,7 @@ foreach fd "stdout $f" {
     foreach {test label res} $results {
         puts $fd "== $label \($test\) =="
             foreach {p t} $res {
-            puts $fd [ join [ list "|| $p\t||" [ join $t "\t|| " ] " ||" ] ]
+            puts $fd [ join [ list "|| $p\t||" [ join $t "\t|| " ] "\t||" ] ]
         }
         puts $fd ""
     }
