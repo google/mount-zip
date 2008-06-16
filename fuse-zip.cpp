@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <sys/xattr.h>
+#include <sys/types.h>
 
 #include <cerrno>
 #include <cstring>
@@ -96,9 +97,12 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
         stbuf->st_mode = S_IFREG | 0644;
         stbuf->st_nlink = 1;
     }
+    stbuf->st_blksize = 1;
     stbuf->st_ino = node->id;
     stbuf->st_size = zstat.size;
     stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = zstat.mtime;
+    stbuf->st_uid = geteuid();
+    stbuf->st_gid = getegid();
 
     return 0;
 }
