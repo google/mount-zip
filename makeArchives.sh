@@ -10,7 +10,7 @@ id="fuse-zip-`basename "$pwd"`"
 tmp="$dir/$id"
 
 mkdir "$tmp"
-cp -t "$tmp" *.cpp *.h Makefile INSTALL LICENSE README changelog fuse-zip.1.gz
+cp -t "$tmp" *.cpp *.h Makefile INSTALL LICENSE README changelog fuse-zip.1
 
 rm -f "$id.tar.gz"
 cd "$dir"

@@ -78,7 +78,7 @@ set tests {
     add-big-small   "Add big file to small archive"
     add-big-big     "Add big file to big archive"
 
-    zip-linuxsrc    "Compress linux kernel sources"
+    zip-linuxsrc    "Compress (a part of) linux kernel sources"
     unzip-linuxsrc  "Uncompress (a part of) linux kernel sources"
 }
 
@@ -147,7 +147,7 @@ proc prepareData {action} {
             file delete -force $::extractDir/data
         }
         zip-linuxsrc {
-            exec cp -r -t $::extractDir $::linuxSources
+            exec cp -r -t $::extractDir $::linuxSources/drivers
         }
         unzip-linuxsrc {
             # Compressing not full sources because mc-uzip is too sloooow :)

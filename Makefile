@@ -8,7 +8,7 @@ OBJECTS=$(SOURCES:.cpp=.o)
 MANSRC=fuse-zip.1
 MAN=fuse-zip.1.gz
 CLEANFILES=$(OBJECTS) $(MAN)
-DOCFILES=LICENSE README INSTALL changelog
+DOCFILES=README changelog
 INSTALLPREFIX=/usr
 
 all: $(DEST)
