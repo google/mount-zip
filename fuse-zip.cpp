@@ -353,6 +353,18 @@ static int fusezip_rename(const char *path, const char *new_path) {
     }
 }
 
+static int fusezip_utimens(const char *path, const struct timespec tv[2]) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    node->stat.mtime = tv[1].tv_sec;
+    return 0;
+}
+
 static int fusezip_setxattr(const char *, const char *, const char *, size_t, int) {
     return -ENOTSUP;
 }
@@ -398,11 +410,6 @@ static int fusezip_releasedir(const char *, struct fuse_file_info *) {
 }
 
 static int fusezip_access(const char *, int) {
-    return 0;
-}
-
-static int fusezip_utimens(const char *, const struct timespec tv[2]) {
-    (void) tv;
     return 0;
 }
 

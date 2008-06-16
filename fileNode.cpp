@@ -20,6 +20,7 @@
 
 #include <cerrno>
 #include <climits>
+#include <ctime>
 
 #include "fileNode.h"
 #include "fuseZipData.h"
@@ -35,6 +36,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
             throw std::bad_alloc();
         }
         zip_stat_init(&stat);
+        stat.mtime = time(NULL);
     } else {
         state = CLOSED;
         if (id != -1) {
@@ -176,11 +178,14 @@ int FileNode::close() {
         delete buffer;
         state = CLOSED;
     }
+    if (state == NEW || state == CHANGED) {
+        stat.mtime = time(NULL);
+    }
     return 0;
 }
 
 int FileNode::save() {
-    return buffer->saveToZip(data->m_zip, full_name, state == NEW, id);
+    return buffer->saveToZip(this, data->m_zip, full_name, state == NEW, id);
 }
 
 int FileNode::truncate(offset_t offset) {

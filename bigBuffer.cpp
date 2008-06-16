@@ -22,6 +22,7 @@
 #include <cstdlib>
 
 #include "bigBuffer.h"
+#include "fileNode.h"
 
 BigBuffer::BigBuffer(): len(0) {
 }
@@ -130,11 +131,6 @@ int BigBuffer::truncate(offset_t offset) {
     return 0;
 }
 
-struct CallBackStruct {
-    size_t pos;
-    BigBuffer *buf;
-};
-
 ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd) {
     CallBackStruct *b = (CallBackStruct*)state;
     switch (cmd) {
@@ -151,6 +147,7 @@ ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, 
             struct zip_stat *st = (struct zip_stat*)data;
             zip_stat_init(st);
             st->size = b->buf->len;
+            st->mtime = b->fileNode->stat.mtime;
             return sizeof(struct zip_stat);
         }
         case ZIP_SOURCE_FREE: {
@@ -163,12 +160,12 @@ ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, 
     }
 }
 
-int BigBuffer::saveToZip(struct zip *z, const char *fname, bool newFile, int index) {
+int BigBuffer::saveToZip(const FileNode *fileNode, struct zip *z, const char *fname, bool newFile, int index) {
     struct zip_source *s;
     struct CallBackStruct *cbs = new CallBackStruct();
     cbs->buf = this;
+    cbs->fileNode = fileNode;
     if ((s=zip_source_function(z, zipUserFunctionCallback, cbs)) == NULL) {
-        zip_source_free(s);
         return -ENOMEM;
     }
     if ((newFile && zip_add(z, fname, s) < 0) || (!newFile && zip_replace(z, index, s) < 0)) {

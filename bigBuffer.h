@@ -30,9 +30,15 @@
 
 class BigBuffer {
 private:
+    static const int chunkSize = 4*1024; //4 Kilobytes
+
     typedef std::vector<char*> chunks_t;
 
-    static const int chunkSize = 4*1024; //4 Kilobytes
+    struct CallBackStruct {
+        size_t pos;
+        const BigBuffer *buf;
+        const FileNode *fileNode;
+    };
 
     chunks_t chunks;
 
@@ -46,7 +52,7 @@ public:
 
     int read(char *buf, size_t size, offset_t offset) const;
     int write(const char *buf, size_t size, offset_t offset);
-    int saveToZip(struct zip *z, const char *fname, bool newFile, int index);
+    int saveToZip(const FileNode *fileNode, struct zip *z, const char *fname, bool newFile, int index);
     int truncate(offset_t offset);
 };
 
