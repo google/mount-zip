@@ -61,6 +61,14 @@ public:
         return state == CHANGED || state == NEW;
     }
 
+    inline offset_t size() const {
+        if (state == NEW || state == OPENED || state == CHANGED) {
+            return buffer->len;
+        } else {
+            return stat.size;
+        }
+    }
+
     char *name, *full_name;
     bool is_dir;
     int id;

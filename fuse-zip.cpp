@@ -28,6 +28,7 @@
 #include <syslog.h>
 #include <sys/xattr.h>
 #include <sys/types.h>
+#include <sys/statvfs.h>
 
 #include <cerrno>
 #include <cstring>
@@ -43,6 +44,7 @@ using namespace std;
 
 static void *fusezip_init(struct fuse_conn_info *conn) {
     (void) conn;
+    syslog(LOG_INFO, "Mounting file system");
     return fuse_get_context()->private_data;
 }
 
@@ -99,7 +101,7 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
     }
     stbuf->st_blksize = 1;
     stbuf->st_ino = node->id;
-    stbuf->st_size = zstat.size;
+    stbuf->st_blocks = stbuf->st_size = node->size();
     stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = zstat.mtime;
     stbuf->st_uid = geteuid();
     stbuf->st_gid = getegid();
@@ -130,14 +132,20 @@ static int fusezip_readdir(const char *path, void *buf, fuse_fill_dir_t filler, 
 static int fusezip_statfs(const char *path, struct statvfs *buf) {
     (void) path;
 
-    buf->f_bsize = 1;
-    //TODO: set this field to archive size
-    buf->f_blocks = 0;
+    // Getting amount of free space in directory with archive
+    struct statvfs st;
+    int err;
+    if ((err = statvfs(get_data()->m_cwd,&st)) != 0) {
+        return -err;
+    }
+    buf->f_bavail = buf->f_bfree = st.f_frsize * st.f_bavail;
 
-    //TODO: may be set to amount of free space on file system?
-    buf->f_bfree = 0;
-    buf->f_bavail = 0;
+    buf->f_bsize = 1;
+    //TODO: may be append archive size?
+    buf->f_blocks = buf->f_bavail + 0;
+
     buf->f_ffree = 0;
+    buf->f_favail = 0;
 
     buf->f_files = get_data()->files.size() - 1;
     buf->f_namemax = 255;

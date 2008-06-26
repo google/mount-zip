@@ -38,12 +38,15 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
         }
         zip_stat_init(&stat);
         stat.mtime = time(NULL);
+        stat.size = 0;
     } else {
         state = CLOSED;
         if (id != -1) {
             zip_stat_index(data->m_zip, this->id, 0, &stat);
         } else {
             zip_stat_init(&stat);
+            stat.mtime = time(NULL);
+            stat.size = 0;
         }
     }
     char *t = strdup(fname);
@@ -179,7 +182,7 @@ int FileNode::close() {
         delete buffer;
         state = CLOSED;
     }
-    if (state == NEW || state == CHANGED) {
+    if (state == CHANGED) {
         stat.mtime = time(NULL);
     }
     return 0;

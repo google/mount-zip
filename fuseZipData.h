@@ -26,12 +26,11 @@
 
 class FuseZipData {
 private:
-    char *m_cwd;
-
     void build_tree();
 public:
     filemap_t files;
     struct zip *m_zip;
+    char *m_cwd;
 
     FuseZipData(struct zip *z, char *cwd);
     ~FuseZipData();
