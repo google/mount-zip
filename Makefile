@@ -36,7 +36,7 @@ $(MAN): $(MANSRC)
 
 install: all doc
 	mkdir -p "$(INSTALLPREFIX)/bin"
-	install -m 755 -s -t "$(INSTALLPREFIX)/bin" "$(DEST)"
+	install -m 755 -s "$(DEST)" "$(INSTALLPREFIX)/bin"
 	mkdir -p "$(INSTALLPREFIX)/share/doc/$(DEST)"
 	cp $(DOCFILES) "$(INSTALLPREFIX)/share/doc/$(DEST)"
 	mkdir -p "$(INSTALLPREFIX)/share/man/man1"
