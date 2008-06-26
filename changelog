@@ -1,3 +1,11 @@
+2008-06-26 Alexander Galanin <gaa.nnov@mail.ru>
+
+	* Released 0.2.3:
+	- fixed problem with time and size of new files
+	- free space on file system now equal to free space in archive dir
+	- added missing includes
+	- removed GNU-specific commands in Makefile
+
 2008-06-16 Alexander Galanin <gaa.nnov@mail.ru>
 
 	* Released 0.2.2:
