@@ -201,3 +201,11 @@ int FileNode::truncate(offset_t offset) {
     }
 }
 
+offset_t FileNode::size() const {
+    if (state == NEW || state == OPENED || state == CHANGED) {
+        return buffer->len;
+    } else {
+        return stat.size;
+    }
+}
+
