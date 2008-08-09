@@ -1,3 +1,8 @@
+2008-08-09 Alexander Galanin <gaa.nnov@mail.ru>
+
+	* Released 0.2.4:
+	- fixed wrong directory size on 32-bit Linux machines
+
 2008-06-26 Alexander Galanin <gaa.nnov@mail.ru>
 
 	* Released 0.2.3:
