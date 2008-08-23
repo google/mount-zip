@@ -43,7 +43,9 @@ private:
     void parse_name(char *fname);
     void attach();
 public:
-    FileNode(FuseZipData *_data, const char *fname, int id = -2);
+    static const int ROOT_NODE_INDEX, NEW_NODE_INDEX;
+
+    FileNode(FuseZipData *_data, const char *fname, int id = NEW_NODE_INDEX);
     ~FileNode();
 
     void detach();

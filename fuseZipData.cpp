@@ -18,8 +18,6 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
-#define ROOT_NODE_INDEX (-1)
-
 #include <zip.h>
 #include <syslog.h>
 
@@ -50,7 +48,7 @@ FuseZipData::~FuseZipData() {
 }
 
 void FuseZipData::build_tree() {
-    FileNode *root_node = new FileNode(this, "", ROOT_NODE_INDEX);
+    FileNode *root_node = new FileNode(this, "", FileNode::ROOT_NODE_INDEX);
     root_node->is_dir = true;
 
     int n = zip_get_num_files(m_zip);

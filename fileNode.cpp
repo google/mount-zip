@@ -26,11 +26,14 @@
 #include "fileNode.h"
 #include "fuseZipData.h"
 
+const int FileNode::ROOT_NODE_INDEX = -1;
+const int FileNode::NEW_NODE_INDEX = -2;
+
 FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
     this->id = id;
     this->is_dir = false;
     this->open_count = 0;
-    if (id == -2) {
+    if (id == NEW_NODE_INDEX) {
         state = NEW;
         buffer = new BigBuffer();
         if (!buffer) {
@@ -41,7 +44,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
         stat.size = 0;
     } else {
         state = CLOSED;
-        if (id != -1) {
+        if (id != ROOT_NODE_INDEX) {
             zip_stat_index(data->m_zip, this->id, 0, &stat);
         } else {
             zip_stat_init(&stat);
