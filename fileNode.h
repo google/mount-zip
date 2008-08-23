@@ -72,6 +72,9 @@ public:
     FileNode *parent;
 
     struct zip_stat stat;
+
+    class AlreadyExists {
+    };
 };
 #endif
 

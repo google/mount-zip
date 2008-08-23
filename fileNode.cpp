@@ -22,6 +22,7 @@
 #include <climits>
 #include <ctime>
 #include <cstdlib>
+#include <cstring>
 
 #include "fileNode.h"
 #include "fuseZipData.h"
@@ -104,24 +105,45 @@ void FileNode::parse_name(char *fname) {
 }
 
 void FileNode::attach() {
-    if (*full_name != '\0') {
+    filemap_t::const_iterator other_iter =
+        this->data->files.find(this->full_name);
+    // If Node with the same name already exists...
+    if (other_iter != this->data->files.end()) {
+        FileNode *other = other_iter->second;
+        if (other->id != FileNode::NEW_NODE_INDEX) {
+            throw std::exception();
+        }
+        // ... update existing node information
+        other->id = this->id;
+        other->stat = this->stat;
+        other->state = this->state;
+        throw AlreadyExists();
+    }
+    if (*this->full_name != '\0') {
         // Adding new child to parent node. For items without '/' in fname it will be root_node.
-        char *lsl = name;
-        if (lsl > full_name) {
+        char *lsl = this->name;
+        if (lsl > this->full_name) {
             lsl--;
         }
         char c = *lsl;
         *lsl = '\0';
         // Searching for parent node...
-        filemap_t::iterator parent = data->files.find(this->full_name);
-        if (parent == data->files.end()) {
-            throw std::exception();
+        filemap_t::const_iterator parent_iter = data->files.find(this->full_name);
+        if (parent_iter == data->files.end()) {
+            // Relative paths are not supported
+            if (strcmp(this->full_name, ".") == 0 || strcmp(this->full_name, "..") == 0) {
+                throw std::exception();
+            }
+            FileNode *p = new FileNode(data, this->full_name);
+            p->is_dir = true;
+            this->parent = p;
+        } else {
+            this->parent = parent_iter->second;
         }
-        parent->second->childs.push_back(this);
-        this->parent = parent->second;
+        this->parent->childs.push_back(this);
         *lsl = c;
     }
-    data->files[this->full_name] = this;
+    this->data->files[this->full_name] = this;
 }
 
 void FileNode::detach() {

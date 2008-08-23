@@ -33,7 +33,7 @@ fuse-zip are licensed under GNU LGPL v3.
 
 {{{
 $ mkdir /tmp/zipArchive
-$ fuse-zip foobar.zip /tmp/zipArchive -ovolname="zip"
+$ fuse-zip foobar.zip /tmp/zipArchive
 (do something with the mounted file system)
 $ fusermount -u /tmp/zipArchive
 }}}

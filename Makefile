@@ -15,6 +15,8 @@ all: $(DEST)
 
 doc: $(MAN)
 
+doc-clean: man-clean
+
 $(DEST): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 
@@ -25,7 +27,7 @@ fuse-zip.o: fuse-zip.cpp
 .cpp.o:
 	$(CXX) -c $(CXXFLAGS) $(ZIPFLAGS) $< -o $@
 
-distclean: clean
+distclean: clean doc-clean
 	rm -f $(DEST)
 
 clean:
@@ -33,6 +35,9 @@ clean:
 
 $(MAN): $(MANSRC)
 	gzip -c9 $< > $@
+
+man-clean:
+	rm -f $(MANSRC).gz
 
 install: all doc
 	mkdir -p "$(INSTALLPREFIX)/bin"

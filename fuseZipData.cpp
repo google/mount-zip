@@ -53,8 +53,14 @@ void FuseZipData::build_tree() {
 
     int n = zip_get_num_files(m_zip);
     for (int i = 0; i < n; ++i) {
-        FileNode *node = new FileNode(this, zip_get_name(m_zip, i, 0), i);
-        (void) node;
+        const char *name = zip_get_name(m_zip, i, 0);
+        try {
+            FileNode *node = new FileNode(this, name, i);
+            (void) node;
+        }
+        catch (const FileNode::AlreadyExists &e) {
+            // Only need to skip node creation
+        }
     }
 }
 
