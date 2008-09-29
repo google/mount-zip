@@ -1,11 +1,11 @@
 2008-09-29 Alexander Galanin <gaa.nnov@mail.ru>
 
-	* Released 0.2.5:
+	* Released 0.2.6:
 	- Fixed: Compilation error on FreeBSD/Mac OS X with FUSE 2.7
 
 2008-08-24 Alexander Galanin <gaa.nnov@mail.ru>
 
-	* Released 0.2.4:
+	* Released 0.2.5:
 	- Fixed: Archives containing files whose parent directory does not
 	present in archive, reported as broken.
 
