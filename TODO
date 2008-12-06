@@ -1,7 +1,7 @@
 * write memory cache to /tmp on fsync(). May be write compressed stream
 * incapsulate chunks of BigBuffer into classes
-* does not allow write() while opened read-only
+* do not allow write() while opened read-only
 * fill free space with zeros after truncate() or write() call
 * operate with archive without libzip
-* allow files without parent dir (like 'a/b/c') and with relative path (like '../a/b/c')
+* allow with relative path (like '../a/b/c')
 * archive comment as xattr?

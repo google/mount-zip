@@ -176,9 +176,9 @@ int FileNode::open() {
     }
     if (state == CLOSED) {
         open_count = 1;
-        state = OPENED;
         try {
             buffer = new BigBuffer(data->m_zip, id, stat.size);
+            state = OPENED;
         }
         catch (std::bad_alloc) {
             return -ENOMEM;

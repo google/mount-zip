@@ -1,3 +1,9 @@
+2008-12-06 Alexander Galanin <gaa.nnov@mail.ru>
+
+	* Released 0.2.7:
+	- Fixed segfault if user tried to re-open corrupted file from an
+	invalid archive.
+
 2008-09-29 Alexander Galanin <gaa.nnov@mail.ru>
 
 	* Released 0.2.6:
