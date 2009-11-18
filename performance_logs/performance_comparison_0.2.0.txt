@@ -1,0 +1,126 @@
+Program         real    user    system
+Test: Compress file generated from /dev/zero (zip-zero)
+  fuse-zip      0.74    0.02    0.06
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       1.33    0.89    0.18
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Uncompress file generated from /dev/zero (unzip-zero)
+  fuse-zip      0.20    0.01    0.02
+  kio-zip       0.74    0.07    0.04
+  mc-uzip       1.06    0.88    0.18
+  unpackfs      0.39    0.00    0.09
+  avfs-fuse     0.31    0.01    0.02
+  gvfs-fuse     1.83    0.18    0.05
+  fusej-zip     0.58    0.42    0.15
+
+Test: Compress file generated from /dev/urandom (zip-urandom)
+  fuse-zip      1.68    0.01    0.08
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       2.09    1.88    0.21
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Uncompress file generated from /dev/urandom (unzip-urandom)
+  fuse-zip      0.22    0.00    0.10
+  kio-zip       0.27    0.06    0.03
+  mc-uzip       1.12    0.86    0.24
+  unpackfs      0.40    0.00    0.09
+  avfs-fuse     0.26    0.00    0.09
+  gvfs-fuse     2.21    0.21    0.31
+  fusej-zip     0.93    0.56    0.33
+
+Test: Compress files generated from /dev/{urandom,zero} (zip-mixed)
+  fuse-zip      3.08    0.06    0.20
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       3.13    2.73    0.39
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Uncompress files generated from /dev/{urandom,zero} (unzip-mixed)
+  fuse-zip      0.42    0.00    0.09
+  kio-zip       0.52    0.06    0.05
+  mc-uzip       2.11    1.63    0.46
+  unpackfs      0.69    0.00    0.19
+  avfs-fuse     0.48    0.01    0.11
+  gvfs-fuse     2.26    0.24    0.33
+  fusej-zip     0.94    0.60    0.28
+
+Test: Extract one file from archive with many files (extract-one-1)
+  fuse-zip      0.03    0.01    0.00
+  kio-zip       0.09    0.05    0.00
+  mc-uzip       0.08    0.06    0.02
+  unpackfs      1.34    0.00    0.02
+  avfs-fuse     0.03    0.00    0.01
+  gvfs-fuse     1.61    0.04    0.04
+  fusej-zip     0.28    0.24    0.03
+
+Test: Extract one file from big archive (extract-one-2)
+  fuse-zip      0.03    0.01    0.00
+  kio-zip       0.09    0.06    0.00
+  mc-uzip       0.08    0.06    0.01
+  unpackfs      0.62    0.01    0.01
+  avfs-fuse     0.03    0.01    0.00
+  gvfs-fuse     1.58    0.03    0.02
+  fusej-zip     0.28    0.21    0.04
+
+Test: Add small file to small archive (add-small-small)
+  fuse-zip      0.05    0.00    0.01
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       0.09    0.08    0.01
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Add small file to big archive (add-small-big)
+  fuse-zip      0.62    0.02    0.08
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       0.37    0.34    0.03
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Add big file to small archive (add-big-small)
+  fuse-zip      0.05    0.00    0.01
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       0.09    0.08    0.01
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Add big file to big archive (add-big-big)
+  fuse-zip      0.63    0.01    0.07
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       0.37    0.34    0.02
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Compress linux kernel sources (zip-linuxsrc)
+  fuse-zip      105.82  1.22    4.16
+  kio-zip       n/a     n/a     n/a
+  mc-uzip       4218.22 3286.44 803.24
+  unpackfs      n/a     n/a     n/a
+  avfs-fuse     n/a     n/a     n/a
+  gvfs-fuse     n/a     n/a     n/a
+  fusej-zip     n/a     n/a     n/a
+
+Test: Uncompress (a part of) linux kernel sources (unzip-linuxsrc)
+  fuse-zip      3.06    0.10    0.93
+  kio-zip       14.39   4.43    0.66
+  mc-uzip       2290.53 1869.57 380.27
+  unpackfs      28.85   0.05    0.95
+  avfs-fuse     4.54    0.03    0.99
+  gvfs-fuse     FAIL    FAIL    FAIL
+  fusej-zip     FAIL    FAIL    FAIL

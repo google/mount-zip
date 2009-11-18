@@ -1,0 +1,43 @@
+Program		real	user	system
+Test: Compress file generated from /dev/zero (zip-zero)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Uncompress file generated from /dev/zero (unzip-zero)
+  fuse-zip	0.17	0.01	0.03
+
+Test: Compress file generated from /dev/urandom (zip-urandom)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Uncompress file generated from /dev/urandom (unzip-urandom)
+  fuse-zip	0.19	0.00	0.09
+
+Test: Compress files generated from /dev/{urandom,zero} (zip-mixed)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Uncompress files generated from /dev/{urandom,zero} (unzip-mixed)
+  fuse-zip	0.35	0.01	0.11
+
+Test: Extract one file from archive with many files (extract-one-1)
+  fuse-zip	0.03	0.00	0.01
+
+Test: Extract one file from big archive (extract-one-2)
+  fuse-zip	0.03	0.00	0.01
+
+Test: Add small file to small archive (add-small-small)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Add small file to big archive (add-small-big)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Add big file to small archive (add-big-small)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Add big file to big archive (add-big-big)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Compress linux kernel sources (zip-linuxsrc)
+  fuse-zip	FAIL	FAIL	FAIL
+
+Test: Uncompress linux kernel sources (unzip-linuxsrc)
+  fuse-zip	32.70	0.51	3.78
+
