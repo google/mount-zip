@@ -1,12 +1,19 @@
 #!/bin/sh
 
+if [ $# != 1 ]
+then
+    echo "usage: $0 <version>"
+    echo "  generate archives for product version <version>"
+    exit 1
+fi
+
 make all doc || exit 1
 
 dir=`mktemp -d`
 pwd=`pwd`
 
 # make program tarball
-id="fuse-zip-`basename "$pwd"`"
+id="fuse-zip-$1"
 tmp="$dir/$id"
 
 mkdir "$tmp"
@@ -18,7 +25,7 @@ tar -cvzf "$pwd/$id.tar.gz" "$id"
 cd "$pwd"
 
 # make tests tarball
-id="fuse-zip-tests-r`svn info tests | grep Revision | cut -d \  -f 2`"
+id="fuse-zip-tests-r`hg log tests | head -n 1 | cut -d : -f 2 | sed 's/ //g'`"
 tmp="$dir/$id"
 
 mkdir "$tmp"
