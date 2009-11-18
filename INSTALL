@@ -1,10 +1,7 @@
 You need the following libraries:
 
-libfuse >= 2.6  http://fuse.sourceforge.net
+libfuse >= 2.7  http://fuse.sourceforge.net
 libzip >= 0.8   http://www.nih.at/libzip/
-
-Make sure that if libzip and fuse-zip are compiled with equal
-_FILE_OFFSET_BITS especially on non-64-bit systems!
 
 The following tools are required:
 

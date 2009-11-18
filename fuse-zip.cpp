@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008 by Alexander Galanin                               //
-//  gaa.nnov@mail.ru                                                      //
+//  Copyright (C) 2008-2009 by Alexander Galanin                          //
+//  al@galanin.nnov.ru                                                    //
 //                                                                        //
 //  This program is free software; you can redistribute it and/or modify  //
 //  it under the terms of the GNU Lesser General Public License as        //
@@ -18,9 +18,10 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
-#define FUSE_USE_VERSION 26
+#define FUSE_USE_VERSION 27
 #define PROGRAM "fuse-zip"
 #define ERROR_STR_BUF_LEN 0x100
+#define STANDARD_BLOCK_SIZE (512)
 
 #include <fuse.h>
 #include <zip.h>
@@ -99,9 +100,10 @@ static int fusezip_getattr(const char *path, struct stat *stbuf) {
         stbuf->st_mode = S_IFREG | 0644;
         stbuf->st_nlink = 1;
     }
-    stbuf->st_blksize = 1;
+    stbuf->st_blksize = STANDARD_BLOCK_SIZE;
     stbuf->st_ino = node->id;
-    stbuf->st_blocks = stbuf->st_size = node->size();
+    stbuf->st_blocks = (node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE;
+    stbuf->st_size = node->size();
     stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = zstat.mtime;
     stbuf->st_uid = geteuid();
     stbuf->st_gid = getegid();
