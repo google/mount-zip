@@ -7,9 +7,8 @@ fuse\-zip \- a FUSE filesystem for zip archives with write support
 .SH "SYNOPSIS"
 .\" The general command line
 .B fuse\-zip
+.RI [\| options \|]
 zip\-file
-.RI [\| fusermount
-.RI \| options \|]
 mount\-point
 .SH "OPTIONS"
 .TP
@@ -21,9 +20,6 @@ print version
 .TP
 \fB-o opt[,opt...]\fP
 mount options
-.TP
-\fB-q\fP
-quiet
 .TP
 \fB-f\fP
 don't detach from terminal
@@ -65,12 +61,12 @@ see this file in case any errors occur
 .BR fusermount (1).
 .SH "LICENSE"
 .
-This is Free Software; this software is licensed under the LGPL version 2, as published by the Free Software Foundation, or later.
+This is Free Software; this software is licensed under the LGPL version 3, as published by the Free Software Foundation, or later.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 .
 .SH "AUTHORS"
 .
-Alexander Galanin <gaa.nnov@mail.ru>.
+Alexander Galanin <al@galanin.nnov.ru> http://galanin.nnov.ru/~al
 .br 
 .
 This manual page was originally written by Kirill Zaitsev <teferiincub@gmail.com>. Updated by Alexander Galanin.

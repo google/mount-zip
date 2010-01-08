@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2009 by Alexander Galanin                          //
+//  Copyright (C) 2008-2008 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //                                                                        //
 //  This program is free software; you can redistribute it and/or modify  //
@@ -20,10 +20,15 @@
 
 #define FUSE_USE_VERSION 27
 #define PROGRAM "fuse-zip"
+#define VERSION "0.2.9"
 #define ERROR_STR_BUF_LEN 0x100
 #define STANDARD_BLOCK_SIZE (512)
 
+#define KEY_HELP (0)
+#define KEY_VERSION (1)
+
 #include <fuse.h>
+#include <fuse_opt.h>
 #include <zip.h>
 #include <unistd.h>
 #include <limits.h>
@@ -436,9 +441,28 @@ static int fusezip_access(const char *, int) {
     return 0;
 }
 
+/**
+ * Print usage information
+ */
 void print_usage() {
-    printf("USAGE: %s <zip-file> [fusermount options] <mount-point>\n", PROGRAM);
+    fprintf(stderr, "usage: %s [options] <zip-file> <mountpoint>\n\n", PROGRAM);
+    fprintf(stderr,
+            "general options:\n"
+            "    -o opt,[opt...]        mount options\n"
+            "    -h   --help            print help\n"
+            "    -V   --version         print version\n"
+            "    -f                     don't detach from terminal\n"
+            "    -d                     turn on debugging, also implies -f\n"
+            "\n");
 }
+
+/**
+ * Print version information (fuse-zip and FUSE library)
+ */
+void print_version() {
+    fprintf(stderr, "%s version: %s\n", PROGRAM, VERSION);
+}
+
 
 /**
  * Initialize libzip and fuse-zip structures.
@@ -482,17 +506,110 @@ FuseZipData *initFuseZip(const char * fileName) {
     return data;
 }
 
+/**
+ * Parameters for command-line argument processing function
+ */
+struct fusezip_param {
+    // Stop program after arguments parsing (-h or -V specified)
+    bool stop;
+    // number of string arguments
+    int strArgCount;
+    // zip file name
+    const char *fileName;
+};
+
+/**
+ * Function to process arguments (called from fuse_opt_parse).
+ *
+ * @param data  Pointer to fusezip_param structure
+ * @param arg is the whole argument or option
+ * @param key determines why the processing function was called
+ * @param outargs the current output argument list
+ * @return -1 on error, 0 if arg is to be discarded, 1 if arg should be kept
+ */
+static int process_arg(void *data, const char *arg, int key, struct fuse_args *outargs) {
+    struct fusezip_param *param = (fusezip_param*)data;
+
+    (void)outargs;
+
+    // 'magic' fuse_opt_proc return codes
+    const static int KEEP = 1;
+    const static int DISCARD = 0;
+    const static int ERROR = -1;
+
+    switch (key) {
+        case KEY_HELP: {
+            print_usage();
+            param->stop = true;
+            return DISCARD;
+        }
+
+        case KEY_VERSION: {
+            print_version();
+            return KEEP;
+        }
+
+        case FUSE_OPT_KEY_NONOPT: {
+            ++param->strArgCount;
+            switch (param->strArgCount) {
+                case 1: {
+                    // zip file name
+                    param->fileName = arg;
+                    return DISCARD;
+                }
+                case 2: {
+                    // mountpoint
+                    // keep it and then pass to FUSE initializer
+                    return KEEP;
+                }
+                default:
+                    fprintf(stderr, "%s: only two arguments allowed: filename and mountpoint\n", PROGRAM);
+                    return ERROR;
+            }
+        }
+
+        default: {
+            return KEEP;
+        }
+    }
+}
+
+static const struct fuse_opt fusezip_opts[] = {
+    FUSE_OPT_KEY("-h",          KEY_HELP),
+    FUSE_OPT_KEY("--help",      KEY_HELP),
+    FUSE_OPT_KEY("-V",          KEY_VERSION),
+    FUSE_OPT_KEY("--version",   KEY_VERSION),
+    {NULL, 0, 0}
+};
+
 int main(int argc, char *argv[]) {
     if (sizeof(void*) > sizeof(uint64_t)) {
         fprintf(stderr,"%s: This program cannot be run on your system because of FUSE design limitation\n", PROGRAM);
         return EXIT_FAILURE;
     }
-    if (argc < 2) {
+    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    struct fusezip_param param;
+    param.stop = false;
+    param.strArgCount = 0;
+    param.fileName = NULL;
+
+    if (fuse_opt_parse(&args, &param, fusezip_opts, process_arg)) {
+        fprintf(stderr, "Unable to parse options\n");
+        return EXIT_FAILURE;
+    }
+
+    // if all work is done inside options parsing...
+    if (param.stop) {
+        return EXIT_SUCCESS;
+    }
+    
+    // no file name passed
+    if (param.fileName == NULL) {
         print_usage();
         return EXIT_FAILURE;
     }
 
-    FuseZipData *data = initFuseZip(argv[1]);
+    FuseZipData *data = initFuseZip(param.fileName);
     if (data == NULL) {
         return EXIT_FAILURE;
     }
@@ -533,10 +650,11 @@ int main(int argc, char *argv[]) {
 
     struct fuse *fuse;
     char *mountpoint;
+    // this flag ignored because libzip does not supports multithreading
     int multithreaded;
     int res;
 
-    fuse = fuse_setup(argc - 1, argv + 1, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, data);
+    fuse = fuse_setup(args.argc, args.argv, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, data);
     if (fuse == NULL) {
         return EXIT_FAILURE;
     }
