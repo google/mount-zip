@@ -439,26 +439,18 @@ void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options] <mount-point>\n", PROGRAM);
 }
 
-int main(int argc, char *argv[]) {
-    if (sizeof(void*) > sizeof(uint64_t)) {
-        fprintf(stderr,"%s: This program cannot be run on your system because of FUSE design limitation\n", PROGRAM);
-        return EXIT_FAILURE;
-    }
-    if (argc < 2) {
-        print_usage();
-        return EXIT_FAILURE;
-    }
-    openlog(PROGRAM, LOG_PID, LOG_USER);
-
+FuseZipData *initFuseZip(const char * fileName) {
+    FuseZipData *data = NULL;
     int err;
     struct zip *zip_file;
-    if ((zip_file = zip_open(argv[1], ZIP_CHECKCONS | ZIP_CREATE, &err)) == NULL) {
+
+    if ((zip_file = zip_open(fileName, ZIP_CHECKCONS | ZIP_CREATE, &err)) == NULL) {
         char err_str[ERROR_STR_BUF_LEN];
         zip_error_to_str(err_str, ERROR_STR_BUF_LEN, err, errno);
-        fprintf(stderr, "%s: cannot open zip archive %s: %s\n", PROGRAM, argv[1], err_str);
-        return EXIT_FAILURE;
+        fprintf(stderr, "%s: cannot open zip archive %s: %s\n", PROGRAM, fileName, err_str);
+        return data;
     }
-    FuseZipData *data;
+
     try {
         char *cwd;
 #ifdef _GNU_SOURCE
@@ -482,13 +474,32 @@ int main(int argc, char *argv[]) {
         }
 #endif
         data = new FuseZipData(zip_file, cwd);
+        if (data == NULL) {
+            throw std::bad_alloc();
+        }
     }
     catch (std::bad_alloc) {
-      fprintf(stderr, "%s: no enough memory\n", PROGRAM);
-      return EXIT_FAILURE;
+        fprintf(stderr, "%s: no enough memory\n", PROGRAM);
     }
     catch (std::exception) {
         fprintf(stderr, "%s: ZIP file corrupted\n", PROGRAM);
+    }
+    return data;
+}
+
+int main(int argc, char *argv[]) {
+    if (sizeof(void*) > sizeof(uint64_t)) {
+        fprintf(stderr,"%s: This program cannot be run on your system because of FUSE design limitation\n", PROGRAM);
+        return EXIT_FAILURE;
+    }
+    if (argc < 2) {
+        print_usage();
+        return EXIT_FAILURE;
+    }
+    openlog(PROGRAM, LOG_PID, LOG_USER);
+
+    FuseZipData *data = initFuseZip(argv[1]);
+    if (data == NULL) {
         return EXIT_FAILURE;
     }
 
