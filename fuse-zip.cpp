@@ -26,6 +26,7 @@
 #include <fuse.h>
 #include <zip.h>
 #include <unistd.h>
+#include <limits.h>
 #include <syslog.h>
 #include <sys/xattr.h>
 #include <sys/types.h>
@@ -439,10 +440,18 @@ void print_usage() {
     printf("USAGE: %s <zip-file> [fusermount options] <mount-point>\n", PROGRAM);
 }
 
+/**
+ * Initialize libzip and fuse-zip structures.
+ *
+ * @param fileName  ZIP file name
+ * @return NULL if an error occured, otherwise pointer to FuseZipData structure.
+ */
 FuseZipData *initFuseZip(const char * fileName) {
     FuseZipData *data = NULL;
     int err;
     struct zip *zip_file;
+
+    openlog(PROGRAM, LOG_PID, LOG_USER);
 
     if ((zip_file = zip_open(fileName, ZIP_CHECKCONS | ZIP_CREATE, &err)) == NULL) {
         char err_str[ERROR_STR_BUF_LEN];
@@ -452,27 +461,13 @@ FuseZipData *initFuseZip(const char * fileName) {
     }
 
     try {
-        char *cwd;
-#ifdef _GNU_SOURCE
-        cwd = get_current_dir_name();
-#else
-#if (PATH_MAX <= 0)
-#error Something wrong with your system
-#endif
-        int size = PATH_MAX;
-        cwd = (char*)malloc(size + 1);
-        if (cwd == NULL) {
-            throw std::bad_alloc();
+        // current working directory
+        char *cwd = (char*)malloc(PATH_MAX + 1);
+        if (getcwd(cwd, PATH_MAX) == NULL) {
+            perror(NULL);
+            return data;
         }
-        while (getcwd(cwd, size) == NULL) {
-            free(cwd);
-            size += PATH_MAX;
-            cwd = (char*)malloc(size + 1);
-            if (cwd == NULL) {
-                throw std::bad_alloc();
-            }
-        }
-#endif
+
         data = new FuseZipData(zip_file, cwd);
         if (data == NULL) {
             throw std::bad_alloc();
@@ -496,7 +491,6 @@ int main(int argc, char *argv[]) {
         print_usage();
         return EXIT_FAILURE;
     }
-    openlog(PROGRAM, LOG_PID, LOG_USER);
 
     FuseZipData *data = initFuseZip(argv[1]);
     if (data == NULL) {
