@@ -511,8 +511,10 @@ FuseZipData *initFuseZip(const char * fileName) {
  * Parameters for command-line argument processing function
  */
 struct fusezip_param {
-    // Stop program after arguments parsing (-h or -V specified)
-    bool stop;
+    // help shown
+    bool help;
+    // version information shown
+    bool version;
     // number of string arguments
     int strArgCount;
     // zip file name
@@ -541,12 +543,13 @@ static int process_arg(void *data, const char *arg, int key, struct fuse_args *o
     switch (key) {
         case KEY_HELP: {
             print_usage();
-            param->stop = true;
+            param->help = true;
             return DISCARD;
         }
 
         case KEY_VERSION: {
             print_version();
+            param->version = true;
             return KEEP;
         }
 
@@ -589,8 +592,10 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    FuseZipData *data = NULL;
     struct fusezip_param param;
-    param.stop = false;
+    param.help = false;
+    param.version = false;
     param.strArgCount = 0;
     param.fileName = NULL;
 
@@ -600,19 +605,21 @@ int main(int argc, char *argv[]) {
     }
 
     // if all work is done inside options parsing...
-    if (param.stop) {
+    if (param.help) {
         return EXIT_SUCCESS;
     }
     
-    // no file name passed
-    if (param.fileName == NULL) {
-        print_usage();
-        return EXIT_FAILURE;
-    }
+    // pass version switch to HELP library to see it's version
+    if (!param.version) {
+        // no file name passed
+        if (param.fileName == NULL) {
+            print_usage();
+            return EXIT_FAILURE;
+        }
 
-    FuseZipData *data = initFuseZip(param.fileName);
-    if (data == NULL) {
-        return EXIT_FAILURE;
+        if ((data = initFuseZip(param.fileName)) == NULL) {
+            return EXIT_FAILURE;
+        }
     }
 
     static struct fuse_operations fusezip_oper;
