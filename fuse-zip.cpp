@@ -523,6 +523,9 @@ int main(int argc, char *argv[]) {
     fusezip_oper.listxattr  =   fusezip_listxattr;
     fusezip_oper.removexattr=   fusezip_removexattr;
 
+    // don't allow NULL path
+    fusezip_oper.flag_nullpath_ok = 0;
+
     struct fuse *fuse;
     char *mountpoint;
     int multithreaded;
