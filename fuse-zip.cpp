@@ -452,6 +452,7 @@ void print_usage() {
             "    -o opt,[opt...]        mount options\n"
             "    -h   --help            print help\n"
             "    -V   --version         print version\n"
+            "    -r   -o ro             open archive in read-only mode\n"
             "    -f                     don't detach from terminal\n"
             "    -d                     turn on debugging, also implies -f\n"
             "\n");
@@ -600,7 +601,6 @@ int main(int argc, char *argv[]) {
     param.fileName = NULL;
 
     if (fuse_opt_parse(&args, &param, fusezip_opts, process_arg)) {
-        fprintf(stderr, "Unable to parse options\n");
         return EXIT_FAILURE;
     }
 

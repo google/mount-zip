@@ -49,6 +49,9 @@ use the following fusermount options:
 
   -omodules=iconv,from_code=$charset1,to_code=$charset2
 
+Those Russian who uses archives from the "other OS" should use CP866 as
+'charset1' and locale charset as 'charset2'.
+
 See FUSE documentation for details.
 
 Look at /var/log/user.log in case of any errors.
