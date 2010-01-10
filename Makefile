@@ -30,7 +30,9 @@ fuse-zip.o: fuse-zip.cpp
 distclean: clean doc-clean
 	rm -f $(DEST)
 
-clean:
+clean: all-clean tarball-clean
+
+all-clean:
 	rm -f $(CLEANFILES)
 
 $(MAN): $(MANSRC)
@@ -52,3 +54,8 @@ uninstall:
 	rm -r "$(INSTALLPREFIX)/share/doc/$(DEST)"
 	rm "$(INSTALLPREFIX)/share/man/man1/$(MAN)"
 
+tarball: all doc
+	./makeArchives.sh
+
+tarball-clean:
+	rm -f fuse-zip-*.tar.gz fuse-zip-tests-*.tar.gz
