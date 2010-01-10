@@ -1,3 +1,10 @@
+2010-01-09 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.2.10:
+	- Fixed issue #14: added '-r' option description.
+	- Added note about converting file names inside archive (for Russians
+	who uses 'another OS')
+
 2010-01-08 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.2.9:
