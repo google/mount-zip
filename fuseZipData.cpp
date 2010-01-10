@@ -24,7 +24,7 @@
 
 #include "fuseZipData.h"
 
-FuseZipData::FuseZipData(struct zip *z, char *cwd): m_zip(z), m_cwd(cwd)  {
+FuseZipData::FuseZipData(const char *archiveName, struct zip *z, char *cwd): m_zip(z), m_archiveName(archiveName), m_cwd(cwd)  {
     if (cwd == NULL) {
         throw std::bad_alloc();
     }

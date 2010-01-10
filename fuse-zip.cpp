@@ -50,12 +50,27 @@
 
 using namespace std;
 
+/**
+ * Initialize filesystem
+ *
+ * Report current working dir and archive file name to syslog.
+ *
+ * @return filesystem-private data
+ */
 static void *fusezip_init(struct fuse_conn_info *conn) {
     (void) conn;
-    syslog(LOG_INFO, "Mounting file system");
-    return fuse_get_context()->private_data;
+    FuseZipData *data = (FuseZipData*)fuse_get_context()->private_data;
+    syslog(LOG_INFO, "Mounting file system on %s (cwd=%s)", data->m_archiveName, data->m_cwd);
+    return data;
 }
 
+/**
+ * Destroy filesystem
+ *
+ * Save all modified data back to ZIP archive and report to syslog about completion.
+ * Note that filesystem unmounted before this method finishes
+ * (see http://code.google.com/p/fuse-zip/issues/detail?id=7).
+ */
 static void fusezip_destroy(void *data) {
     FuseZipData *d = (FuseZipData*)data;
     // Saving changed data
@@ -494,7 +509,7 @@ FuseZipData *initFuseZip(const char * fileName) {
             return data;
         }
 
-        data = new FuseZipData(zip_file, cwd);
+        data = new FuseZipData(fileName, zip_file, cwd);
         if (data == NULL) {
             throw std::bad_alloc();
         }

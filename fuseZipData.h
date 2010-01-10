@@ -31,9 +31,16 @@ private:
 public:
     filemap_t files;
     struct zip *m_zip;
+    const char *m_archiveName;
     char *m_cwd;
 
-    FuseZipData(struct zip *z, char *cwd);
+    /**
+     * Keep archiveName and cwd in class fields and build file tree from z.
+     *
+     * 'cwd' and 'z' free()-ed in destructor.
+     * 'archiveName' should be managed externally.
+     */
+    FuseZipData(const char *archiveName, struct zip *z, char *cwd);
     ~FuseZipData();
 };
 
