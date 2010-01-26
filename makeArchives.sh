@@ -8,7 +8,11 @@ then
 fi
 
 version=`grep '#define VERSION' fuse-zip.cpp | sed 's/^[^"]*"//;s/".*$//'`
-[ "$version" != "" ] || (echo "Unable to determine version"; exit 1)
+if [ "$version" = "" ]
+then
+    echo "Unable to determine version"
+    exit 1
+fi
 
 dir=`mktemp -d`
 pwd=`pwd`
