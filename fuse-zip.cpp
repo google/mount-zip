@@ -21,7 +21,7 @@
 
 #define FUSE_USE_VERSION 27
 #define PROGRAM "fuse-zip"
-#define VERSION "0.2.10"
+#define VERSION "0.2.11"
 #define ERROR_STR_BUF_LEN 0x100
 #define STANDARD_BLOCK_SIZE (512)
 
@@ -668,8 +668,10 @@ int main(int argc, char *argv[]) {
     fusezip_oper.listxattr  =   fusezip_listxattr;
     fusezip_oper.removexattr=   fusezip_removexattr;
 
+#if FUSE_VERSION >= 28
     // don't allow NULL path
     fusezip_oper.flag_nullpath_ok = 0;
+#endif
 
     struct fuse *fuse;
     char *mountpoint;
