@@ -59,3 +59,7 @@ tarball: all doc
 
 tarball-clean:
 	rm -f fuse-zip-*.tar.gz fuse-zip-tests-*.tar.gz
+
+test:
+	(cd tests; make all)
+
