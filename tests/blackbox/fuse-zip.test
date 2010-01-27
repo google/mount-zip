@@ -1,0 +1,130 @@
+#!/bin/sh
+# \
+exec tclsh "$0" "$@"
+
+package require Tcl 8.5
+package require tcltest 2.2
+package require BLT
+
+::tcltest::configure {*}$argv
+
+namespace eval ::util::test {
+    namespace import ::tcltest::*
+
+    variable binary ../../fuse-zip
+    variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
+    variable mountdir [ file join $tmpdir mountPoint ]
+    variable timeout [ expr {1000*20} ]
+    variable timeout [ expr {1000*5} ]
+
+    variable status {}
+    variable error {}
+    variable output {}
+    variable stopped {}
+
+    file mkdir $mountdir
+
+    # mount --
+    #
+    #   Mount fuse-zip on archive fname to mountdir.
+    #   Filesystem process started in background but without detaching from
+    #   terminal.
+    #
+    # Arguments:
+    #   fname   Archive file name
+
+    proc mount {fname} {
+        variable binary
+        variable mountdir
+        variable stopped
+
+        set ns [ namespace current ]
+        set ${ns}::status {STARTED}
+        blt::bgexec ${ns}::status \
+            -output ${ns}::output \
+            -error ${ns}::error \
+            $binary -f $fname $mountdir &
+    }
+
+    # umount --
+    # 
+    #   Unmount filesystem.
+    #   Firstly try to umount FS in a standard way via fusermount -u.
+    #   If file system is not unmounted in a specified timeout, kill filesystem
+    #   process and unmount in the hard way (fusermount -uz).
+
+    proc umount {} {
+        variable mountdir
+        variable status
+        variable timeout
+        variable output
+        variable error
+
+        set ns [ namespace current ]
+        set statusVar ${ns}::status
+        if {$status ne ""} {
+            # not yet stopped
+            puts [pwd]
+            if {[ catch {exec fusermount -u $mountdir} err ]} {
+                puts stderr "fusermount failed: $err"
+            }
+            set afterId [ after $timeout [ list set $statusVar KILLED ] ]
+            vwait $statusVar
+            after cancel $afterId
+        }
+        lassign $status state pid code msg
+        set status {}
+        if {$state eq "KILLED"} {
+            puts stderr "filesystem unmounting timed out"
+            exec fusermount -u $mountdir
+        } else {
+            if {$code != 0} {
+                error "Filesystem returned error (code=$code): $error"
+            }
+        }
+    }
+
+    proc forceumount {} {
+        variable mountdir
+        variable status
+        
+        catch {fusermount -u $mountdir}
+        set [ namespace current ]::status FORCE-KILLED
+        catch {exec fusermount -u $mountdir}
+    }
+
+    configure -tmpdir $tmpdir
+
+    test add-file-to-empty-archive {Add file to empty archive} -setup {
+        set name $tmpdir/nonexistent.zip
+        file delete -force $name
+        mount $name
+    } -body {
+        umount
+        file exists $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {0}
+
+    test mount-umount {Mount and unmount nonexistent file} -setup {
+        set name $tmpdir/empty.zip
+        file delete -force $name
+        mount $name
+    } -body {
+        #gets stdin sss
+        makeFile {file content} somefile $mountdir
+        umount
+        file exists $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {1}
+
+
+    file delete -force $tmpdir
+    cleanupTests
+}
+namespace delete ::util::test
+
+# vim: set ft=tcl:
