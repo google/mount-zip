@@ -8,7 +8,11 @@ then
 fi
 
 version=`grep '#define VERSION' fuse-zip.cpp | sed 's/^[^"]*"//;s/".*$//'`
-[ "$version" != "" ] || (echo "Unable to determine version"; exit 1)
+if [ "$version" = "" ]
+then
+    echo "Unable to determine version"
+    exit 1
+fi
 
 dir=`mktemp -d`
 pwd=`pwd`
@@ -26,13 +30,13 @@ tar -cvzf "$pwd/$id.tar.gz" "$id"
 cd "$pwd"
 
 # make tests tarball
-id="fuse-zip-tests-r`hg log tests | head -n 1 | cut -d : -f 2 | sed 's/ //g'`"
+id="fuse-zip-tests-r`hg log performance_tests/ | head -n 1 | cut -d : -f 2 | sed 's/ //g'`"
 tmp="$dir/$id"
 
 mkdir "$tmp"
 mkdir "$tmp/kio_copy"
-cp -t "$tmp" tests/README tests/run-tests.tcl tests/unpackfs.config
-cp -t "$tmp/kio_copy" tests/kio_copy/kio_copy.pro tests/kio_copy/main.cpp
+cp -t "$tmp" performance_tests/README performance_tests/run-tests.tcl performance_tests/unpackfs.config
+cp -t "$tmp/kio_copy" performance_tests/kio_copy/kio_copy.pro performance_tests/kio_copy/main.cpp
 
 rm -rf "$id.tar.gz"
 cd "$dir"

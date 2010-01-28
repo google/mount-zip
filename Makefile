@@ -59,3 +59,15 @@ tarball: all doc
 
 tarball-clean:
 	rm -f fuse-zip-*.tar.gz fuse-zip-tests-*.tar.gz
+
+debug: clean
+	make CXXFLAGS=-g
+
+test: $(DEST)
+	make -C tests
+
+valgrind: debug
+	make -C tests VALGRIND=1
+
+.PHONY: all doc clean distclean install uninstall tarball test
+

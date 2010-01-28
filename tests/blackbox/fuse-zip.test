@@ -1,0 +1,285 @@
+#!/bin/sh
+# \
+exec tclsh "$0" "$@"
+
+package require Tcl 8.5
+package require tcltest 2.2
+package require BLT
+package require Tclx
+
+::tcltest::configure {*}$argv
+
+namespace eval ::util::test {
+    namespace import ::tcltest::*
+
+    variable binary ../../fuse-zip
+    variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
+    variable mountdir [ file join $tmpdir mountPoint ]
+    variable timeout [ expr {1000*5} ]
+    variable valgrind [ expr {[ info exists ::env(VALGRIND) ] && $::env(VALGRIND) == 1} ]
+
+    variable status {}
+    variable error {}
+    variable output {}
+    variable initializationState {}
+
+    file mkdir $mountdir
+
+    # wrapIfNeeded --
+    #
+    #   Wrap executable using valgrind if valgrinding is enabled.
+
+    proc wrapIfNeeded {command} {
+        variable valgrind
+
+        if {$valgrind} {
+            set res {valgrind  --leak-check=full}
+        } else {
+            set res {}
+        }
+        lappend res $command
+        return $res
+    }
+
+    # mount --
+    #
+    #   Mount fuse-zip on archive fname to mountdir.
+    #   Filesystem process started in background but without detaching from
+    #   terminal and with debug mode enabled. Messages sent to stderr are
+    #   parsed to determine finish of file system initialization process.
+    #
+    # Arguments:
+    #   fname   Archive file name
+
+    proc mount {fname} {
+        variable binary
+        variable mountdir
+        variable stopped
+        variable error
+
+        set ns [ namespace current ]
+        set ${ns}::status {STARTED}
+        # if file system stopped in abnormal way, variable
+        # 'initializationState' is set to exit from vwait block.
+        set cmd [ list ${ns}::status {write unset} \
+            [ list apply [ list {args} {
+                variable initializationState exited
+            } $ns ] ] \
+        ]
+        trace add variable {*}$cmd
+        set error {}
+        blt::bgexec ${ns}::status \
+            -output ${ns}::output \
+            -onerror ${ns}::processError \
+            -linebuffered true \
+            {*}[ wrapIfNeeded $binary ] -d $fname $mountdir &
+
+        vwait ${ns}::initializationState
+        trace remove variable {*}$cmd
+    }
+
+    # processError --
+    #
+    #   Process each line of stderr of called file system.
+    #   Each line is appended to 'error' list to accumulate full output.
+    #   If first message successfully went from filesystem, it assumed as
+    #   mounted and listeners are notified by setting variable
+    #   'initializationState'.
+    #
+    # Arguments:
+    #   data    Line to process
+
+    proc processError {data} {
+        variable initializationState
+        variable error
+
+        if {[ regexp {^   unique: 1, success, outsize: \d+$} $data ]} {
+            set initializationState success
+        }
+        lappend error $data
+    }
+
+    # umount --
+    # 
+    #   Unmount filesystem.
+    #   Firstly try to umount FS in a standard way via fusermount -uz.
+    #   If file system is not unmounted in a specified timeout, kill filesystem
+    #   process and unmount in the hard way (fusermount -uz).
+
+    proc umount {} {
+        variable mountdir
+        variable status
+        variable timeout
+        variable output
+        variable error
+        variable valgrind
+
+        set ns [ namespace current ]
+        set statusVar ${ns}::status
+        if {$status ne ""} {
+            # not yet stopped
+            catch {exec fusermount -uz $mountdir}
+            set afterId [ after $timeout [ list set $statusVar KILLED ] ]
+            vwait $statusVar
+            after cancel $afterId
+        }
+        lassign $status state pid code msg
+        set status {}
+        set error [ join $error "\n" ]
+        if {$state eq "KILLED"} {
+            puts stderr "Filesystem unmounting timed out: $error"
+            catch {exec fusermount -uz $mountdir}
+        } else {
+            if {$code != 0} {
+                error "Filesystem returned error (code=$code): $error"
+            }
+            if {$output ne ""} {
+                error "Unexpected output from filesystem: $output"
+            }
+            checkValgrindOutput $error
+        }
+    }
+
+    # checkValgrindOutput --
+    #
+    #   Check valgrind output (if enabled) and throw error if at least one leak
+    #   detected.
+
+    proc checkValgrindOutput {data} {
+        variable valgrind
+
+        if {$valgrind} {
+           if {[ regexp {==\d+== ERROR SUMMARY: (\d+) errors from (\d+) contexts \(suppressed: (\d+) from (\d+)\)} \
+                [ lindex [ split $data "\n" ] end ] dummy errors contexts suppressed total ]} {
+               if {$errors != 0} {
+                   error "valgrind: $errors memory leaks detected!\n$data"
+               }
+           } else {
+               error "Unable to parse valgrind output"
+           }
+        }
+    }
+
+    # forceumount --
+    #
+    #   Force kill filesystem process and free mountpoint
+
+    proc forceumount {} {
+        variable mountdir
+        variable status
+        
+        catch {fusermount -u $mountdir}
+        set [ namespace current ]::status FORCE-KILLED
+        catch {exec fusermount -u $mountdir}
+    }
+
+    # content --
+    #
+    #   Return list of files in archive.
+
+    proc content {fname} {
+        split [ exec zipinfo -1 $fname ] "\n"
+    }
+
+    # check --
+    #
+    #   Check archive integrity by using 'unzip -t' command
+
+    proc check {fname} {
+        exec unzip -t $fname
+    }
+
+    configure -tmpdir $tmpdir
+
+    ############################################################
+    # TESTS
+    ############################################################
+
+    test usage {Usage test} {
+        lassign [ pipe ] r w
+        if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] 2>@ $w} res opts ]} {
+            close $w
+            close $r
+            error "Error code should be non-zero!"
+        }
+        close $w
+        set data [ string trim [ read $r ] ]
+        close $r
+        checkValgrindOutput $data
+    } {}
+
+    test version {Version test} {
+        lassign [ pipe ] r w
+        if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] -V 2>@ $w} res opts ]} {
+            close $w
+            close $r
+            error "Error code should be non-zero!"
+        }
+        close $w
+        set data [ string trim [ read $r ] ]
+        close $r
+        checkValgrindOutput $data
+    } {}
+
+    test mount-umount {Mount and unmount nonexistent file} -setup {
+        set name $tmpdir/nonexistent.zip
+        file delete -force $name
+        mount $name
+    } -body {
+        umount
+        file exists $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {0}
+
+    test add-file-to-empty-archive {Add file to empty archive} -setup {
+        set name $tmpdir/empty.zip
+        file delete -force $name
+        mount $name
+    } -body {
+        makeFile {file content} somefile $mountdir
+        umount
+
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {somefile}
+
+    test remove-file {Remove file from archive} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ] [ makeFile {blah-blah} filename2.ext ]
+        mount $name
+    } -body {
+        removeFile filename.ext $mountdir
+        umount
+
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename2.ext}
+
+    test remove-last-file {Remove last file from archive} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        removeFile filename.ext $mountdir
+        umount
+        file exists $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {0}
+
+    file delete -force $tmpdir
+    cleanupTests
+}
+namespace delete ::util::test
+
+# vim: set ft=tcl:
