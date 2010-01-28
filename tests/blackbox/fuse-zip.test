@@ -15,6 +15,7 @@ namespace eval ::util::test {
     variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
     variable mountdir [ file join $tmpdir mountPoint ]
     variable timeout [ expr {1000*5} ]
+    variable valgrind [ expr {[ info exists ::env(VALGRIND) ] && $::env(VALGRIND) == 1} ]
 
     variable status {}
     variable error {}
@@ -37,6 +38,13 @@ namespace eval ::util::test {
         variable binary
         variable mountdir
         variable stopped
+        variable valgrind
+
+        if {$valgrind} {
+            set wrapper {valgrind  --leak-check=full}
+        } else {
+            set wrapper {}
+        }
 
         set ns [ namespace current ]
         set ${ns}::status {STARTED}
@@ -52,7 +60,7 @@ namespace eval ::util::test {
             -output ${ns}::output \
             -onerror ${ns}::processError \
             -linebuffered true \
-            $binary -d $fname $mountdir &
+            {*}$wrapper $binary -d $fname $mountdir &
 
         vwait ${ns}::initializationState
         trace remove variable {*}$cmd
@@ -92,6 +100,7 @@ namespace eval ::util::test {
         variable timeout
         variable output
         variable error
+        variable valgrind
 
         set ns [ namespace current ]
         set statusVar ${ns}::status
@@ -106,13 +115,23 @@ namespace eval ::util::test {
         set status {}
         if {$state eq "KILLED"} {
             puts stderr "Filesystem unmounting timed out: [ join $error \n ]"
-            exec fusermount -uz $mountdir
+            catch {exec fusermount -uz $mountdir}
         } else {
             if {$code != 0} {
                 error "Filesystem returned error (code=$code): $error"
             }
             if {$output ne ""} {
                 error "Unexpected output from filesystem: $output"
+            }
+            if {$valgrind} {
+                if {[ regexp {==\d+== ERROR SUMMARY: (\d+) errors from (\d+) contexts \(suppressed: (\d+) from (\d+)\)} [ lindex $error end ] \
+                    dummy errors contexts suppressed total ]} {
+                    if {$errors != 0} {
+                        error "valgrind: $errors memory leaks detected!\n[ join $error \n ]"
+                    }
+                } else {
+                    error "Unable to parse valgrind output"
+                }
             }
         }
     }

@@ -60,7 +60,7 @@ tarball: all doc
 tarball-clean:
 	rm -f fuse-zip-*.tar.gz fuse-zip-tests-*.tar.gz
 
-test:
+test: $(DEST)
 	make -C tests
 
 .PHONY: all doc clean distclean install uninstall tarball test
