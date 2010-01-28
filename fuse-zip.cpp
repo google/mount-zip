@@ -616,11 +616,13 @@ int main(int argc, char *argv[]) {
     param.fileName = NULL;
 
     if (fuse_opt_parse(&args, &param, fusezip_opts, process_arg)) {
+        fuse_opt_free_args(&args);
         return EXIT_FAILURE;
     }
 
     // if all work is done inside options parsing...
     if (param.help) {
+        fuse_opt_free_args(&args);
         return EXIT_SUCCESS;
     }
     
@@ -629,10 +631,12 @@ int main(int argc, char *argv[]) {
         // no file name passed
         if (param.fileName == NULL) {
             print_usage();
+            fuse_opt_free_args(&args);
             return EXIT_FAILURE;
         }
 
         if ((data = initFuseZip(param.fileName)) == NULL) {
+            fuse_opt_free_args(&args);
             return EXIT_FAILURE;
         }
     }
