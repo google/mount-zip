@@ -14,13 +14,12 @@ namespace eval ::util::test {
     variable binary ../../fuse-zip
     variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
     variable mountdir [ file join $tmpdir mountPoint ]
-    variable timeout [ expr {1000*20} ]
     variable timeout [ expr {1000*5} ]
 
     variable status {}
     variable error {}
     variable output {}
-    variable stopped {}
+    variable initializationState {}
 
     file mkdir $mountdir
 
@@ -28,7 +27,8 @@ namespace eval ::util::test {
     #
     #   Mount fuse-zip on archive fname to mountdir.
     #   Filesystem process started in background but without detaching from
-    #   terminal.
+    #   terminal and with debug mode enabled. Messages sent to stderr are
+    #   parsed to determine finish of file system initialization process.
     #
     # Arguments:
     #   fname   Archive file name
@@ -40,16 +40,49 @@ namespace eval ::util::test {
 
         set ns [ namespace current ]
         set ${ns}::status {STARTED}
+        # if file system stopped in abnormal way, variable
+        # 'initializationState' is set to exit from vwait block.
+        set cmd [ list ${ns}::status {write unset} \
+            [ list apply [ list {args} {
+                variable initializationState exited
+            } $ns ] ] \
+        ]
+        trace add variable {*}$cmd
         blt::bgexec ${ns}::status \
             -output ${ns}::output \
-            -error ${ns}::error \
-            $binary -f $fname $mountdir &
+            -onerror ${ns}::processError \
+            -linebuffered true \
+            $binary -d $fname $mountdir &
+
+        vwait ${ns}::initializationState
+        trace remove variable {*}$cmd
+    }
+
+    # processError --
+    #
+    #   Process each line of stderr of called file system.
+    #   Each line is appended to 'error' list to accumulate full output.
+    #   If first message successfully went from filesystem, it assumed as
+    #   mounted and listeners are notified by setting variable
+    #   'initializationState'.
+    #
+    # Arguments:
+    #   data    Line to process
+
+    proc processError {data} {
+        variable initializationState
+        variable error
+
+        if {[ regexp {^   unique: 1, success, outsize: \d+$} $data ]} {
+            set initializationState success
+        }
+        lappend error $data
     }
 
     # umount --
     # 
     #   Unmount filesystem.
-    #   Firstly try to umount FS in a standard way via fusermount -u.
+    #   Firstly try to umount FS in a standard way via fusermount -uz.
     #   If file system is not unmounted in a specified timeout, kill filesystem
     #   process and unmount in the hard way (fusermount -uz).
 
@@ -64,10 +97,7 @@ namespace eval ::util::test {
         set statusVar ${ns}::status
         if {$status ne ""} {
             # not yet stopped
-            puts [pwd]
-            if {[ catch {exec fusermount -u $mountdir} err ]} {
-                puts stderr "fusermount failed: $err"
-            }
+            exec fusermount -uz $mountdir
             set afterId [ after $timeout [ list set $statusVar KILLED ] ]
             vwait $statusVar
             after cancel $afterId
@@ -75,14 +105,21 @@ namespace eval ::util::test {
         lassign $status state pid code msg
         set status {}
         if {$state eq "KILLED"} {
-            puts stderr "filesystem unmounting timed out"
-            exec fusermount -u $mountdir
+            puts stderr "Filesystem unmounting timed out"
+            exec fusermount -uz $mountdir
         } else {
             if {$code != 0} {
                 error "Filesystem returned error (code=$code): $error"
             }
+            if {$output ne ""} {
+                error "Unexpected output from filesystem: $output"
+            }
         }
     }
+
+    # forceumount --
+    #
+    #   Force kill filesystem process and free mountpoint
 
     proc forceumount {} {
         variable mountdir
@@ -91,6 +128,22 @@ namespace eval ::util::test {
         catch {fusermount -u $mountdir}
         set [ namespace current ]::status FORCE-KILLED
         catch {exec fusermount -u $mountdir}
+    }
+
+    # content --
+    #
+    #   Return list of files in archive.
+
+    proc content {fname} {
+        split [ exec zipinfo -1 $fname ] "\n"
+    }
+
+    # check --
+    #
+    #   Check archive integrity by using 'unzip -t' command
+
+    proc check {fname} {
+        exec unzip -t $fname
     }
 
     configure -tmpdir $tmpdir
@@ -112,14 +165,15 @@ namespace eval ::util::test {
         file delete -force $name
         mount $name
     } -body {
-        #gets stdin sss
         makeFile {file content} somefile $mountdir
         umount
-        file exists $name
+
+        check $name
+        content $name
     } -cleanup {
         forceumount
         file delete -force $name
-    } -result {1}
+    } -result {somefile}
 
 
     file delete -force $tmpdir
