@@ -122,7 +122,7 @@ int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
 
 int BigBuffer::truncate(offset_t offset) {
     if (offset < len) {
-        for (unsigned int i = (offset + chunkSize - 1)/chunkSize + 1; i < chunks.size(); ++i) {
+        for (unsigned int i = (offset + chunkSize - 1)/chunkSize; i < chunks.size(); ++i) {
             if (chunks[i] != NULL) {
                 free(chunks[i]);
             }

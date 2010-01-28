@@ -680,6 +680,7 @@ int main(int argc, char *argv[]) {
     int res;
 
     fuse = fuse_setup(args.argc, args.argv, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, data);
+    fuse_opt_free_args(&args);
     if (fuse == NULL) {
         return EXIT_FAILURE;
     }

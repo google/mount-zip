@@ -70,7 +70,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
 
 FileNode::~FileNode() {
     free(full_name);
-    if (state == OPENED || state == CHANGED) {
+    if (state == OPENED || state == CHANGED || state == NEW) {
         delete buffer;
     }
 }
