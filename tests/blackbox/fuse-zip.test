@@ -208,6 +208,19 @@ namespace eval ::util::test {
         checkValgrindOutput $data
     } {}
 
+    test version {Version test} {
+        lassign [ pipe ] r w
+        if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] -V 2>@ $w} res opts ]} {
+            close $w
+            close $r
+            error "Error code should be non-zero!"
+        }
+        close $w
+        set data [ string trim [ read $r ] ]
+        close $r
+        checkValgrindOutput $data
+    } {}
+
     test mount-umount {Mount and unmount nonexistent file} -setup {
         set name $tmpdir/nonexistent.zip
         file delete -force $name
