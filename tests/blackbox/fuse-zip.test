@@ -97,7 +97,7 @@ namespace eval ::util::test {
         set statusVar ${ns}::status
         if {$status ne ""} {
             # not yet stopped
-            exec fusermount -uz $mountdir
+            catch {exec fusermount -uz $mountdir}
             set afterId [ after $timeout [ list set $statusVar KILLED ] ]
             vwait $statusVar
             after cancel $afterId
@@ -105,7 +105,7 @@ namespace eval ::util::test {
         lassign $status state pid code msg
         set status {}
         if {$state eq "KILLED"} {
-            puts stderr "Filesystem unmounting timed out"
+            puts stderr "Filesystem unmounting timed out: [ join $error \n ]"
             exec fusermount -uz $mountdir
         } else {
             if {$code != 0} {
@@ -148,7 +148,7 @@ namespace eval ::util::test {
 
     configure -tmpdir $tmpdir
 
-    test add-file-to-empty-archive {Add file to empty archive} -setup {
+    test mount-umount {Mount and unmount nonexistent file} -setup {
         set name $tmpdir/nonexistent.zip
         file delete -force $name
         mount $name
@@ -160,7 +160,7 @@ namespace eval ::util::test {
         file delete -force $name
     } -result {0}
 
-    test mount-umount {Mount and unmount nonexistent file} -setup {
+    test add-file-to-empty-archive {Add file to empty archive} -setup {
         set name $tmpdir/empty.zip
         file delete -force $name
         mount $name
@@ -175,6 +175,34 @@ namespace eval ::util::test {
         file delete -force $name
     } -result {somefile}
 
+    test remove-file {Remove file from archive} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ] [ makeFile {blah-blah} filename2.ext ]
+        mount $name
+    } -body {
+        removeFile filename.ext $mountdir
+        umount
+
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename2.ext}
+
+    test remove-last-file {Remove last file from archive} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        removeFile filename.ext $mountdir
+        umount
+        file exists $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {0}
 
     file delete -force $tmpdir
     cleanupTests
