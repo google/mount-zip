@@ -1,7 +1,9 @@
-all: blackbox-tests whitebox-tests
+SUITES=blackbox whitebox
 
-blackbox-tests:
-	(cd blackbox; make all)
+all: $(SUITES)
 
-whitebox-tests:
-	(cd whitebox; make all)
+$(SUITES):
+	make -C $@
+
+.PHONY: all $(SUITES)
+
