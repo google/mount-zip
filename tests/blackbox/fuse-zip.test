@@ -5,6 +5,7 @@ exec tclsh "$0" "$@"
 package require Tcl 8.5
 package require tcltest 2.2
 package require BLT
+package require Tclx
 
 ::tcltest::configure {*}$argv
 
@@ -24,6 +25,22 @@ namespace eval ::util::test {
 
     file mkdir $mountdir
 
+    # wrapIfNeeded --
+    #
+    #   Wrap executable using valgrind if valgrinding is enabled.
+
+    proc wrapIfNeeded {command} {
+        variable valgrind
+
+        if {$valgrind} {
+            set res {valgrind  --leak-check=full}
+        } else {
+            set res {}
+        }
+        lappend res $command
+        return $res
+    }
+
     # mount --
     #
     #   Mount fuse-zip on archive fname to mountdir.
@@ -38,13 +55,7 @@ namespace eval ::util::test {
         variable binary
         variable mountdir
         variable stopped
-        variable valgrind
-
-        if {$valgrind} {
-            set wrapper {valgrind  --leak-check=full}
-        } else {
-            set wrapper {}
-        }
+        variable error
 
         set ns [ namespace current ]
         set ${ns}::status {STARTED}
@@ -56,11 +67,12 @@ namespace eval ::util::test {
             } $ns ] ] \
         ]
         trace add variable {*}$cmd
+        set error {}
         blt::bgexec ${ns}::status \
             -output ${ns}::output \
             -onerror ${ns}::processError \
             -linebuffered true \
-            {*}$wrapper $binary -d $fname $mountdir &
+            {*}[ wrapIfNeeded $binary ] -d $fname $mountdir &
 
         vwait ${ns}::initializationState
         trace remove variable {*}$cmd
@@ -113,8 +125,9 @@ namespace eval ::util::test {
         }
         lassign $status state pid code msg
         set status {}
+        set error [ join $error "\n" ]
         if {$state eq "KILLED"} {
-            puts stderr "Filesystem unmounting timed out: [ join $error \n ]"
+            puts stderr "Filesystem unmounting timed out: $error"
             catch {exec fusermount -uz $mountdir}
         } else {
             if {$code != 0} {
@@ -123,16 +136,27 @@ namespace eval ::util::test {
             if {$output ne ""} {
                 error "Unexpected output from filesystem: $output"
             }
-            if {$valgrind} {
-                if {[ regexp {==\d+== ERROR SUMMARY: (\d+) errors from (\d+) contexts \(suppressed: (\d+) from (\d+)\)} [ lindex $error end ] \
-                    dummy errors contexts suppressed total ]} {
-                    if {$errors != 0} {
-                        error "valgrind: $errors memory leaks detected!\n[ join $error \n ]"
-                    }
-                } else {
-                    error "Unable to parse valgrind output"
-                }
-            }
+            checkValgrindOutput $error
+        }
+    }
+
+    # checkValgrindOutput --
+    #
+    #   Check valgrind output (if enabled) and throw error if at least one leak
+    #   detected.
+
+    proc checkValgrindOutput {data} {
+        variable valgrind
+
+        if {$valgrind} {
+           if {[ regexp {==\d+== ERROR SUMMARY: (\d+) errors from (\d+) contexts \(suppressed: (\d+) from (\d+)\)} \
+                [ lindex [ split $data "\n" ] end ] dummy errors contexts suppressed total ]} {
+               if {$errors != 0} {
+                   error "valgrind: $errors memory leaks detected!\n$data"
+               }
+           } else {
+               error "Unable to parse valgrind output"
+           }
         }
     }
 
@@ -166,6 +190,23 @@ namespace eval ::util::test {
     }
 
     configure -tmpdir $tmpdir
+
+    ############################################################
+    # TESTS
+    ############################################################
+
+    test usage {Usage test} {
+        lassign [ pipe ] r w
+        if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] 2>@ $w} res opts ]} {
+            close $w
+            close $r
+            error "Error code should be non-zero!"
+        }
+        close $w
+        set data [ string trim [ read $r ] ]
+        close $r
+        checkValgrindOutput $data
+    } {}
 
     test mount-umount {Mount and unmount nonexistent file} -setup {
         set name $tmpdir/nonexistent.zip
