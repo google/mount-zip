@@ -317,13 +317,30 @@ namespace eval ::util::test {
         file delete -force $name
     } -result {filename.ext}
 
+    test truncate-file-to-zero {Truncate existing file (to zero size)} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        ftruncate $mountdir/filename.ext 0
+
+        umount
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename.ext}
+
     test truncate-file-after-end {Truncate existing file (after the end)} -setup {
         set name [ makeFile {} archive.zip ]
         file delete $name
         exec zip -j $name [ makeFile {blah-blah} filename.ext ]
         mount $name
     } -body {
-        ftruncate $mountdir/filename.ext 5000
+        ftruncate $mountdir/filename.ext 11
+
         umount
         check $name
         content $name

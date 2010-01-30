@@ -1,0 +1,70 @@
+# Suppressions for release mode of libzip
+
+{
+   Suppress error "Conditional jump or move depends on uninitialised value(s)" possible caused by zlib problem
+   Memcheck:Cond
+   fun:deflate
+   obj:/usr/lib/libzip.so.1.0.0
+   fun:zip_close
+   fun:_ZN11FuseZipDataD1Ev
+   fun:_ZL15fusezip_destroyPv
+   fun:fuse_fs_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_destroy
+   fun:fuse_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:main
+}
+
+{
+   Suppress error "Use of uninitialised value of size 8" possible caused by zlib problem
+   Memcheck:Value8
+   fun:crc32
+   obj:/usr/lib/libzip.so.1.0.0
+   fun:zip_close
+   fun:_ZN11FuseZipDataD1Ev
+   fun:_ZL15fusezip_destroyPv
+   fun:fuse_fs_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_destroy
+   fun:fuse_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:main
+}
+# Suppressions for debug mode of libzip
+
+{
+   Suppress error "Conditional jump or move depends on uninitialised value(s)" possible caused by zlib problem
+   Memcheck:Cond
+   fun:deflate
+   fun:add_data_uncomp
+   fun:zip_close
+   fun:_ZN11FuseZipDataD1Ev
+   fun:_ZL15fusezip_destroyPv
+   fun:fuse_fs_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_destroy
+   fun:fuse_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:main
+}
+
+{
+   Suppress error "Use of uninitialised value of size 8" possible caused by zlib problem
+   Memcheck:Value8
+   fun:crc32
+   fun:add_data_uncomp
+   fun:zip_close
+   fun:_ZN11FuseZipDataD1Ev
+   fun:_ZL15fusezip_destroyPv
+   fun:fuse_fs_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_destroy
+   fun:fuse_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:main
+}
