@@ -27,13 +27,21 @@ namespace eval ::util::test {
 
     # wrapIfNeeded --
     #
-    #   Wrap executable using valgrind if valgrinding is enabled.
+    #   Wrap executable using valgrind if valgrinding is enabled (environment
+    #   variable VALGRIND is set to 1).
+    #   If env. variable VALGRIND_ARGS is present, it recognized as
+    #   space-separated list of additional arguments for valgrind (for example,
+    #   VALGRIND_ARGS="--gen-suppressions=all").
 
     proc wrapIfNeeded {command} {
         variable valgrind
 
         if {$valgrind} {
-            set res {valgrind  --leak-check=full}
+            set additional {}
+            if {[ info exists ::env(VALGRIND_ARGS) ]} {
+                set additional [ split $::env(VALGRIND_ARGS) ]
+            }
+            set res [ list valgrind  --leak-check=full --track-origins=yes --suppressions=valgrind.supp {*}$additional ]
         } else {
             set res {}
         }
