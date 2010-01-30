@@ -203,7 +203,7 @@ namespace eval ::util::test {
     # TESTS
     ############################################################
 
-    test usage {Usage test} {
+    test usage {Usage test} -body {
         lassign [ pipe ] r w
         if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] 2>@ $w} res opts ]} {
             close $w
@@ -214,9 +214,10 @@ namespace eval ::util::test {
         set data [ string trim [ read $r ] ]
         close $r
         checkValgrindOutput $data
-    } {}
+        set data
+    } -match regexp -result {^usage: fuse-zip }
 
-    test version {Version test} {
+    test version {Version test} -body {
         lassign [ pipe ] r w
         if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] -V 2>@ $w} res opts ]} {
             close $w
@@ -227,7 +228,8 @@ namespace eval ::util::test {
         set data [ string trim [ read $r ] ]
         close $r
         checkValgrindOutput $data
-    } {}
+        return "$data\n"
+    } -match regexp -result {^(.*?version.*?\d+\.\d+\n)+$}
 
     test mount-umount {Mount and unmount nonexistent file} -setup {
         set name $tmpdir/nonexistent.zip
