@@ -125,18 +125,18 @@ namespace eval ::util::test {
         }
         lassign $status state pid code msg
         set status {}
-        set error [ join $error "\n" ]
+        set errorText [ join $error "\n" ]
         if {$state eq "KILLED"} {
-            puts stderr "Filesystem unmounting timed out: $error"
+            puts stderr "Filesystem unmounting timed out: $errorText"
             catch {exec fusermount -uz $mountdir}
         } else {
             if {$code != 0} {
-                error "Filesystem returned error (code=$code): $error"
+                error "Filesystem returned error (code=$code): $errorText"
             }
             if {$output ne ""} {
                 error "Unexpected output from filesystem: $output"
             }
-            checkValgrindOutput $error
+            checkValgrindOutput $errorText
         }
     }
 
@@ -276,6 +276,53 @@ namespace eval ::util::test {
         forceumount
         file delete -force $name
     } -result {0}
+
+    test overwrite-file {Overwrite existing file} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        set f [ open $mountdir/filename.ext w ]
+        puts $f "Be-be-be!"
+        close $f
+        umount
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename.ext}
+
+    test truncate-file {Truncate existing file} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        ftruncate $mountdir/filename.ext 5
+        umount
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename.ext}
+
+    test truncate-file-after-end {Truncate existing file (after the end)} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        ftruncate $mountdir/filename.ext 5000
+        umount
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename.ext}
 
     file delete -force $tmpdir
     cleanupTests
