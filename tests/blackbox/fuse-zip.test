@@ -458,6 +458,21 @@ namespace eval ::util::test {
         }
     }
 
+    fstest add-truncate-remove-file {Add file to archive, truncate and remove it} {
+        create {
+            foo.bar foobar
+        }
+        mount
+        makeFile moo-moo moo $mountdir
+        ftruncate $mountdir/moo 3
+        removeFile moo $mountdir
+        umount
+
+        check {
+            foo.bar foobar
+        }
+    }
+
     fstest remove-file {Remove file from archive} {
         create {
             filename.ext blah-blah
@@ -532,6 +547,21 @@ namespace eval ::util::test {
         umount
         check {
             filename.ext blah-
+        }
+    }
+
+    fstest truncate-remove {Truncate existing file and delete it} {
+        create {
+            filename.ext blah-blah
+            other other
+        }
+        mount
+        ftruncate $mountdir/filename.ext 5
+        removeFile filename.ext $mountdir
+
+        umount
+        check {
+            other other
         }
     }
 
