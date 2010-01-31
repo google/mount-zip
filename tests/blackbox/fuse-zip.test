@@ -64,6 +64,9 @@ namespace eval ::util::test {
             -cleanup {
                 forceumount
                 file delete -force $fname
+                file delete -force $mountdir
+                file mkdir $mountdir
+                file delete -force $tmpdir/archiveSource
             } \
             -match emptyMatch \
         ]
@@ -416,6 +419,45 @@ namespace eval ::util::test {
         }
     }
 
+    fstest add-remove-file {Add file to archive and remove it} {
+        create {
+            foo.bar foobar
+            f/
+            f/o/
+            f/o/o content
+            foo/
+            foo/bar foo-bar
+        }
+        mount
+        makeFile moo-moo moo $mountdir
+        removeFile moo $mountdir
+        umount
+
+        check {
+            foo.bar foobar
+            f/
+            f/o/
+            f/o/o content
+            foo/
+            foo/bar foo-bar
+        }
+    }
+
+    fstest add-truncate-file {Add file to archive and truncate it} {
+        create {
+            foo.bar foobar
+        }
+        mount
+        makeFile moo-moo moo $mountdir
+        ftruncate $mountdir/moo 3
+        umount
+
+        check {
+            foo.bar foobar
+            moo moo
+        }
+    }
+
     fstest remove-file {Remove file from archive} {
         create {
             filename.ext blah-blah
@@ -478,6 +520,15 @@ namespace eval ::util::test {
         }
         mount
         ftruncate $mountdir/filename.ext 5
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data "blah-" ] != 0} {
+            error "Invalid content: $data"
+        }
+
         umount
         check {
             filename.ext blah-
