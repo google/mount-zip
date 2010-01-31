@@ -67,7 +67,7 @@ test: $(DEST)
 	make -C tests
 
 valgrind: clean debug
-	make -C tests VALGRIND=1
+	make -C tests valgrind
 
 .PHONY: all doc clean distclean install uninstall tarball test
 
