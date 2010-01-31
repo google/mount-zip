@@ -277,7 +277,7 @@ namespace eval ::util::test {
         removeDirectory testResult
         makeDirectory testResult
         exec unzip -d $tmpdir/testResult $fname
-        exec diff -ua $tmpdir/testResult $tmpdir/expectedResult
+        exec diff -ura $tmpdir/testResult $tmpdir/expectedResult
     }
 
     # stripValgrindOutput --
@@ -366,6 +366,56 @@ namespace eval ::util::test {
         }
     }
 
+    fstest add-file {Add file to archive} {
+        create {
+            foo.bar foobar
+            f/
+            f/o/
+            f/o/o content
+            foo/
+            foo/bar foo-bar
+        }
+        mount
+        makeFile moo-moo moo $mountdir
+        umount
+
+        check {
+            moo moo-moo
+            foo.bar foobar
+            f/
+            f/o/
+            f/o/o content
+            foo/
+            foo/bar foo-bar
+        }
+    }
+
+    fstest add-dir {Add directory to archive} {
+        create {
+            foo.bar foobar
+            f/
+            f/o/
+            f/o/o content
+            foo/
+            foo/bar foo-bar
+        }
+        mount
+        makeDirectory foo/first $mountdir
+        makeDirectory foo/first/second $mountdir
+        umount
+
+        check {
+            foo.bar foobar
+            f/
+            f/o/
+            f/o/o content
+            foo/
+            foo/bar foo-bar
+            foo/first/
+            foo/first/second/
+        }
+    }
+
     fstest remove-file {Remove file from archive} {
         create {
             filename.ext blah-blah
@@ -376,6 +426,21 @@ namespace eval ::util::test {
         umount
         check {
             filename2.ext blah-blah
+        }
+    }
+
+    fstest remove-dir {Remove directory from archive} {
+        create {
+            filename.ext blah-blah
+            foo/
+            bar/
+        }
+        mount
+        removeDirectory foo $mountdir
+        umount
+        check {
+            filename.ext blah-blah
+            bar/
         }
     }
 
