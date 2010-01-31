@@ -31,9 +31,12 @@
 
 class BigBuffer {
 private:
-    static const int chunkSize = 4*1024; //4 Kilobytes
+    //TODO: use >> and <<
+    static const unsigned int chunkSize = 4*1024; //4 Kilobytes
 
-    typedef std::vector<char*> chunks_t;
+    class ChunkWrapper;
+
+    typedef std::vector<ChunkWrapper> chunks_t;
 
     struct CallBackStruct {
         size_t pos;
@@ -44,6 +47,28 @@ private:
     chunks_t chunks;
 
     static ssize_t zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd);
+
+    /**
+     * Return number of chunks needed to keep 'offset' bytes.
+     */
+    inline unsigned int chunksCount(offset_t offset) const {
+        return (offset + chunkSize - 1) / chunkSize;
+    }
+
+    /**
+     * Return number of chunk where 'offset'-th byte is located.
+     */
+    inline unsigned int chunkNumber(offset_t offset) const {
+        return offset / chunkSize;
+    }
+
+    /**
+     * Return offset inside chunk to 'offset'-th byte.
+     */
+    inline int chunkOffset(offset_t offset) const {
+        return offset % chunkSize;
+    }
+
 public:
     offset_t len;
 

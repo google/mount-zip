@@ -1,3 +1,2 @@
 * write memory cache to /tmp on fsync(). May be write compressed stream
-* incapsulate chunks of BigBuffer into classes
 * operate with archive without libzip

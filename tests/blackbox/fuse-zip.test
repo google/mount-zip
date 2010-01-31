@@ -60,12 +60,14 @@ namespace eval ::util::test {
 
     proc fstest {id description code} {
         uplevel [ list test $id $description \
+            -setup {
+                file delete -force $mountdir
+                file mkdir $mountdir
+            } \
             -body $code \
             -cleanup {
                 forceumount
                 file delete -force $fname
-                file delete -force $mountdir
-                file mkdir $mountdir
                 file delete -force $tmpdir/archiveSource
             } \
             -match emptyMatch \
@@ -184,7 +186,7 @@ namespace eval ::util::test {
            if {[ regexp {==\d+== ERROR SUMMARY: (\d+) errors from (\d+) contexts \(suppressed: (\d+) from (\d+)\)} \
                 [ lindex [ split $data "\n" ] end ] dummy errors contexts suppressed total ]} {
                if {$errors != 0} {
-                   error "valgrind: $errors memory leaks detected!\n$data"
+                   error "valgrind: $errors memory errors detected!\n$data"
                }
            } else {
                error "Unable to parse valgrind output"
@@ -595,6 +597,15 @@ namespace eval ::util::test {
         }
         mount
         ftruncate $mountdir/filename.ext 11
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data "blah-blah\x00\x00" ] != 0} {
+            error "Invalid content: $data"
+        }
+
         umount
         check {
             filename.ext "blah-blah\x00\x00"
@@ -607,23 +618,134 @@ namespace eval ::util::test {
         }
         mount
         ftruncate $mountdir/filename.ext 5009
+        set content "blah-blah[ string repeat "\x00" 5000 ]"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data $content ] != 0} {
+            error "Invalid content: $data"
+        }
+
         umount
         check [ list \
-            filename.ext "blah-blah[ string repeat "\x00" 5000 ]" \
+            filename.ext $content \
         ]
     }
 
-    test truncate-after-end-other-chunk-twice {truncate existing file after the end (with new chunk creation, twice)} -setup {
+    fstest truncate-after-end-other-chunk-twice {truncate existing file after the end (with new chunk creation, twice)} {
         create {
             filename.ext blah-blah
         }
         mount
         ftruncate $mountdir/filename.ext 5
         ftruncate $mountdir/filename.ext 5005
+
+        set content "blah-[ string repeat "\x00" 5000 ]"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data $content ] != 0} {
+            error "Invalid content: $data"
+        }
+
         umount
         check [ list \
-            filename.ext "blah-[ string repeat "\x00" 5000 ]" \
+            filename.ext $content \
         ]
+    }
+
+    fstest sparse-file {Sparse files test} {
+        set fname $tmpdir/archive.zip
+        mount
+
+        set count 8201
+
+        set f [ open $mountdir/filename.ext w ]
+        seek $f $count start
+        puts -nonewline $f blah
+        close $f
+
+        set content "[ string repeat "\x00" $count ]blah"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $content $data ] != 0} {
+            error "Invalid file content: $data"
+        }
+
+        umount
+        check [ list \
+            filename.ext $content \
+        ]
+    }
+
+    fstest sparse-file-2 {Sparse files test 2} {
+        create {
+            filename.ext start
+        }
+        mount
+
+        set count 4096
+
+        set f [ open $mountdir/filename.ext r+ ]
+        seek $f [ expr {5+$count} ] start
+        puts -nonewline $f end
+        close $f
+
+        set content "start[ string repeat "\x00" $count ]end"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $content $data ] != 0} {
+            error "Invalid file content: $data"
+        }
+
+        umount
+        check [ list \
+            filename.ext $content \
+        ]
+    }
+    puts stderr [ join $error \n ]
+
+    fstest read-file {Read file from archive} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data "blah-blah" ] != 0} {
+            error "Invalid content: $data"
+        }
+
+        umount
+    }
+
+    fstest read-file-three-chunks {Read file from archive (3 chunks)} {
+        set content [ string repeat "a" [ expr {4096*3-100} ] ]
+        create [ list \
+            filename.ext $content \
+        ]
+        mount
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data $content ] != 0} {
+            error "Invalid content: '$data'"
+        }
+
+        umount
     }
 
     file delete -force $tmpdir
