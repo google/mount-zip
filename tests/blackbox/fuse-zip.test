@@ -197,6 +197,21 @@ namespace eval ::util::test {
         exec unzip -t $fname
     }
 
+    # stripValgrindOutput --
+    #
+    #   Strip valgrind's output from data. If valgrinding is not enabled,
+    #   return data as is.
+
+    proc stripValgrindOutput {data} {
+        set res {}
+        foreach line [ split $data "\n" ] {
+            if {![ regexp {^==\d+== } $line ]} {
+                lappend res $line
+            }
+        }
+        return [ join $res "\n" ]
+    }
+
     configure -tmpdir $tmpdir
 
     ############################################################
@@ -214,7 +229,7 @@ namespace eval ::util::test {
         set data [ string trim [ read $r ] ]
         close $r
         checkValgrindOutput $data
-        set data
+        return [ stripValgrindOutput $data ]
     } -match regexp -result {^usage: fuse-zip }
 
     test version {Version test} -body {
@@ -228,7 +243,7 @@ namespace eval ::util::test {
         set data [ string trim [ read $r ] ]
         close $r
         checkValgrindOutput $data
-        return "$data\n"
+        return "[ stripValgrindOutput $data ]\n"
     } -match regexp -result {^(.*?version.*?\d+\.\d+\n)+$}
 
     test mount-umount {Mount and unmount nonexistent file} -setup {
