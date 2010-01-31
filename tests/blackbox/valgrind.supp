@@ -1,0 +1,14 @@
+{
+   Unitialized memory read in zlib1 at inflate.c:157 (not a problem)
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+   fun:zip_fopen_index
+   fun:_ZN9BigBufferC1EP3zipil
+   fun:_ZN8FileNode4openEv
+   fun:_ZL16fusezip_truncatePKcl
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_loop
+   fun:main
+}

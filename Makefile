@@ -61,7 +61,7 @@ tarball-clean:
 	rm -f fuse-zip-*.tar.gz fuse-zip-tests-*.tar.gz
 
 debug:
-	make CXXFLAGS=-g
+	make CXXFLAGS="-g $(CXXFLAGS)"
 
 test: $(DEST)
 	make -C tests
