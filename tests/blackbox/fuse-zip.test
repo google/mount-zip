@@ -25,6 +25,9 @@ namespace eval ::util::test {
 
     file mkdir $mountdir
 
+    customMatch emptyMatch {apply {{a b} {return 1}}}
+    configure -tmpdir $tmpdir
+
     # wrapIfNeeded --
     #
     #   Wrap executable using valgrind if valgrinding is enabled (environment
@@ -49,6 +52,23 @@ namespace eval ::util::test {
         return $res
     }
 
+    # fstest --
+    #
+    #   Wrapper for tcltest::test.
+    #   1. check is passed if no error occured.
+    #   2. After test finish, forceunmount is called to free mount point.
+
+    proc fstest {id description code} {
+        uplevel [ list test $id $description \
+            -body $code \
+            -cleanup {
+                forceumount
+                file delete -force $fname
+            } \
+            -match emptyMatch \
+        ]
+    }
+
     # mount --
     #
     #   Mount fuse-zip on archive fname to mountdir.
@@ -57,9 +77,10 @@ namespace eval ::util::test {
     #   parsed to determine finish of file system initialization process.
     #
     # Arguments:
-    #   fname   Archive file name
+    #   fname   Archive file name (from caller context)
 
-    proc mount {fname} {
+    proc mount {} {
+        upvar fname fname
         variable binary
         variable mountdir
         variable stopped
@@ -135,8 +156,8 @@ namespace eval ::util::test {
         set status {}
         set errorText [ join $error "\n" ]
         if {$state eq "KILLED"} {
-            puts stderr "Filesystem unmounting timed out: $errorText"
             catch {exec fusermount -uz $mountdir}
+            error "Filesystem unmounting timed out: $errorText"
         } else {
             if {$code != 0} {
                 error "Filesystem returned error (code=$code): $errorText"
@@ -181,20 +202,82 @@ namespace eval ::util::test {
         catch {exec fusermount -u $mountdir}
     }
 
-    # content --
+    # create -- 
     #
-    #   Return list of files in archive.
+    #   Create specified list of files and directories in specified directory
+    #   (relative to tmpdir).
+    #
+    # Arguments:
+    #   dir     Destination directory
+    #   files   List of files and directories to add
+    #           Format of item:
+    #           <filename> <content
+    #           or
+    #           <dirname>/
 
-    proc content {fname} {
-        split [ exec zipinfo -1 $fname ] "\n"
+    proc createContent {dir files} {
+        removeDirectory $dir
+        makeDirectory $dir
+        
+        set pos 0
+        while {$pos < [ llength $files ]} {
+            set name [ lindex $files $pos ]
+            incr pos
+            if {[ string index $name end ] == "/"} {
+                makeDirectory $dir/$name
+            } else {
+                makeFile [ lindex $files $pos ] $dir/$name
+                incr pos
+            }
+        }
+    }
+
+    # create -- 
+    #
+    #   Create archive for tests containing specified list of files and
+    #   directories and set it name to variable fname in caller context.
+    #
+    # Arguments:
+    #   files   List of files (as for createContent command)
+
+    proc create {files} {
+        variable tmpdir
+        upvar fname fname
+
+        set fname $tmpdir/test.zip
+
+        createContent archiveSource $files
+        set pwd [ pwd ]
+        cd $tmpdir/archiveSource
+        if {[ catch {
+            exec zip -r $fname {*}[ glob * ]
+        } err opts ]} {
+            cd $pwd
+            return -options $opts
+        }
+        cd $pwd
     }
 
     # check --
     #
-    #   Check archive integrity by using 'unzip -t' command
+    #   Check archive integrity by using 'unzip -t' command.
+    #   Check file content with expected.
+    #   If any problem detected, error is thrown.
+    #
+    # Arguments:
+    #   files   List of files (as for createContent command)
 
-    proc check {fname} {
+    proc check {files} {
+        upvar fname fname
+        variable tmpdir
+
         exec unzip -t $fname
+
+        createContent expectedResult $files
+        removeDirectory testResult
+        makeDirectory testResult
+        exec unzip -d $tmpdir/testResult $fname
+        exec diff -ua $tmpdir/testResult $tmpdir/expectedResult
     }
 
     # stripValgrindOutput --
@@ -212,7 +295,23 @@ namespace eval ::util::test {
         return [ join $res "\n" ]
     }
 
-    configure -tmpdir $tmpdir
+    # makeFile --
+    #
+    #   Version of tclTest::makeFile that does not creates newline at the end
+    #   of file.
+
+    proc makeFile {contents name {directory {}}} {
+        variable tmpdir
+
+        if {$directory eq ""} {
+            set fname $tmpdir/$name
+        } else {
+            set fname $directory/$name
+        }
+        set f [ open $fname w ]
+        puts -nonewline $f $contents
+        close $f
+    }
 
     ############################################################
     # TESTS
@@ -246,173 +345,140 @@ namespace eval ::util::test {
         return "[ stripValgrindOutput $data ]\n"
     } -match regexp -result {^(.*?version.*?\d+\.\d+\n)+$}
 
-    test mount-umount {Mount and unmount nonexistent file} -setup {
-        set name $tmpdir/nonexistent.zip
-        file delete -force $name
-        mount $name
-    } -body {
+    fstest mount-umount {Mount and unmount nonexistent file} {
+        set fname $tmpdir/nonexistent.zip
+        mount
         umount
-        file exists $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {0}
+        if {[ file exist $fname ]} {
+            error "Archive should not exist!"
+        }
+    }
 
-    test add-file-to-empty-archive {Add file to empty archive} -setup {
-        set name $tmpdir/empty.zip
-        file delete -force $name
-        mount $name
-    } -body {
+    fstest add-file-to-empty-archive {Add file to empty archive} {
+        set fname $tmpdir/empty.zip
+
+        mount
         makeFile {file content} somefile $mountdir
         umount
 
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {somefile}
+        check {
+            somefile {file content}
+        }
+    }
 
-    test remove-file {Remove file from archive} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ] [ makeFile {blah-blah} filename2.ext ]
-        mount $name
-    } -body {
+    fstest remove-file {Remove file from archive} {
+        create {
+            filename.ext blah-blah
+            filename2.ext blah-blah
+        }
+        mount
         removeFile filename.ext $mountdir
         umount
+        check {
+            filename2.ext blah-blah
+        }
+    }
 
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename2.ext}
-
-    test remove-last-file {Remove last file from archive} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
-        mount $name
-    } -body {
+    fstest remove-last-file {Remove last file from archive} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
         removeFile filename.ext $mountdir
         umount
-        file exists $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {0}
+        if {[ file exist $fname ]} {
+            puts [ exec cat $fname ]
+            error "Archive should not exist!"
+        }
+    }
 
-    test overwrite-file {Overwrite existing file} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
-        mount $name
-    } -body {
+    fstest overwrite-file {Overwrite existing file} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
+
         set f [ open $mountdir/filename.ext w ]
         puts $f "Be-be-be!"
         close $f
         umount
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename.ext}
+        check {
+            filename.ext "Be-be-be!\n"
+        }
+    }
 
-    test truncate {Truncate existing file} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
-        mount $name
-    } -body {
+    fstest truncate {Truncate existing file} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
         ftruncate $mountdir/filename.ext 5
         umount
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename.ext}
+        check {
+            filename.ext blah-
+        }
+    }
 
-    test truncate-on-chunk-boundary {Truncate existing file on a chunk boundary} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile [ string repeat a 5000 ] filename.ext ]
-        mount $name
-    } -body {
+    fstest truncate-on-chunk-boundary {Truncate existing file on a chunk boundary} {
+        create [ list \
+            filename.ext [ string repeat a 8192 ]
+        ]
+        mount
         ftruncate $mountdir/filename.ext 4096
         umount
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename.ext}
+        check [ list \
+            filename.ext [ string repeat a 4096 ] \
+        ]
+    }
 
-    test truncate-to-zero {Truncate existing file (to zero size)} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
-        mount $name
-    } -body {
+    fstest truncate-to-zero {Truncate existing file (to zero size)} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
         ftruncate $mountdir/filename.ext 0
-
         umount
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename.ext}
+        check {
+            filename.ext {}
+        }
+    }
 
-    test truncate-after-end-same-chunk {Truncate existing file after the end (without new chunks creation)} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
-        mount $name
-    } -body {
+    fstest truncate-after-end-same-chunk {Truncate existing file after the end (without new chunks creation)} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
         ftruncate $mountdir/filename.ext 11
-
         umount
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename.ext}
+        check {
+            filename.ext "blah-blah\x00\x00"
+        }
+    }
 
-    test truncate-after-end-other-chunk {truncate existing file after the end (with new chunk creation)} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
-        mount $name
-    } -body {
-        ftruncate $mountdir/filename.ext 5000
-
+    fstest truncate-after-end-other-chunk {truncate existing file after the end (with new chunk creation)} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
+        ftruncate $mountdir/filename.ext 5009
         umount
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename.ext}
+        check [ list \
+            filename.ext "blah-blah[ string repeat "\x00" 5000 ]" \
+        ]
+    }
 
     test truncate-after-end-other-chunk-twice {truncate existing file after the end (with new chunk creation, twice)} -setup {
-        set name [ makeFile {} archive.zip ]
-        file delete $name
-        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
-        mount $name
-    } -body {
+        create {
+            filename.ext blah-blah
+        }
+        mount
         ftruncate $mountdir/filename.ext 5
-        ftruncate $mountdir/filename.ext 5001
-
+        ftruncate $mountdir/filename.ext 5005
         umount
-        check $name
-        content $name
-    } -cleanup {
-        forceumount
-        file delete -force $name
-    } -result {filename.ext}
+        check [ list \
+            filename.ext "blah-[ string repeat "\x00" 5000 ]" \
+        ]
+    }
 
     file delete -force $tmpdir
     cleanupTests
