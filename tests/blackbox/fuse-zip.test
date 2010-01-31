@@ -319,7 +319,7 @@ namespace eval ::util::test {
         file delete -force $name
     } -result {filename.ext}
 
-    test truncate-file {Truncate existing file} -setup {
+    test truncate {Truncate existing file} -setup {
         set name [ makeFile {} archive.zip ]
         file delete $name
         exec zip -j $name [ makeFile {blah-blah} filename.ext ]
@@ -334,7 +334,22 @@ namespace eval ::util::test {
         file delete -force $name
     } -result {filename.ext}
 
-    test truncate-file-to-zero {Truncate existing file (to zero size)} -setup {
+    test truncate-on-chunk-boundary {Truncate existing file on a chunk boundary} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile [ string repeat a 5000 ] filename.ext ]
+        mount $name
+    } -body {
+        ftruncate $mountdir/filename.ext 4096
+        umount
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename.ext}
+
+    test truncate-to-zero {Truncate existing file (to zero size)} -setup {
         set name [ makeFile {} archive.zip ]
         file delete $name
         exec zip -j $name [ makeFile {blah-blah} filename.ext ]
@@ -350,13 +365,46 @@ namespace eval ::util::test {
         file delete -force $name
     } -result {filename.ext}
 
-    test truncate-file-after-end {Truncate existing file (after the end)} -setup {
+    test truncate-after-end-same-chunk {Truncate existing file after the end (without new chunks creation)} -setup {
         set name [ makeFile {} archive.zip ]
         file delete $name
         exec zip -j $name [ makeFile {blah-blah} filename.ext ]
         mount $name
     } -body {
         ftruncate $mountdir/filename.ext 11
+
+        umount
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename.ext}
+
+    test truncate-after-end-other-chunk {truncate existing file after the end (with new chunk creation)} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        ftruncate $mountdir/filename.ext 5000
+
+        umount
+        check $name
+        content $name
+    } -cleanup {
+        forceumount
+        file delete -force $name
+    } -result {filename.ext}
+
+    test truncate-after-end-other-chunk-twice {truncate existing file after the end (with new chunk creation, twice)} -setup {
+        set name [ makeFile {} archive.zip ]
+        file delete $name
+        exec zip -j $name [ makeFile {blah-blah} filename.ext ]
+        mount $name
+    } -body {
+        ftruncate $mountdir/filename.ext 5
+        ftruncate $mountdir/filename.ext 5001
 
         umount
         check $name

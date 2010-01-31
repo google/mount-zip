@@ -120,6 +120,11 @@ int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
     return nwritten;
 }
 
+/**
+ * 1. Free chunks after offset
+ * 2. Resize chunks vector to a new size
+ * 3. Fill data block that made readable by resize with zeroes
+ */
 int BigBuffer::truncate(offset_t offset) {
     if (offset < len) {
         for (unsigned int i = (offset + chunkSize - 1)/chunkSize; i < chunks.size(); ++i) {
@@ -128,8 +133,23 @@ int BigBuffer::truncate(offset_t offset) {
             }
         }
     }
+
+    chunks.resize((offset + chunkSize - 1)/chunkSize, NULL);
+
+    if (offset > len) {
+        // Fill end of last non-empty chunk with zeroes
+        unsigned int pos = len / chunkSize;
+        if (chunks[pos] != NULL) {
+            offset_t end = offset % chunkSize;
+            if (offset / chunkSize > pos) {
+                end = chunkSize - 1;
+            }
+            offset_t start = len % chunkSize;
+            memset(chunks[pos] + start, 0, end - start + 1);
+        }
+    }
+
     len = offset;
-    chunks.resize((len + chunkSize - 1)/chunkSize, NULL);
     return 0;
 }
 
