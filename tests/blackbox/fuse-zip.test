@@ -713,7 +713,6 @@ namespace eval ::util::test {
             filename.ext $content \
         ]
     }
-    puts stderr [ join $error \n ]
 
     fstest read-file {Read file from archive} {
         create {
