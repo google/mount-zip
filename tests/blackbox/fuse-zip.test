@@ -794,6 +794,76 @@ namespace eval ::util::test {
         umount
     }
 
+    fstest read-on-end {Read on the end of file} {
+        set content [ string repeat "a" 100 ]
+        create [ list \
+            filename.ext $content \
+        ]
+        mount
+        set f [ open $mountdir/filename.ext r ]
+        fconfigure $f -encoding binary
+        seek $f 98
+        set data [ read $f 4 ]
+        close $f
+
+        if {[ string compare $data "aa" ] != 0} {
+            error "Invalid content: '$data'"
+        }
+
+        umount
+    }
+
+    fstest read-after-end {Read after the end of file} {
+        set content [ string repeat "b" 100 ]
+        create [ list \
+            filename.ext $content \
+        ]
+        mount
+        set f [ open $mountdir/filename.ext r ]
+        fconfigure $f -encoding binary
+        seek $f 102
+        set data [ read $f 4 ]
+        close $f
+
+        if {[ string compare $data "" ] != 0} {
+            error "Invalid content: '$data'"
+        }
+
+        umount
+    }
+
+    fstest find {Check that find is working on a filesystem} {
+        create {
+            foo.bar foobar
+            f/
+            f/o/
+            f/o/o content
+            foo/
+            foo/bar foo-bar
+        }
+        set in {
+            foo.bar
+            f
+            f/o
+            f/o/o
+            foo
+            foo/bar
+        }
+        mount
+        set data {}
+        set l [ string length "$mountdir/" ]
+        foreach line [ split [ exec find $mountdir ] "\n" ] {
+            if {[ string length $line ] > $l} {
+                lappend data [ string range $line $l end ]
+            }
+        }
+        umount
+
+        if {[ lsort $in ] != [ lsort $data ]} {
+            error "Invalid list of files returned: $data"
+        }
+    }
+
     file delete -force $tmpdir
     cleanupTests
 }
