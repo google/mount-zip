@@ -220,7 +220,9 @@ int FileNode::save() {
 
 int FileNode::truncate(offset_t offset) {
     if (state != CLOSED) {
-        state = CHANGED;
+        if (state != NEW) {
+            state = CHANGED;
+        }
         return buffer->truncate(offset);
     } else {
         return -EBADF;

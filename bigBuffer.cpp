@@ -26,62 +26,172 @@
 #include "bigBuffer.h"
 #include "fileNode.h"
 
+/**
+ * Class that keep chunk of file data.
+ */
+class BigBuffer::ChunkWrapper {
+private:
+    /**
+     * Pointer that keeps data for chunk. Can be NULL.
+     */
+    char *m_ptr;
+
+public:
+    /**
+     * By default internal buffer is NULL, so this can be used for creating
+     * sparse files.
+     */
+    ChunkWrapper(): m_ptr(NULL) {
+    }
+
+    /**
+     * Take ownership on internal pointer from 'other' object.
+     */
+    ChunkWrapper(const ChunkWrapper &other) {
+        m_ptr = other.m_ptr;
+        const_cast<ChunkWrapper*>(&other)->m_ptr = NULL;
+    }
+
+    /**
+     * Free pointer if allocated.
+     */
+    ~ChunkWrapper() {
+        if (m_ptr != NULL) {
+            free(m_ptr);
+        }
+    }
+
+    /**
+     * Take ownership on internal pointer from 'other' object.
+     */
+    ChunkWrapper &operator=(const ChunkWrapper &other) {
+        if (&other != this) {
+            m_ptr = other.m_ptr;
+            const_cast<ChunkWrapper*>(&other)->m_ptr = NULL;
+        }
+        return *this;
+    }
+
+    /**
+     * Return pointer to internal storage and initialize it if needed.
+     */
+    char *ptr(bool init = false) {
+        if (init && m_ptr == NULL) {
+            m_ptr = (char *)malloc(chunkSize);
+        }
+        return m_ptr;
+    }
+
+    /**
+     * Fill 'dest' with internal buffer content.
+     * If m_ptr is NULL, destination bytes is zeroed.
+     *
+     * @param dest      Destination buffer.
+     * @param offset    Offset in internal buffer to start reading from.
+     * @param count     Number of bytes to be read.
+     *
+     * @return  Number of bytes actually read. It can differ with 'count'
+     *      if offset+count>chunkSize.
+     */
+    size_t read(char *dest, offset_t offset, size_t count) const {
+        if (offset + count > chunkSize) {
+            count = chunkSize - offset;
+        }
+        if (m_ptr != NULL) {
+            memcpy(dest, m_ptr + offset, count);
+        } else {
+            memset(dest, 0, count);
+        }
+        return count;
+    }
+
+    /**
+     * Fill internal buffer with bytes from 'src'.
+     * If m_ptr is NULL, memory for buffer is malloc()-ed and then head of
+     * allocated space is zeroed. After that byte copying is performed.
+     *
+     * @param src       Source buffer.
+     * @param offset    Offset in internal buffer to start writting from.
+     * @param count     Number of bytes to be written.
+     *
+     * @return  Number of bytes actually written. It can differ with
+     *      'count' if offset+count>chunkSize.
+     */
+    size_t write(const char *src, offset_t offset, size_t count) {
+        if (offset + count > chunkSize) {
+            count = chunkSize - offset;
+        }
+        if (m_ptr == NULL) {
+            m_ptr = (char *)malloc(chunkSize);
+            if (m_ptr == NULL) {
+                throw std::bad_alloc();
+            }
+            if (offset > 0) {
+                memset(m_ptr, 0, offset);
+            }
+        }
+        memcpy(m_ptr + offset, src, count);
+        return count;
+    }
+
+    /**
+     * Clear tail of internal buffer with zeroes starting from 'offset'.
+     */
+    void clearTail(offset_t offset) {
+        if (m_ptr != NULL && offset < chunkSize) {
+            memset(m_ptr + offset, 0, chunkSize - offset);
+        }
+    }
+
+};
+
 BigBuffer::BigBuffer(): len(0) {
 }
 
+/**
+ * Read file data from zip file
+ */
 BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
-    char *buf = (char*)malloc(chunkSize);
-    if (buf == NULL) {
-        throw std::bad_alloc();
-    }
+    chunks.resize(chunksCount(length), ChunkWrapper());
+    unsigned int chunk = 0;
     ssize_t nr;
-    while ((nr = zip_fread(zf, buf, chunkSize)) > 0) {
-        chunks.push_back(buf);
-        buf = (char*)malloc(chunkSize);
-        if (buf == NULL) {
-            for (chunks_t::iterator i = chunks.begin(); i != chunks.end(); ++i) {
-                free(*i);
-            }
-            throw std::bad_alloc();
+    while (length > 0) {
+        nr = zip_fread(zf, chunks[chunk].ptr(true), chunkSize);
+        if (nr < 0) {
+            throw std::exception();
         }
+        ++chunk;
+        length -= nr;
     }
-    free(buf);
     if (zip_fclose(zf)) {
         throw std::exception();
     }
 }
 
 BigBuffer::~BigBuffer() {
-    for (chunks_t::iterator i = chunks.begin(); i != chunks.end(); ++i) {
-        if (*i != NULL) {
-            free(*i);
-        }
-    }
 }
 
+/**
+ * Dispatch read requests to chunks of a file and write result to resulting
+ * buffer.
+ * Reading after end of file is not allowed, so 'size' is decreased to fit
+ * file boundaries.
+ */
 int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     if (offset > len) {
         return -EINVAL;
     }
-    int chunk = offset / chunkSize;
-    int pos = offset % chunkSize;
-    int nread = 0;
+    int chunk = chunkNumber(offset);
+    int pos = chunkOffset(offset);
     if (size > unsigned(len - offset)) {
         size = len - offset;
     }
+    int nread = size;
     while (size > 0) {
-        size_t r = chunkSize - pos;
-        if (r > size) {
-            r = size;
-        }
-        if (chunks[chunk] != NULL) {
-            memcpy(buf, chunks[chunk] + pos, r);
-        } else {
-            memset(buf, 0, r);
-        }
+        size_t r = chunks[chunk].read(buf, pos, size);
+
         size -= r;
-        nread += r;
         buf += r;
         ++chunk;
         pos = 0;
@@ -89,30 +199,29 @@ int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     return nread;
 }
 
+/**
+ * Dispatch write request to chunks of a file and grow 'chunks' vector if
+ * necessary.
+ * If 'offset' is after file end, tail of last chunk cleared before growing.
+ */
 int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
-    int chunk = offset / chunkSize;
-    int pos = offset % chunkSize;
-    int nwritten = 0;
-    for (unsigned int i = chunks.size(); i <= (offset + size) / chunkSize; ++i) {
-        chunks.push_back(NULL);
-    }
-    if (len < offset || size > unsigned(len - offset)) {
+    int chunk = chunkNumber(offset);
+    int pos = chunkOffset(offset);
+    int nwritten = size;
+
+    if (offset > len) {
+        if (len > 0) {
+            chunks[chunkNumber(len)].clearTail(chunkOffset(len));
+        }
+        len = size + offset;
+    } else if (size > unsigned(len - offset)) {
         len = size + offset;
     }
+    chunks.resize(chunksCount(len));
     while (size > 0) {
-        size_t w = chunkSize - pos;
-        if (w > size) {
-            w = size;
-        }
-        if (chunks[chunk] == NULL) {
-            chunks[chunk] = (char*)malloc(chunkSize);
-            if (!chunks[chunk]) {
-                return -EIO;
-            }
-        }
-        memcpy(chunks[chunk] + pos, buf, w);
+        size_t w = chunks[chunk].write(buf, pos, size);
+
         size -= w;
-        nwritten += w;
         buf += w;
         ++ chunk;
         pos = 0;
@@ -120,16 +229,20 @@ int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
     return nwritten;
 }
 
+/**
+ * 1. Free chunks after offset
+ * 2. Resize chunks vector to a new size
+ * 3. Fill data block that made readable by resize with zeroes
+ */
 int BigBuffer::truncate(offset_t offset) {
-    if (offset < len) {
-        for (unsigned int i = (offset + chunkSize - 1)/chunkSize; i < chunks.size(); ++i) {
-            if (chunks[i] != NULL) {
-                free(chunks[i]);
-            }
-        }
+    chunks.resize(chunksCount(offset));
+
+    if (offset > len && len > 0) {
+        // Fill end of last non-empty chunk with zeroes
+        chunks[chunkNumber(len)].clearTail(chunkOffset(len));
     }
+
     len = offset;
-    chunks.resize((len + chunkSize - 1)/chunkSize, NULL);
     return 0;
 }
 

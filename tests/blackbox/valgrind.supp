@@ -1,0 +1,51 @@
+# add-dir, truncate-to-zero
+{
+   Unitialized memory read in zlib's deflate (not a problem)
+   Memcheck:Cond
+   fun:deflate
+   obj:/usr/lib/libzip.so.1.0.0
+   fun:zip_close
+   fun:_ZN11FuseZipDataD1Ev
+   fun:_ZL15fusezip_destroyPv
+   fun:fuse_fs_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_destroy
+   fun:fuse_destroy
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:main
+}
+
+# truncate-on-chunk-boundary
+{
+   Unitialized memory read in zlib's inflateReset2 (not a problem)
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+   fun:zip_fopen_index
+   fun:_ZN9BigBufferC1EP3zipil
+   fun:_ZN8FileNode4openEv
+   fun:_ZL16fusezip_truncatePKcl
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_loop
+   fun:main
+}
+
+# read-file-three-chunks
+{
+   Unitialized memory read in zlib's inflateReset2 (not a problem)
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+   fun:zip_fopen_index
+   fun:_ZN9BigBufferC1EP3zipil
+   fun:_ZN8FileNode4openEv
+   fun:_ZL12fusezip_openPKcP14fuse_file_info
+   fun:fuse_fs_open
+   obj:/usr/lib/libfuse.so.2.8.1
+   obj:/usr/lib/libfuse.so.2.8.1
+   fun:fuse_session_loop
+   fun:main
+}
+
