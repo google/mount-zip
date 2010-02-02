@@ -714,6 +714,53 @@ namespace eval ::util::test {
         ]
     }
 
+    fstest sparse-truncate {Truncate sparse file} {
+        create {
+            filename.ext {}
+        }
+        mount
+
+        set count 4078
+
+        set f [ open $mountdir/filename.ext r+ ]
+        seek $f 8208 start
+        puts -nonewline $f data
+        flush $f
+        ftruncate -fileid $f $count
+        close $f
+
+        set content "[ string repeat "\x00" $count ]"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $content $data ] != 0} {
+            error "Invalid file content: $data"
+        }
+
+        umount
+        check [ list \
+            filename.ext $content \
+        ]
+    }
+
+    fstest read-zero {Read zero-length file from archive} {
+        create {
+            filename.ext {}
+        }
+        mount
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data "" ] != 0} {
+            error "Invalid content: $data"
+        }
+
+        umount
+    }
+
     fstest read-file {Read file from archive} {
         create {
             filename.ext blah-blah
