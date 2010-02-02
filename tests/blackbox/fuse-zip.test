@@ -475,6 +475,21 @@ namespace eval ::util::test {
         }
     }
 
+    fstest add-overwrite-file {Add file to archive and overwrite it} {
+        create {
+            foo.bar foobar
+        }
+        mount
+        makeFile moo-moo moo $mountdir
+        makeFile Gerasim moo $mountdir
+        umount
+
+        check {
+            foo.bar foobar
+            moo Gerasim
+        }
+    }
+
     fstest remove-file {Remove file from archive} {
         create {
             filename.ext blah-blah
@@ -862,6 +877,38 @@ namespace eval ::util::test {
         if {[ lsort $in ] != [ lsort $data ]} {
             error "Invalid list of files returned: $data"
         }
+    }
+
+    fstest append {Append to file} {
+        create {
+            foo foo
+        }
+        mount
+        set f [ open $mountdir/foo a ]
+        puts -nonewline $f bar
+        close $f
+
+        umount
+        check {
+            foo foobar
+        }
+    }
+
+    fstest compare-source-and-mountpoint {Compare source files with mountpoint content} {
+        create [ list \
+            foo.bar foobar  \
+            f/              \
+            f/o/            \
+            f/o/o content   \
+            foo/            \
+            foo/bar foo-bar \
+            bigFile [ string repeat "substances! " 9000 ] \
+            zerofile {}     \
+            longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName {}
+        ]
+        mount
+        exec diff -ura $tmpdir/archiveSource $mountdir
+        umount
     }
 
     file delete -force $tmpdir
