@@ -128,6 +128,7 @@ namespace eval ::fusezip::test {
         variable stopped
         variable error
         variable mounted
+        variable initializationState
 
         set ns [ namespace current ]
         set ${ns}::status {STARTED}
@@ -148,8 +149,10 @@ namespace eval ::fusezip::test {
             {*}[ wrapIfNeeded $binary ] -d $fname $mountdir &
 
         vwait ${ns}::initializationState
-        #TODO: check initstate and error code
         trace remove variable {*}$cmd
+        if {$initializationState eq "exited"} {
+            error "Filesystem not mounted" {} NOTMOUNTED
+        }
         set mounted true
     }
 
@@ -425,6 +428,19 @@ namespace eval ::fusezip::test {
         if {![ regexp {^(.*?version.*?\d+\.\d+\n)+$} \
                 "[ stripValgrindOutput $data ]\n" ]} {
             error "Version info expected"
+        }
+    }
+
+    fstest bad-mountpoint {Bad mountpoint} {
+        file delete -force $mountdir
+        if {![ catch {mount} err opts ] &&
+                [ dict get $opts -errorcode ] eq "NOTMOUNTED"} {
+            error "Mount error is expected"
+        } else {
+            set msg [ stripValgrindOutput [ join $error \n ] ]
+            if {![ regexp {^fuse: bad mount point} $msg ]} {
+                error "Invalid error message"
+            }
         }
     }
 
