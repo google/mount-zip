@@ -34,7 +34,6 @@
 #include <unistd.h>
 #include <limits.h>
 #include <syslog.h>
-#include <sys/xattr.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
 
