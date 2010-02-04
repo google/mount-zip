@@ -3,15 +3,10 @@
 exec tclsh "$0" "$@"
 
 package require Tcl 8.5
-package require tcltest 2.2
 package require BLT
 package require Tclx
 
-::tcltest::configure {*}$argv
-
-namespace eval ::util::test {
-    namespace import ::tcltest::*
-
+namespace eval ::fusezip::test {
     variable binary ../../fuse-zip
     variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
     variable mountdir [ file join $tmpdir mountPoint ]
@@ -23,10 +18,17 @@ namespace eval ::util::test {
     variable output {}
     variable initializationState {}
 
-    file mkdir $mountdir
+    variable numPassed 0
+    variable numFailed 0
+    variable numSkipped 0
 
-    customMatch emptyMatch {apply {{a b} {return 1}}}
-    configure -tmpdir $tmpdir
+    if {$::argc != 0} {
+        variable matchList $::argv
+    } else {
+        variable matchList *
+    }
+
+    file mkdir $mountdir
 
     # wrapIfNeeded --
     #
@@ -54,24 +56,59 @@ namespace eval ::util::test {
 
     # fstest --
     #
-    #   Wrapper for tcltest::test.
-    #   1. check is passed if no error occured.
-    #   2. After test finish, forceunmount is called to free mount point.
+    #   Execute 'script', check return code and clean up.
+    #   If script exited with error, error information and filesystem stderr
+    #   printed.
+    #   Test is executed only if id matches at least one pattern in matchList.
+    #
+    # Arguments:
+    #   id          Test ID
+    #   description Test Description
+    #   script      Test body
 
-    proc fstest {id description code} {
-        uplevel [ list test $id $description \
-            -setup {
-                file delete -force $mountdir
-                file mkdir $mountdir
-            } \
-            -body $code \
-            -cleanup {
-                forceumount
-                file delete -force $fname
-                file delete -force $tmpdir/archiveSource
-            } \
-            -match emptyMatch \
-        ]
+    proc fstest {id description script} {
+        variable mounted false
+        variable error
+        variable numPassed
+        variable numFailed
+        variable numSkipped
+        variable tmpdir
+        variable mountdir
+        variable matchList
+        upvar fname fname
+        set fname {}
+
+        set do false
+        foreach match $matchList {
+            if {[ string match $match $id ]} {
+                set do true
+                break
+            }
+        }
+        if {!$do} {
+            incr numSkipped
+            return
+        }
+
+        file mkdir $tmpdir
+        file mkdir $mountdir
+        set code [ catch {
+            uplevel $script
+            umount
+        } ret opts ]
+        if {$code} {
+            forceumount
+            puts "\nTest `$id' ($description) failed."
+            puts "Error: [ dict get $opts -errorinfo ]"
+            puts "Filesystem output: [ join $error \n ]"
+
+            exit
+
+            incr numFailed
+        } else {
+            incr numPassed
+        }
+        file delete -force $tmpdir
     }
 
     # mount --
@@ -90,6 +127,7 @@ namespace eval ::util::test {
         variable mountdir
         variable stopped
         variable error
+        variable mounted
 
         set ns [ namespace current ]
         set ${ns}::status {STARTED}
@@ -101,6 +139,7 @@ namespace eval ::util::test {
             } $ns ] ] \
         ]
         trace add variable {*}$cmd
+        set output {}
         set error {}
         blt::bgexec ${ns}::status \
             -output ${ns}::output \
@@ -109,7 +148,9 @@ namespace eval ::util::test {
             {*}[ wrapIfNeeded $binary ] -d $fname $mountdir &
 
         vwait ${ns}::initializationState
+        #TODO: check initstate and error code
         trace remove variable {*}$cmd
+        set mounted true
     }
 
     # processError --
@@ -139,14 +180,20 @@ namespace eval ::util::test {
     #   Firstly try to umount FS in a standard way via fusermount -uz.
     #   If file system is not unmounted in a specified timeout, kill filesystem
     #   process and unmount in the hard way (fusermount -uz).
+    #   If file system is already unmounted. do nothing.
 
     proc umount {} {
+        variable mounted
         variable mountdir
         variable status
         variable timeout
         variable output
         variable error
         variable valgrind
+
+        if {!$mounted} {
+            return
+        }
 
         set ns [ namespace current ]
         set statusVar ${ns}::status
@@ -159,18 +206,18 @@ namespace eval ::util::test {
         }
         lassign $status state pid code msg
         set status {}
-        set errorText [ join $error "\n" ]
+        set mounted false
         if {$state eq "KILLED"} {
             catch {exec fusermount -uz $mountdir}
-            error "Filesystem unmounting timed out: $errorText"
+            error "Filesystem unmounting timed out"
         } else {
             if {$code != 0} {
-                error "Filesystem returned error (code=$code): $errorText"
+                error "Filesystem returned error (code=$code)"
             }
             if {$output ne ""} {
                 error "Unexpected output from filesystem: $output"
             }
-            checkValgrindOutput $errorText
+            checkValgrindOutput [ join $error \n ]
         }
     }
 
@@ -186,7 +233,7 @@ namespace eval ::util::test {
            if {[ regexp {==\d+== ERROR SUMMARY: (\d+) errors from (\d+) contexts \(suppressed: (\d+) from (\d+)\)} \
                 [ lindex [ split $data "\n" ] end ] dummy errors contexts suppressed total ]} {
                if {$errors != 0} {
-                   error "valgrind: $errors memory errors detected!\n$data"
+                   error "valgrind: $errors memory errors detected!"
                }
            } else {
                error "Unable to parse valgrind output"
@@ -221,15 +268,17 @@ namespace eval ::util::test {
     #           <dirname>/
 
     proc createContent {dir files} {
-        removeDirectory $dir
-        makeDirectory $dir
+        variable tmpdir
+
+        file delete -force $tmpdir/$dir
+        file mkdir $tmpdir/$dir
         
         set pos 0
         while {$pos < [ llength $files ]} {
             set name [ lindex $files $pos ]
             incr pos
             if {[ string index $name end ] == "/"} {
-                makeDirectory $dir/$name
+                file mkdir $tmpdir/$dir/$name
             } else {
                 makeFile [ lindex $files $pos ] $dir/$name
                 incr pos
@@ -279,8 +328,8 @@ namespace eval ::util::test {
         exec unzip -t $fname
 
         createContent expectedResult $files
-        removeDirectory testResult
-        makeDirectory testResult
+        file delete -force $tmpdir/testResult
+        file mkdir $tmpdir/testResult
         exec unzip -d $tmpdir/testResult $fname
         exec diff -ura $tmpdir/testResult $tmpdir/expectedResult
     }
@@ -318,11 +367,35 @@ namespace eval ::util::test {
         close $f
     }
 
+    # finalize --
+    #
+    #   Clean up temporary files, print statistics and exit.
+
+    proc finalize {} {
+        variable numPassed
+        variable numFailed
+        variable numSkipped
+        variable tmpdir
+
+        forceumount
+        file delete -force $tmpdir
+
+        puts [ format {Total: %3d   Passed: %3d   Failed: %3d   Skipped %3d} \
+            [ expr {$numPassed + $numFailed + $numSkipped} ] \
+            $numPassed $numFailed $numSkipped \
+        ]
+        if {$numFailed != 0} {
+            exit 1
+        } else {
+            exit 0
+        }
+    }
+
     ############################################################
     # TESTS
     ############################################################
 
-    test usage {Usage test} -body {
+    fstest usage {Usage test} {
         lassign [ pipe ] r w
         if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] 2>@ $w} res opts ]} {
             close $w
@@ -333,10 +406,12 @@ namespace eval ::util::test {
         set data [ string trim [ read $r ] ]
         close $r
         checkValgrindOutput $data
-        return [ stripValgrindOutput $data ]
-    } -match regexp -result {^usage: fuse-zip }
+        if {![ regexp {^usage: fuse-zip } [ stripValgrindOutput $data ] ]} {
+            error "Usage info expected, but `$data' given"
+        }
+    }
 
-    test version {Version test} -body {
+    fstest version {Version test} {
         lassign [ pipe ] r w
         if {![ catch {exec -ignorestderr {*}[ wrapIfNeeded $binary ] -V 2>@ $w} res opts ]} {
             close $w
@@ -347,8 +422,11 @@ namespace eval ::util::test {
         set data [ string trim [ read $r ] ]
         close $r
         checkValgrindOutput $data
-        return "[ stripValgrindOutput $data ]\n"
-    } -match regexp -result {^(.*?version.*?\d+\.\d+\n)+$}
+        if {![ regexp {^(.*?version.*?\d+\.\d+\n)+$} \
+                "[ stripValgrindOutput $data ]\n" ]} {
+            error "Version info expected"
+        }
+    }
 
     fstest mount-umount {Mount and unmount nonexistent file} {
         set fname $tmpdir/nonexistent.zip
@@ -405,8 +483,8 @@ namespace eval ::util::test {
             foo/bar foo-bar
         }
         mount
-        makeDirectory foo/first $mountdir
-        makeDirectory foo/first/second $mountdir
+        file mkdir $mountdir/foo/first
+        file mkdir $mountdir/foo/first/second
         umount
 
         check {
@@ -432,7 +510,7 @@ namespace eval ::util::test {
         }
         mount
         makeFile moo-moo moo $mountdir
-        removeFile moo $mountdir
+        file delete $mountdir/moo
         umount
 
         check {
@@ -467,7 +545,7 @@ namespace eval ::util::test {
         mount
         makeFile moo-moo moo $mountdir
         ftruncate $mountdir/moo 3
-        removeFile moo $mountdir
+        file delete $mountdir/moo
         umount
 
         check {
@@ -496,7 +574,7 @@ namespace eval ::util::test {
             filename2.ext blah-blah
         }
         mount
-        removeFile filename.ext $mountdir
+        file delete $mountdir/filename.ext
         umount
         check {
             filename2.ext blah-blah
@@ -507,10 +585,11 @@ namespace eval ::util::test {
         create {
             filename.ext blah-blah
             foo/
+            foo/moo {}
             bar/
         }
         mount
-        removeDirectory foo $mountdir
+        file delete -force $mountdir/foo
         umount
         check {
             filename.ext blah-blah
@@ -523,7 +602,7 @@ namespace eval ::util::test {
             filename.ext blah-blah
         }
         mount
-        removeFile filename.ext $mountdir
+        file delete $mountdir/filename.ext
         umount
         if {[ file exist $fname ]} {
             puts [ exec cat $fname ]
@@ -574,7 +653,7 @@ namespace eval ::util::test {
         }
         mount
         ftruncate $mountdir/filename.ext 5
-        removeFile filename.ext $mountdir
+        file delete $mountdir/filename.ext
 
         umount
         check {
@@ -911,8 +990,9 @@ namespace eval ::util::test {
         umount
     }
 
-    file delete -force $tmpdir
-    cleanupTests
+
+    finalize
+    exit
 }
 namespace delete ::util::test
 
