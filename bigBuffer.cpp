@@ -153,6 +153,9 @@ BigBuffer::BigBuffer(): len(0) {
  */
 BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
+    if (zf == NULL) {
+        throw std::exception();
+    }
     chunks.resize(chunksCount(length), ChunkWrapper());
     unsigned int chunk = 0;
     ssize_t nr;

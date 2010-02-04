@@ -93,16 +93,21 @@ namespace eval ::fusezip::test {
         file mkdir $tmpdir
         file mkdir $mountdir
         set code [ catch {
-            uplevel $script
-            umount
+            if {[ catch {
+                uplevel $script
+            } err opts ]} {
+                umount
+                return -options $opts
+            }
         } ret opts ]
         if {$code} {
             forceumount
             puts "\nTest `$id' ($description) failed."
+            puts ""
             puts "Error: [ dict get $opts -errorinfo ]"
+            puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
+            puts ""
             puts "Filesystem output: [ join $error \n ]"
-
-            exit
 
             incr numFailed
         } else {
@@ -444,6 +449,19 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest bad-archive {Bad archive} {
+        set fname data/bad-archive.zip
+        if {![ catch {mount} err opts ] &&
+                [ dict get $opts -errorcode ] eq "NOTMOUNTED"} {
+            error "Mount error is expected"
+        } else {
+            set msg [ stripValgrindOutput [ join $error \n ] ]
+            if {![ regexp {^fuse-zip: cannot open zip archive} $msg ]} {
+                error "Invalid error message"
+            }
+        }
+    }
+
     fstest mount-umount {Mount and unmount nonexistent file} {
         set fname $tmpdir/nonexistent.zip
         mount
@@ -744,6 +762,29 @@ namespace eval ::fusezip::test {
         ]
     }
 
+    fstest truncate-expand-read {Truncate file, expand it and read} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
+        ftruncate $mountdir/filename.ext 4
+        ftruncate $mountdir/filename.ext 9
+        set content "blah[ string repeat "\x00" 5 ]"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $data $content ] != 0} {
+            error "Invalid content: $data"
+        }
+
+        umount
+        check [ list \
+            filename.ext $content \
+        ]
+    }
+
     fstest truncate-after-end-other-chunk-twice {truncate existing file after the end (with new chunk creation, twice)} {
         create {
             filename.ext blah-blah
@@ -942,6 +983,24 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest read-bad-crc {Read file from archive (bad CRC)} {
+        set fname data/bad-crc.zip
+
+        mount
+        set res [ catch {
+            set f [ open $mountdir/bash.txt r ]
+            set data [ read $f ]
+            close $f
+            error jopa
+        } err opts ]
+
+        umount
+
+        if {$res == 0 || [ lrange [ dict get $opts -errorcode ] 0 1 ] ne "POSIX EIO"} {
+            error "Read error expected"
+        }
+    }
+
     fstest find {Check that find is working on a filesystem} {
         create {
             foo.bar foobar
@@ -1008,7 +1067,6 @@ namespace eval ::fusezip::test {
 
 
     finalize
-    exit
 }
 namespace delete ::util::test
 
