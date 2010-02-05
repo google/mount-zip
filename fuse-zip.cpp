@@ -34,7 +34,6 @@
 #include <unistd.h>
 #include <limits.h>
 #include <syslog.h>
-#include <sys/xattr.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
 
@@ -686,6 +685,7 @@ int main(int argc, char *argv[]) {
     fuse = fuse_setup(args.argc, args.argv, &fusezip_oper, sizeof(fusezip_oper), &mountpoint, &multithreaded, data);
     fuse_opt_free_args(&args);
     if (fuse == NULL) {
+        delete data;
         return EXIT_FAILURE;
     }
     res = fuse_loop(fuse);
