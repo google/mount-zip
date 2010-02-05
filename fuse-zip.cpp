@@ -240,7 +240,7 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
 static int fusezip_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi) {
     (void) path;
 
-    return ((FileNode*)fi->fh)->truncate(offset);
+    return -((FileNode*)fi->fh)->truncate(offset);
 }
 
 static int fusezip_truncate(const char *path, off_t offset) {
@@ -259,7 +259,8 @@ static int fusezip_truncate(const char *path, off_t offset) {
         return res;
     }
     if ((res = node->truncate(offset)) != 0) {
-        return res;
+        node->close();
+        return -res;
     }
     return node->close();
 }

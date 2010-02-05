@@ -79,7 +79,17 @@ public:
     int read(char *buf, size_t size, offset_t offset) const;
     int write(const char *buf, size_t size, offset_t offset);
     int saveToZip(const FileNode *fileNode, struct zip *z, const char *fname, bool newFile, int index);
-    int truncate(offset_t offset);
+
+    /**
+     * Truncate buffer at position offset.
+     * 1. Free chunks after offset
+     * 2. Resize chunks vector to a new size
+     * 3. Fill data block that made readable by resize with zeroes
+     *
+     * @throws
+     *      std::bad_alloc  If insufficient memory available
+     */
+    void truncate(offset_t offset);
 };
 
 #endif
