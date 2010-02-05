@@ -41,12 +41,17 @@ namespace eval ::fusezip::test {
             {list       "List tests and exit"}
             {valgrind   "Run tests under valgrind and check memory errors"}
             {listfailed "List failed tests"}
+            {-help      "Print this message"}
         }
         
         if {[ catch {
             array set p [ ::cmdline::getKnownOptions argv $options ]
         } msg ]} {
             puts stderr $msg
+            exit 1
+        }
+        if {$p(-help)} {
+            puts [ ::cmdline::usage $options ]
             exit 1
         }
         variable listTests $p(list)
@@ -59,10 +64,6 @@ namespace eval ::fusezip::test {
             set matchList *
         }
     }
-
-    parseArgs
-
-    file mkdir $mountdir
 
     # wrapIfNeeded --
     #
@@ -452,6 +453,16 @@ namespace eval ::fusezip::test {
             exit 0
         }
     }
+
+    ############################################################
+    # INITIALIZATION
+    ############################################################
+
+    parseArgs
+
+    signal trap {HUP INT TERM} "puts stderr Interrupt; ::[ namespace current ]::finalize"
+
+    file mkdir $mountdir
 
     ############################################################
     # TESTS
