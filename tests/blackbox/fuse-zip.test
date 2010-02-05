@@ -168,10 +168,12 @@ namespace eval ::fusezip::test {
     #   terminal and with debug mode enabled. Messages sent to stderr are
     #   parsed to determine finish of file system initialization process.
     #
-    # Arguments:
+    # Variables:
     #   fname   Archive file name (from caller context)
+    # Arguments:
+    #   args    Additional file system arguments
 
-    proc mount {} {
+    proc mount {args} {
         upvar fname fname
         variable binary
         variable mountdir
@@ -196,7 +198,7 @@ namespace eval ::fusezip::test {
             -output ${ns}::output \
             -onerror ${ns}::processError \
             -linebuffered true \
-            {*}[ wrapIfNeeded $binary ] -d $fname $mountdir &
+            {*}[ wrapIfNeeded $binary ] {*}$args -d $fname $mountdir &
 
         vwait ${ns}::initializationState
         trace remove variable {*}$cmd
@@ -1130,6 +1132,18 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest iconv-cp866 {Check that archive from 'other' OS correctly mounted} {
+        set fname data/cp866.zip
+
+        mount -o modules=iconv,from_code=cp866
+
+        if {[ lsort [ glob -directory $mountdir -tails * ] ] ne
+                [ lsort "{\u0422\u0435\u043a\u0441\u0442\u043e\u0432\u044b\u0439 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442.txt} \u0414\u0430\u0442\u0430" ]} {
+            error "File names incorrectly decoded: [ glob -directory $mountdir * ]"
+        }
+
+        umount
+    }
 
     finalize
 }
