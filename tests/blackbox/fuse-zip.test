@@ -5,13 +5,17 @@ exec tclsh "$0" "$@"
 package require Tcl 8.5
 package require BLT
 package require Tclx
+package require cmdline
 
 namespace eval ::fusezip::test {
     variable binary ../../fuse-zip
     variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
     variable mountdir [ file join $tmpdir mountPoint ]
     variable timeout [ expr {1000*5} ]
-    variable valgrind [ expr {[ info exists ::env(VALGRIND) ] && $::env(VALGRIND) == 1} ]
+
+    variable valgrind false
+    variable listTests false
+    variable listFailed false
 
     variable status {}
     variable error {}
@@ -21,12 +25,42 @@ namespace eval ::fusezip::test {
     variable numPassed 0
     variable numFailed 0
     variable numSkipped 0
+    variable failed {}
 
-    if {$::argc != 0} {
-        variable matchList $::argv
-    } else {
-        variable matchList *
+    # parseArgs --
+    #
+    #   Parse commnd-line arguments.
+    #   Keys -list, -valgrind, -listfailed are recognized, all other parameters
+    #   added to match list to filter tests.
+
+    proc parseArgs {} {
+        variable matchList
+        upvar #0 argv argv
+
+        set options {
+            {list       "List tests and exit"}
+            {valgrind   "Run tests under valgrind and check memory errors"}
+            {listfailed "List failed tests"}
+        }
+        
+        if {[ catch {
+            array set p [ ::cmdline::getKnownOptions argv $options ]
+        } msg ]} {
+            puts stderr $msg
+            exit 1
+        }
+        variable listTests $p(list)
+        variable listFailed $p(listfailed)
+        variable valgrind $p(valgrind)
+
+        if {[ llength $argv ] != 0} {
+            set matchList $argv
+        } else {
+            set matchList *
+        }
     }
+
+    parseArgs
 
     file mkdir $mountdir
 
@@ -54,66 +88,76 @@ namespace eval ::fusezip::test {
         return $res
     }
 
-    # fstest --
-    #
-    #   Execute 'script', check return code and clean up.
-    #   If script exited with error, error information and filesystem stderr
-    #   printed.
-    #   Test is executed only if id matches at least one pattern in matchList.
-    #
-    # Arguments:
-    #   id          Test ID
-    #   description Test Description
-    #   script      Test body
+    if {$listTests} {
+        # Stub for fstest that only prints test IDs and descriptions
 
-    proc fstest {id description script} {
-        variable mounted false
-        variable error
-        variable numPassed
-        variable numFailed
-        variable numSkipped
-        variable tmpdir
-        variable mountdir
-        variable matchList
-        upvar fname fname
-        set fname {}
+        proc fstest {id description script} {
+            puts [ format "%-40s %s" $id $description ]
+        }
+    } else {
+        # fstest --
+        #
+        #   Execute 'script', check return code and clean up.
+        #   If script exited with error, error information and filesystem stderr
+        #   printed.
+        #   Test is executed only if id matches at least one pattern in matchList.
+        #
+        # Arguments:
+        #   id          Test ID
+        #   description Test Description
+        #   script      Test body
 
-        set do false
-        foreach match $matchList {
-            if {[ string match $match $id ]} {
-                set do true
-                break
+        proc fstest {id description script} {
+            variable mounted false
+            variable error
+            variable numPassed
+            variable numFailed
+            variable numSkipped
+            variable tmpdir
+            variable mountdir
+            variable matchList
+            variable failed
+            upvar fname fname
+            set fname {}
+
+            set do false
+            foreach match $matchList {
+                if {[ string match $match $id ]} {
+                    set do true
+                    break
+                }
             }
-        }
-        if {!$do} {
-            incr numSkipped
-            return
-        }
-
-        file mkdir $tmpdir
-        file mkdir $mountdir
-        set code [ catch {
-            if {[ catch {
-                uplevel $script
-            } err opts ]} {
-                umount
-                return -options $opts
+            if {!$do} {
+                incr numSkipped
+                return
             }
-        } ret opts ]
-        if {$code} {
-            forceumount
-            puts "\nTest `$id' ($description) failed."
-            puts ""
-            puts "Error: [ dict get $opts -errorinfo ]"
-            puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
-            puts ""
-            puts "Filesystem output: [ join $error \n ]"
 
-            incr numFailed
-        } else {
-            incr numPassed
+            file mkdir $tmpdir
+            file mkdir $mountdir
+            set code [ catch {
+                if {[ catch {
+                    uplevel $script
+                } err opts ]} {
+                    umount
+                    return -options $opts
+                }
+            } ret opts ]
+            if {$code} {
+                forceumount
+                puts "\nTest `$id' ($description) failed."
+                puts ""
+                puts "Error: [ dict get $opts -errorinfo ]"
+                puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
+                puts ""
+                puts "Filesystem output: [ join $error \n ]"
+
+                lappend failed $id
+                incr numFailed
+            } else {
+                incr numPassed
+            }
+            file delete -force $tmpdir
         }
-        file delete -force $tmpdir
     }
 
     # mount --
@@ -384,16 +428,26 @@ namespace eval ::fusezip::test {
         variable numFailed
         variable numSkipped
         variable tmpdir
+        variable listTests
+        variable listFailed
+        variable failed
 
         forceumount
         file delete -force $tmpdir
 
-        puts [ format {Total: %3d   Passed: %3d   Failed: %3d   Skipped %3d} \
-            [ expr {$numPassed + $numFailed + $numSkipped} ] \
-            $numPassed $numFailed $numSkipped \
-        ]
-        if {$numFailed != 0} {
-            exit 1
+        if {!$listTests} {
+            if {$listFailed && [ llength $failed ] > 0} {
+                puts "Failed tests: [ join $failed ]"
+            }
+            puts [ format {Total: %3d   Passed: %3d   Failed: %3d   Skipped %3d} \
+                [ expr {$numPassed + $numFailed + $numSkipped} ] \
+                $numPassed $numFailed $numSkipped \
+            ]
+            if {$numFailed != 0} {
+                exit 1
+            } else {
+                exit 0
+            }
         } else {
             exit 0
         }
@@ -740,7 +794,7 @@ namespace eval ::fusezip::test {
         }
     }
 
-    fstest truncate-after-end-other-chunk {truncate existing file after the end (with new chunk creation)} {
+    fstest truncate-after-end-other-chunk {Truncate existing file after the end (with new chunk creation)} {
         create {
             filename.ext blah-blah
         }
@@ -785,7 +839,7 @@ namespace eval ::fusezip::test {
         ]
     }
 
-    fstest truncate-after-end-other-chunk-twice {truncate existing file after the end (with new chunk creation, twice)} {
+    fstest truncate-after-end-other-chunk-twice {Truncate existing file after the end (with new chunk creation, twice)} {
         create {
             filename.ext blah-blah
         }
