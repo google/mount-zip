@@ -162,6 +162,7 @@ BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     while (length > 0) {
         nr = zip_fread(zf, chunks[chunk].ptr(true), chunkSize);
         if (nr < 0) {
+            zip_fclose(zf);
             throw std::exception();
         }
         ++chunk;
