@@ -21,6 +21,7 @@
 
 #include <zip.h>
 #include <syslog.h>
+#include <cerrno>
 
 #include "fuseZipData.h"
 
@@ -62,6 +63,17 @@ void FuseZipData::build_tree() {
         catch (const FileNode::AlreadyExists &e) {
             // Only need to skip node creation
         }
+    }
+}
+
+int FuseZipData::removeNode(FileNode *node) const {
+    node->detach();
+    int id = node->id;
+    delete node;
+    if (id >= 0) {
+        return (zip_delete (m_zip, id) == 0)? 0 : ENOENT;
+    } else {
+        return 0;
     }
 }
 
