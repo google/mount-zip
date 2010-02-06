@@ -239,7 +239,7 @@ namespace eval ::fusezip::test {
         variable initializationState
         variable error
 
-        if {[ regexp {^   unique: 1, success, outsize: \d+$} $data ]} {
+        if {[ regexp {^   unique: 1,.*[Ss]uccess.*, outsize: \d+$} $data ]} {
             set initializationState success
         }
         lappend error $data
