@@ -16,7 +16,6 @@ namespace eval ::fusezip::test {
 
     variable valgrind false
     variable listTests false
-    variable listFailed false
 
     variable status {}
     variable error {}
@@ -41,7 +40,6 @@ namespace eval ::fusezip::test {
         set options {
             {list       "List tests and exit"}
             {valgrind   "Run tests under valgrind and check memory errors"}
-            {listfailed "List failed tests"}
             {-help      "Print this message"}
         }
         
@@ -56,7 +54,6 @@ namespace eval ::fusezip::test {
             exit 1
         }
         variable listTests $p(list)
-        variable listFailed $p(listfailed)
         variable valgrind $p(valgrind)
 
         if {[ llength $argv ] != 0} {
@@ -426,14 +423,13 @@ namespace eval ::fusezip::test {
         variable numSkipped
         variable tmpdir
         variable listTests
-        variable listFailed
         variable failed
 
         forceumount
         file delete -force $tmpdir
 
         if {!$listTests} {
-            if {$listFailed && [ llength $failed ] > 0} {
+            if {[ llength $failed ] > 0} {
                 puts "Failed tests: [ join $failed ]"
             }
             puts [ format {Total: %3d   Passed: %3d   Failed: %3d   Skipped %3d} \
