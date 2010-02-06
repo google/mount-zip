@@ -67,6 +67,16 @@ public:
     int write(const char *buf, size_t size, offset_t offset);
     int close();
     int save();
+
+    /**
+     * Truncate file.
+     *
+     * @return
+     *      0       If successful
+     *      EBADF   If file is currently closed
+     *      EIO     If insufficient memory available (because ENOMEM not
+     *              listed in truncate() error codes)
+     */
     int truncate(offset_t offset);
 
     inline bool isChanged() const {

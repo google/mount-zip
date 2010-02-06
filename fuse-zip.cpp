@@ -240,7 +240,7 @@ static int fusezip_release (const char *path, struct fuse_file_info *fi) {
 static int fusezip_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi) {
     (void) path;
 
-    return ((FileNode*)fi->fh)->truncate(offset);
+    return -((FileNode*)fi->fh)->truncate(offset);
 }
 
 static int fusezip_truncate(const char *path, off_t offset) {
@@ -259,20 +259,10 @@ static int fusezip_truncate(const char *path, off_t offset) {
         return res;
     }
     if ((res = node->truncate(offset)) != 0) {
-        return res;
+        node->close();
+        return -res;
     }
     return node->close();
-}
-
-int remove_node(FileNode *node) {
-    node->detach();
-    int id = node->id;
-    delete node;
-    if (id >= 0) {
-        return (zip_delete (get_zip(), id) == 0)? 0 : -ENOENT;
-    } else {
-        return 0;
-    }
 }
 
 static int fusezip_unlink(const char *path) {
@@ -286,7 +276,7 @@ static int fusezip_unlink(const char *path) {
     if (node->is_dir) {
         return -EISDIR;
     }
-    return remove_node(node);
+    return -get_data()->removeNode(node);
 }
 
 static int fusezip_rmdir(const char *path) {
@@ -303,7 +293,7 @@ static int fusezip_rmdir(const char *path) {
     if (!node->childs.empty()) {
         return -ENOTEMPTY;
     }
-    return remove_node(node);
+    return -get_data()->removeNode(node);
 }
 
 static int fusezip_mkdir(const char *path, mode_t mode) {
@@ -336,7 +326,10 @@ static int fusezip_rename(const char *path, const char *new_path) {
     }
     FileNode *new_node = get_file_node(new_path + 1);
     if (new_node != NULL) {
-        remove_node(new_node);
+        int res = get_data()->removeNode(new_node);
+        if (res !=0) {
+            return -res;
+        }
     }
 
     int len = strlen(new_path);

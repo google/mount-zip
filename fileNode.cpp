@@ -225,7 +225,13 @@ int FileNode::truncate(offset_t offset) {
         if (state != NEW) {
             state = CHANGED;
         }
-        return buffer->truncate(offset);
+        try {
+            buffer->truncate(offset);
+            return 0;
+        }
+        catch (const std::bad_alloc &) {
+            return EIO;
+        }
     } else {
         return -EBADF;
     }

@@ -90,76 +90,68 @@ namespace eval ::fusezip::test {
         return $res
     }
 
-    if {$listTests} {
-        # Stub for fstest that only prints test IDs and descriptions
+    # fstest --
+    #
+    #   Execute 'script', check return code and clean up.
+    #   If script exited with error, error information and filesystem stderr
+    #   printed.
+    #   Test is executed only if id matches at least one pattern in matchList.
+    #
+    # Arguments:
+    #   id          Test ID
+    #   description Test Description
+    #   script      Test body
 
-        proc fstest {id description script} {
-            puts [ format "%-40s %s" $id $description ]
+    proc fstest {id description script} {
+        variable mounted false
+        variable error
+        variable numPassed
+        variable numFailed
+        variable numSkipped
+        variable tmpdir
+        variable mountdir
+        variable matchList
+        variable failed
+        upvar fname fname
+        set fname {}
+
+        set do false
+        foreach match $matchList {
+            if {[ string match $match $id ]} {
+                set do true
+                break
+            }
         }
-    } else {
-        # fstest --
-        #
-        #   Execute 'script', check return code and clean up.
-        #   If script exited with error, error information and filesystem stderr
-        #   printed.
-        #   Test is executed only if id matches at least one pattern in matchList.
-        #
-        # Arguments:
-        #   id          Test ID
-        #   description Test Description
-        #   script      Test body
-
-        proc fstest {id description script} {
-            variable mounted false
-            variable error
-            variable numPassed
-            variable numFailed
-            variable numSkipped
-            variable tmpdir
-            variable mountdir
-            variable matchList
-            variable failed
-            upvar fname fname
-            set fname {}
-
-            set do false
-            foreach match $matchList {
-                if {[ string match $match $id ]} {
-                    set do true
-                    break
-                }
-            }
-            if {!$do} {
-                incr numSkipped
-                return
-            }
-
-            file mkdir $tmpdir
-            file mkdir $mountdir
-            set code [ catch {
-                if {[ catch {
-                    uplevel $script
-                } err opts ]} {
-                    umount
-                    return -options $opts
-                }
-            } ret opts ]
-            if {$code} {
-                forceumount
-                puts "\nTest `$id' ($description) failed."
-                puts ""
-                puts "Error: [ dict get $opts -errorinfo ]"
-                puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
-                puts ""
-                puts "Filesystem output: [ join $error \n ]"
-
-                lappend failed $id
-                incr numFailed
-            } else {
-                incr numPassed
-            }
-            file delete -force $tmpdir
+        if {!$do} {
+            incr numSkipped
+            return
         }
+
+        file mkdir $tmpdir
+        file mkdir $mountdir
+        set code [ catch {
+            if {[ catch {
+                uplevel $script
+            } err opts ]} {
+                umount
+                return -options $opts
+            }
+        } ret opts ]
+        if {$code} {
+            forceumount
+            puts "\nTest `$id' ($description) failed."
+            puts ""
+            puts "Error: [ dict get $opts -errorinfo ]"
+            puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
+            puts ""
+            puts "Filesystem output: [ join $error \n ]"
+
+            lappend failed $id
+            incr numFailed
+        } else {
+            incr numPassed
+        }
+        file delete -force $tmpdir
     }
 
     # mount --
@@ -468,6 +460,14 @@ namespace eval ::fusezip::test {
 
     file mkdir $mountdir
 
+    if {$listTests} {
+        # Stub for fstest that only prints test IDs and descriptions
+
+        proc fstest {id description script} {
+            puts [ format "%-40s %s" $id $description ]
+        }
+    }
+
     ############################################################
     # TESTS
     ############################################################
@@ -693,6 +693,24 @@ namespace eval ::fusezip::test {
         }
         mount
         file delete -force $mountdir/foo
+        umount
+        check {
+            filename.ext blah-blah
+            bar/
+        }
+    }
+
+    fstest remove-nonexistent-dir {Remove nonexistent directory from archive} {
+        create {
+            filename.ext blah-blah
+            bar/
+        }
+        mount
+        if {![ catch {
+            exec rmdir $mountdir/foo
+        } err opts ]} {
+            error "rmdir error is expected!"
+        }
         umount
         check {
             filename.ext blah-blah
@@ -1060,7 +1078,6 @@ namespace eval ::fusezip::test {
             set f [ open $mountdir/bash.txt r ]
             set data [ read $f ]
             close $f
-            error jopa
         } err opts ]
 
         umount

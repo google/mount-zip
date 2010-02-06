@@ -233,12 +233,7 @@ int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
     return nwritten;
 }
 
-/**
- * 1. Free chunks after offset
- * 2. Resize chunks vector to a new size
- * 3. Fill data block that made readable by resize with zeroes
- */
-int BigBuffer::truncate(offset_t offset) {
+void BigBuffer::truncate(offset_t offset) {
     chunks.resize(chunksCount(offset));
 
     if (offset > len && len > 0) {
@@ -247,7 +242,6 @@ int BigBuffer::truncate(offset_t offset) {
     }
 
     len = offset;
-    return 0;
 }
 
 ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd) {

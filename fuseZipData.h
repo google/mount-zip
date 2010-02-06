@@ -42,6 +42,15 @@ public:
      */
     FuseZipData(const char *archiveName, struct zip *z, char *cwd);
     ~FuseZipData();
+
+    /**
+     * Detach node from tree, and delete associated entry in zip file if
+     * present.
+     *
+     * @param node Node to remove
+     * @return Error code or 0 is successful
+     */
+    int removeNode(FileNode *node) const;
 };
 
 #endif
