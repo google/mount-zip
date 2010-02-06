@@ -6,6 +6,7 @@ package require Tcl 8.5
 package require BLT
 package require Tclx
 package require cmdline
+package require struct::set
 
 namespace eval ::fusezip::test {
     variable binary ../../fuse-zip
@@ -417,6 +418,7 @@ namespace eval ::fusezip::test {
         } else {
             set fname $directory/$name
         }
+        file mkdir [ file dirname $fname ]
         set f [ open $fname w ]
         puts -nonewline $f $contents
         close $f
@@ -1128,7 +1130,7 @@ namespace eval ::fusezip::test {
             longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName_longName {}
         ]
         mount
-        exec diff -ura $tmpdir/archiveSource $mountdir
+        exec diff -Nura $tmpdir/archiveSource $mountdir
         umount
     }
 
@@ -1143,6 +1145,115 @@ namespace eval ::fusezip::test {
         }
 
         umount
+    }
+
+    fstest rename-file {Rename file} {
+        create {
+            foo.bar foobar
+        }
+        mount
+        file rename $mountdir/foo.bar $mountdir/john_doe
+        umount
+
+        check {
+            john_doe foobar
+        }
+    }
+
+    fstest rename-file-new-dir {Rename file (new directory creation)} {
+        create {
+            foo.bar foobar
+            squirrel belka
+        }
+        mount
+        file mkdir $mountdir/test
+        file rename $mountdir/foo.bar $mountdir/test/john_doe
+        set ls [ glob -directory $mountdir -tails * ]
+        if {![ ::struct::set equal {test squirrel} $ls ]} {
+            error "Invalid files in /: $ls"
+        }
+        set ls [ glob -directory $mountdir/test -tails * ]
+        if {![ ::struct::set equal {john_doe} $ls ]} {
+            error "Invalid files in /test: $ls"
+        }
+        umount
+
+        check {
+            test/john_doe foobar
+            squirrel belka
+        }
+    }
+
+    fstest rename-file-new-path {Rename file (change directory)} {
+        create {
+            foo.bar foobar
+            test/
+            test/blah {blah-blah}
+        }
+        mount
+        file rename $mountdir/foo.bar $mountdir/test/john_doe
+        set ls [ glob -directory $mountdir -tails * ]
+        if {![ ::struct::set equal {test} $ls ]} {
+            error "Invalid files in /: $ls"
+        }
+        set ls [ glob -directory $mountdir/test -tails * ]
+        if {![ ::struct::set equal {blah john_doe} $ls ]} {
+            error "Invalid files in /test: $ls"
+        }
+        umount
+
+        check {
+            test/john_doe foobar
+            test/blah {blah-blah}
+        }
+    }
+
+    fstest rename-empty-dir {Rename empty directory} {
+        create {
+            foo/
+        }
+        mount
+        file rename $mountdir/foo $mountdir/bar
+        umount
+
+        check {
+            bar/
+        }
+    }
+
+    fstest rename-non-empty-dir {Rename non-empty directory} {
+        create {
+            foo/john/doe {Hi}
+        }
+        #    foo/bar {content}
+        #    foo/duck/tape/1 1
+        mount
+        file rename $mountdir/foo $mountdir/bar
+        umount
+
+        check {
+            bar/john/doe {Hi}
+        }
+        #    bar/bar {content}
+        #    bar/duck/tape/1 1
+    }
+
+    fstest rename-non-empty-dir-new-path {Rename non-empty directory (new dir)} {
+        create {
+            foo/bar {content}
+            foo/john/doe {Hi}
+            foo/duck/tape/
+        }
+        mount
+        file mkdir $mountdir/bar
+        file rename $mountdir/foo $mountdir/bar/duck
+        umount
+
+        check {
+            bar/duck/bar {content}
+            bar/duck/john/doe {Hi}
+            bar/duck/duck/tape/
+        }
     }
 
     finalize
