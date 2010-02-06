@@ -233,7 +233,7 @@ int FileNode::truncate(offset_t offset) {
             return EIO;
         }
     } else {
-        return -EBADF;
+        return EBADF;
     }
 }
 
