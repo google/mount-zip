@@ -1,5 +1,14 @@
 Test suite for black box testing of fuse-zip.
 
+You need the following programs and libraries:
+Tcl >= 8.5
+tcllib >= 1.10
+BLT
+Tclx
+zip
+diff
+valgrind
+
 To run testsuite invoke command
 $ ./fuse-zip.test
 or
