@@ -7,11 +7,15 @@ package require BLT
 package require Tclx
 package require cmdline
 package require struct::set
+package require control
+
+::control::control assert enabled true
 
 namespace eval ::fusezip::test {
+    namespace import ::control::assert
+
     variable binary ../../fuse-zip
     variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
-    variable mountdir [ file join $tmpdir mountPoint ]
     variable timeout [ expr {1000*5} ]
 
     variable valgrind false
@@ -125,28 +129,49 @@ namespace eval ::fusezip::test {
         }
 
         file mkdir $tmpdir
+        set mountdir "[ file join $tmpdir mountPoint ]-$id"
         file mkdir $mountdir
         set code [ catch {
             if {[ catch {
                 uplevel $script
             } err opts ]} {
-                umount
+                if {[ catch {
+                    umount
+                } err2 opts2 ]} {
+                    dict set opts2 -cause $opts
+                    return -options $opts2
+                }
                 return -options $opts
             }
         } ret opts ]
-        if {$code} {
-            forceumount
-            puts "\nTest `$id' ($description) failed."
-            puts ""
-            puts "Error: [ dict get $opts -errorinfo ]"
-            puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
-            puts ""
-            puts "Filesystem output: [ join $error \n ]"
+        switch $code {
+            0 {
+                # TCL_OK
+                incr numPassed
+            }
+            1 {
+                # TCL_ERROR
+                forceumount
+                puts "\nTest `$id' ($description) failed."
+                puts ""
+                puts "Error: [ dict get $opts -errorinfo ]"
+                puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
+                if {[ dict exists $opts -cause ]} {
+                    set opts [ dict get $opts -cause ]
+                    puts "Caused by:"
+                    puts "Error: [ dict get $opts -errorinfo ]"
+                    puts "Error code [ dict get $opts -code ], errorcode [ dict get $opts -errorcode ]"
+                }
+                puts ""
+                puts "Filesystem output: [ join $error \n ]"
 
-            lappend failed $id
-            incr numFailed
-        } else {
-            incr numPassed
+                lappend failed $id
+                incr numFailed
+            }
+            default {
+                puts "\nTest `$id' ($description) returned incorrect code($code): [ lindex {OK ERROR RETURN BREAK CONTINUE} $code ]"
+                incr numSkipped
+            }
         }
         file delete -force $tmpdir
     }
@@ -168,6 +193,7 @@ namespace eval ::fusezip::test {
         variable binary
         variable mountdir
         variable stopped
+        variable output
         variable error
         variable mounted
         variable initializationState
@@ -193,7 +219,7 @@ namespace eval ::fusezip::test {
         vwait ${ns}::initializationState
         trace remove variable {*}$cmd
         if {$initializationState eq "exited"} {
-            error "Filesystem not mounted" {} NOTMOUNTED
+            error "Filesystem not mounted (status=[ set ${ns}::status ])" {} NOTMOUNTED
         }
         set mounted true
     }
@@ -244,7 +270,11 @@ namespace eval ::fusezip::test {
         set statusVar ${ns}::status
         if {$status ne ""} {
             # not yet stopped
-            catch {exec fusermount -uz $mountdir}
+            if {[ catch {
+                exec fusermount -uz $mountdir
+            } err opts ]} {
+                puts "Fusermount error: $err"
+            }
             set afterId [ after $timeout [ list set $statusVar KILLED ] ]
             vwait $statusVar
             after cancel $afterId
@@ -294,9 +324,9 @@ namespace eval ::fusezip::test {
         variable mountdir
         variable status
         
-        catch {fusermount -u $mountdir}
-        set [ namespace current ]::status FORCE-KILLED
         catch {exec fusermount -u $mountdir}
+        set [ namespace current ]::status FORCE-KILLED
+        catch {exec fusermount -uz $mountdir}
     }
 
     # create -- 
@@ -449,12 +479,10 @@ namespace eval ::fusezip::test {
     ############################################################
     # INITIALIZATION
     ############################################################
-
+    
     parseArgs
 
     signal trap {HUP INT TERM} "puts stderr Interrupt; ::[ namespace current ]::finalize"
-
-    file mkdir $mountdir
 
     if {$listTests} {
         # Stub for fstest that only prints test IDs and descriptions
@@ -1011,6 +1039,66 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest read-file-two-handles {Read file from archive (two handles)} {
+        set content [ string repeat "abcdef" 3000 ]
+        set l [ string length $content ]
+        create [ list \
+            filename.ext $content \
+        ]
+        mount
+        set f1 [ open $mountdir/filename.ext r ]
+        set f2 [ open $mountdir/filename.ext r ]
+        set positions {
+            {0       6}
+            {10      1000}
+            {4097    322}
+            {27      15}
+            {1       1}
+            {3333    11}
+        }
+        for {set i 0} {$i < [ llength $positions ]} {incr i} {
+            lassign [ lindex $positions $i ] off size
+            seek $f1 $off
+            set data [ read $f1 $size ]
+            set expected [ string range $content $off [ expr {$off + $size - 1} ] ]
+            assert {$data eq $expected}
+
+            lassign [ lindex $positions end-$i ] off size
+            seek $f2 $off
+            set data [ read $f2 $size ]
+            set expected [ string range $content $off [ expr {$off + $size - 1} ] ]
+            assert {$data eq $expected}
+        }
+        close $f1
+        close $f2
+        umount
+    }
+
+    fstest read-file-random-access {Read file from archive (random access)} {
+        set content [ string repeat "abcdef" 3000 ]
+        set l [ string length $content ]
+        create [ list \
+            filename.ext $content \
+        ]
+        mount
+        set f [ open $mountdir/filename.ext r ]
+        foreach {off size} {
+            0       6
+            10      1000
+            4097    322
+            27      15
+            1       1
+            3333    11
+        } {
+            seek $f $off
+            set data [ read $f $size ]
+            set expected [ string range $content $off [ expr {$off + $size - 1} ] ]
+            assert {$data eq $expected}
+        }
+        close $f
+        umount
+    }
+
     fstest read-file-three-chunks {Read file from archive (3 chunks)} {
         set content [ string repeat "a" [ expr {4096*3-100} ] ]
         create [ list \
@@ -1081,6 +1169,25 @@ namespace eval ::fusezip::test {
         if {$res == 0 || [ lrange [ dict get $opts -errorcode ] 0 1 ] ne "POSIX EIO"} {
             error "Read error expected"
         }
+    }
+
+    fstest read-bad-crc-twice {Read file from archive (bad CRC, twice), changeset 80ad59679639} {
+        set fname data/bad-crc.zip
+
+        mount
+        foreach step {1st 2nd} {
+            set res [ catch {
+                set f [ open $mountdir/bash.txt r ]
+                set data [ read $f ]
+                close $f
+            } err opts ]
+            if {$res == 0 || [ lrange [ dict get $opts -errorcode ] 0 1 ] ne "POSIX EIO"} {
+                error "Read error expected on step $step"
+            }
+        }
+
+        umount
+
     }
 
     fstest find {Check that find is working on a filesystem} {
@@ -1280,6 +1387,36 @@ namespace eval ::fusezip::test {
 
         check {
             puppy {Meow}
+        }
+    }
+
+    fstest size-file {Check file size} {
+        create {
+            foobar blah-blah
+        }
+        mount
+        assert {[ file size $mountdir/foobar ] == 9}
+        makeFile doe john $mountdir
+        assert {[ file size $mountdir/john ] == 3}
+        umount
+        check {
+            foobar blah-blah
+            john doe
+        }
+    }
+
+    fstest size-dir {Check directory size} {
+        create {
+            foobar/
+        }
+        mount
+        assert {[ file size $mountdir/foobar ] == 0}
+        file mkdir $mountdir/john
+        assert {[ file size $mountdir/john ] == 0}
+        umount
+        check {
+            foobar/
+            john/
         }
     }
 
