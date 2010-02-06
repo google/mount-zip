@@ -160,8 +160,10 @@ void FileNode::rename(char *fname) {
 }
 
 void FileNode::rename_wo_reparenting(char *new_name) {
+    data->files.erase(full_name);
     free(full_name);
     parse_name(new_name);
+    data->files[new_name] = this;
 }
 
 int FileNode::open() {

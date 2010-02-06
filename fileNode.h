@@ -51,6 +51,15 @@ public:
 
     void detach();
     void rename(char *fname);
+
+    /**
+     * Rename file without reparenting.
+     *
+     * 1. Remove file item from tree
+     * 2. Free ols file name string
+     * 3. Parse new name
+     * 4. Create link to new name in tree
+     */
     void rename_wo_reparenting(char *new_name);
 
     int open();

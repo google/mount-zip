@@ -333,9 +333,11 @@ static int fusezip_rename(const char *path, const char *new_path) {
     }
 
     int len = strlen(new_path);
+    int oldLen = strlen(path + 1) + 1;
     char *new_name;
     if (!node->is_dir) {
-        len--;
+        --len;
+        --oldLen;
     }
     new_name = (char*)malloc(len + 1);
     if (new_path == NULL) {
@@ -359,21 +361,25 @@ static int fusezip_rename(const char *path, const char *new_path) {
                 for (nodelist_t::const_iterator i = n->childs.begin(); i != n->childs.end(); ++i) {
                     FileNode *nn = *i;
                     q.push(nn);
-                    char *name = (char*)malloc(len + strlen(nn->name) + 1);
+                    char *name = (char*)malloc(len + strlen(nn->full_name) - oldLen + (nn->is_dir ? 2 : 1));
                     if (name == NULL) {
                         //TODO: check that we are have enough memory before entering this loop
                         return -ENOMEM;
                     }
                     strcpy(name, new_name);
-                    strcpy(name + len, nn->name);
-                    nn->rename_wo_reparenting(name);
+                    strcpy(name + len, nn->full_name + oldLen);
+                    if (nn->is_dir) {
+                        strcat(name, "/");
+                    }
                     zip_rename(z, nn->id, name);
+                    nn->rename_wo_reparenting(name);
                 }
             }
         }
         zip_rename(z, node->id, new_name);
         // Must be called after loop because new_name will be truncated
         node->rename(new_name);
+
         return 0;
     }
     catch (...) {
