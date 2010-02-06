@@ -1241,18 +1241,18 @@ namespace eval ::fusezip::test {
     fstest rename-non-empty-dir {Rename non-empty directory} {
         create {
             foo/john/doe {Hi}
+            foo/bar {content}
+            foo/duck/tape/1 1
         }
-        #    foo/bar {content}
-        #    foo/duck/tape/1 1
         mount
         file rename $mountdir/foo $mountdir/bar
         umount
 
         check {
             bar/john/doe {Hi}
+            bar/bar {content}
+            bar/duck/tape/1 1
         }
-        #    bar/bar {content}
-        #    bar/duck/tape/1 1
     }
 
     fstest rename-non-empty-dir-new-path {Rename non-empty directory (new dir)} {
@@ -1270,6 +1270,20 @@ namespace eval ::fusezip::test {
             bar/duck/bar {content}
             bar/duck/john/doe {Hi}
             bar/duck/duck/tape/
+        }
+    }
+
+    fstest rename-file-to-existent {Renamed file to existent file} {
+        create {
+            kitten {Meow}
+            puppy {Woof}
+        }
+        mount
+        file rename -force $mountdir/kitten $mountdir/puppy
+        umount
+
+        check {
+            puppy {Meow}
         }
     }
 
