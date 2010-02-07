@@ -1,9 +1,8 @@
 DEST=fuse-zip
-LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
+LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs) -Llib -lfusezip
 CXXFLAGS:=$(CXXFLAGS) -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
-ZIPFLAGS=$(shell pkg-config libzip --cflags)
-SOURCES=fuse-zip.cpp fileNode.cpp bigBuffer.cpp fuseZipData.cpp libZipWrapper.cpp
+SOURCES=main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 MANSRC=fuse-zip.1
 MAN=fuse-zip.1.gz
@@ -17,20 +16,26 @@ doc: $(MAN)
 
 doc-clean: man-clean
 
-$(DEST): $(OBJECTS)
-	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+$(DEST): $(OBJECTS) lib
+	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) \
+	    -o $@
 
-#fuse-zip.cpp must be compiled separately with FUSEFLAGS
-fuse-zip.o: fuse-zip.cpp
-	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $(ZIPFLAGS) $< -o $@
+# main.cpp must be compiled separately with FUSEFLAGS
+main.o: main.cpp
+	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $< \
+	    -Ilib \
+	    -o $@
 
-.cpp.o:
-	$(CXX) -c $(CXXFLAGS) $(ZIPFLAGS) $< -o $@
+lib:
+	make -C lib
+
+lib-clean:
+	make -C lib clean
 
 distclean: clean doc-clean
 	rm -f $(DEST)
 
-clean: all-clean tarball-clean
+clean: lib-clean all-clean tarball-clean
 
 all-clean:
 	rm -f $(CLEANFILES)
@@ -69,5 +74,5 @@ test: $(DEST)
 valgrind: clean debug
 	make -C tests valgrind
 
-.PHONY: all doc clean distclean install uninstall tarball test
+.PHONY: all lib doc clean all-clean lib-clean doc-clean distclean install uninstall tarball test
 

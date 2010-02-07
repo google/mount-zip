@@ -6,7 +6,7 @@
    obj:/usr/lib/libzip.so.1.0.0
    fun:zip_close
    fun:_ZN11FuseZipDataD1Ev
-   fun:_ZL15fusezip_destroyPv
+   fun:fusezip_destroy
    fun:fuse_fs_destroy
    obj:/usr/lib/libfuse.so.2.8.1
    obj:/usr/lib/libfuse.so.2.8.1
@@ -25,7 +25,7 @@
    fun:zip_fopen_index
    fun:_ZN9BigBufferC1EP3zipil
    fun:_ZN8FileNode4openEv
-   fun:_ZL16fusezip_truncatePKcl
+   fun:fusezip_truncate
    obj:/usr/lib/libfuse.so.2.8.1
    obj:/usr/lib/libfuse.so.2.8.1
    fun:fuse_session_loop
@@ -41,7 +41,7 @@
    fun:zip_fopen_index
    fun:_ZN9BigBufferC1EP3zipil
    fun:_ZN8FileNode4openEv
-   fun:_ZL12fusezip_openPKcP14fuse_file_info
+   fun:fusezip_open
    fun:fuse_fs_open
    obj:/usr/lib/libfuse.so.2.8.1
    obj:/usr/lib/libfuse.so.2.8.1
