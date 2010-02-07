@@ -8,8 +8,10 @@ fuse-zip*.tar.gz
 *.o
 fuse-zip
 fuse-zip.1.gz
-#tests
-tests/blackbox/test.log
+lib/*.a
+
+# tests
+tests/whitebox/*.x
 
 # other related projects (needed for performance tests)
 others

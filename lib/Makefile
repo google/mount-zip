@@ -10,7 +10,7 @@ CLEANFILES=$(OBJECTS) $(DEST)
 all: $(DEST)
 
 $(DEST): $(OBJECTS)
-	$(AR) -cvq $@ $(OBJECTS)
+	$(AR) -cq $@ $(OBJECTS)
 
 # fuse-zip.cpp must be compiled separately with FUSEFLAGS
 fuse-zip.o: fuse-zip.cpp

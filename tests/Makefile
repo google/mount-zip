@@ -1,12 +1,10 @@
-SUITES=blackbox whitebox
-
-all: $(SUITES)
+all:
+	make -C blackbox
+	make -C whitebox test
 
 valgrind:
 	make -C blackbox valgrind
+	make -C whitebox valgrind
 
-$(SUITES):
-	make -C $@
-
-.PHONY: all $(SUITES)
+.PHONY: all valgrind
 
