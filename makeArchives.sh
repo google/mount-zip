@@ -21,13 +21,7 @@ pwd=`pwd`
 id="fuse-zip-$version"
 tmp="$dir/$id"
 
-mkdir "$tmp"
-cp -t "$tmp" *.cpp *.h Makefile INSTALL LICENSE README changelog fuse-zip.1
-
-rm -f "$id.tar.gz"
-cd "$dir"
-tar -cvzf "$pwd/$id.tar.gz" "$id"
-cd "$pwd"
+hg archive -X performance\* -t tgz $id.tar.gz
 
 # make tests tarball
 id="fuse-zip-tests-r`hg log performance_tests/ | head -n 1 | cut -d : -f 2 | sed 's/ //g'`"

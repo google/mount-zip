@@ -21,7 +21,7 @@
 
 #define FUSE_USE_VERSION 27
 #define PROGRAM "fuse-zip"
-#define VERSION "0.2.11"
+#define VERSION "0.2.12"
 #define ERROR_STR_BUF_LEN 0x100
 #define STANDARD_BLOCK_SIZE (512)
 
