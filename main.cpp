@@ -28,7 +28,6 @@
 
 #include <fuse.h>
 #include <fuse_opt.h>
-#include <zip.h>
 #include <limits.h>
 #include <syslog.h>
 
