@@ -3,7 +3,7 @@ LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
 CXXFLAGS:=$(CXXFLAGS) -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 ZIPFLAGS=$(shell pkg-config libzip --cflags)
-SOURCES=fuse-zip.cpp fileNode.cpp bigBuffer.cpp fuseZipData.cpp libZipWrapper.cpp
+SOURCES=main.cpp fuse-zip.cpp fileNode.cpp bigBuffer.cpp fuseZipData.cpp libZipWrapper.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 MANSRC=fuse-zip.1
 MAN=fuse-zip.1.gz
@@ -20,8 +20,11 @@ doc-clean: man-clean
 $(DEST): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 
-#fuse-zip.cpp must be compiled separately with FUSEFLAGS
+#main.cpp and fuse-zip.cpp must be compiled separately with FUSEFLAGS
 fuse-zip.o: fuse-zip.cpp
+	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $(ZIPFLAGS) $< -o $@
+
+main.o: main.cpp
 	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $(ZIPFLAGS) $< -o $@
 
 .cpp.o:
