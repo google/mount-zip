@@ -1,3 +1,19 @@
+2010-02-07 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.2.12:
+	- Fixed problem with lost new file after truncate().
+	- Fixed problems with rename(): Fixed various rename() problems: lost
+	path for subdirectory entries, duplicates of moved directories in a
+	hierarchy, invalid key in map after rename.
+	- Fixed unitialized values in read() call.
+	- Fixed memory leaks: buffer allocated for file content not freeed in
+	NEW state, incorrect buffer size in truncate().
+	- Fixed non-fatal memory leaks: FUSE options not freeed after use,
+	memory leak in help/version mode, internal data structures not freeed
+	if FUSE setup failed.
+	- More correct corrupted files handling.
+	- More correct memory insufficiency errors handling.
+
 2010-01-26 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.2.11:
