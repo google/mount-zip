@@ -6,5 +6,8 @@ valgrind:
 	make -C blackbox valgrind
 	make -C whitebox valgrind
 
-.PHONY: all valgrind
+clean:
+	make -C whitebox clean
+
+.PHONY: all valgrind clean
 

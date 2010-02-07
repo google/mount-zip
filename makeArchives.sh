@@ -7,7 +7,7 @@ then
     exit 1
 fi
 
-version=`grep '#define VERSION' fuse-zip.cpp | sed 's/^[^"]*"//;s/".*$//'`
+version=`grep '#define VERSION' config.h | sed 's/^[^"]*"//;s/".*$//'`
 if [ "$version" = "" ]
 then
     echo "Unable to determine version"

@@ -1,3 +1,5 @@
+#include "../config.h"
+
 #include <fuse.h>
 #include <zip.h>
 #include <assert.h>

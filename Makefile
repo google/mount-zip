@@ -35,7 +35,7 @@ lib-clean:
 distclean: clean doc-clean
 	rm -f $(DEST)
 
-clean: lib-clean all-clean tarball-clean
+clean: lib-clean all-clean test-clean tarball-clean
 
 all-clean:
 	rm -f $(CLEANFILES)
@@ -59,7 +59,7 @@ uninstall:
 	rm -r "$(INSTALLPREFIX)/share/doc/$(DEST)"
 	rm "$(INSTALLPREFIX)/share/man/man1/$(MAN)"
 
-tarball: all doc
+tarball:
 	./makeArchives.sh
 
 tarball-clean:
@@ -71,8 +71,11 @@ debug:
 test: $(DEST)
 	make -C tests
 
+test-clean:
+	make -C tests clean
+
 valgrind: clean debug
 	make -C tests valgrind
 
-.PHONY: all lib doc clean all-clean lib-clean doc-clean distclean install uninstall tarball test
+.PHONY: all lib doc clean all-clean lib-clean doc-clean test-clean tarball-clean distclean install uninstall tarball test valgrind
 
