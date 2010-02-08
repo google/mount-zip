@@ -7,7 +7,7 @@ TESTS=$(DEST:.x=.test)
 
 all: $(DEST)
 
-$(DEST): %.x: %.o
+$(DEST): %.x: %.o lib
 	$(CXX) $(LDFLAGS) $< \
 	    -L../../lib -lfusezip \
 	    -o $@
@@ -17,19 +17,28 @@ $(OBJECTS): %.o: %.cpp
 	    -I../../lib \
 	    $< -o $@
 
-clean:
+lib:
+	make -C ../../lib CXXFLAGS="$(CXXFLAGS)"
+
+clean: test-clean
 	rm -f *.o $(DEST) $(OBJECTS)
+
+distclean: clean
+	make -C ../../lib clean
 
 list:
 	@echo $(TESTS)
 
 test: $(TESTS)
 
+test-clean:
+	rm -f *.x.core vgcore.*
+
 $(TESTS): %.test: %.x
 	$(WRAPPER) ./$<
 
 valgrind: all
-	make WRAPPER="valgrind --leak-check=full --track-origins=yes --error-exitcode=33" test
+	make WRAPPER="valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33" test
 
-.PHONY: all clean test valgrind
+.PHONY: all clean distclean test test-clean valgrind lib 
 
