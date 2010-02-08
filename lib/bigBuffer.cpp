@@ -176,15 +176,9 @@ BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
 BigBuffer::~BigBuffer() {
 }
 
-/**
- * Dispatch read requests to chunks of a file and write result to resulting
- * buffer.
- * Reading after end of file is not allowed, so 'size' is decreased to fit
- * file boundaries.
- */
 int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     if (offset > len) {
-        return -EINVAL;
+        return 0;
     }
     int chunk = chunkNumber(offset);
     int pos = chunkOffset(offset);

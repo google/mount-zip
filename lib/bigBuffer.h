@@ -51,21 +51,21 @@ private:
     /**
      * Return number of chunks needed to keep 'offset' bytes.
      */
-    inline unsigned int chunksCount(offset_t offset) const {
+    inline static unsigned int chunksCount(offset_t offset) {
         return (offset + chunkSize - 1) / chunkSize;
     }
 
     /**
      * Return number of chunk where 'offset'-th byte is located.
      */
-    inline unsigned int chunkNumber(offset_t offset) const {
+    inline static unsigned int chunkNumber(offset_t offset) {
         return offset / chunkSize;
     }
 
     /**
      * Return offset inside chunk to 'offset'-th byte.
      */
-    inline int chunkOffset(offset_t offset) const {
+    inline static int chunkOffset(offset_t offset) {
         return offset % chunkSize;
     }
 
@@ -76,6 +76,17 @@ public:
     BigBuffer(struct zip *z, int nodeId, ssize_t length);
     ~BigBuffer();
 
+    /**
+     * Dispatch read requests to chunks of a file and write result to
+     * resulting buffer.
+     * Reading after end of file is not allowed, so 'size' is decreased to
+     * fit file boundaries.
+     *
+     * @param buf       destination buffer
+     * @param size      requested bytes count
+     * @param offset    offset to start reading from
+     * @return always 0
+     */
     int read(char *buf, size_t size, offset_t offset) const;
     int write(const char *buf, size_t size, offset_t offset);
     int saveToZip(const FileNode *fileNode, struct zip *z, const char *fname, bool newFile, int index);
