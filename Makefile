@@ -1,5 +1,6 @@
 DEST=fuse-zip
 LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs) -Llib -lfusezip
+LIB=lib/libfusezip.a
 CXXFLAGS:=$(CXXFLAGS) -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 SOURCES=main.cpp
@@ -16,7 +17,7 @@ doc: $(MAN)
 
 doc-clean: man-clean
 
-$(DEST): $(OBJECTS) lib
+$(DEST): $(OBJECTS) $(LIB)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) \
 	    -o $@
 
@@ -26,7 +27,7 @@ main.o: main.cpp
 	    -Ilib \
 	    -o $@
 
-lib:
+$(LIB):
 	make -C lib
 
 lib-clean:
@@ -77,5 +78,5 @@ test-clean:
 valgrind: clean debug
 	make -C tests valgrind
 
-.PHONY: all lib doc clean all-clean lib-clean doc-clean test-clean tarball-clean distclean install uninstall tarball test valgrind
+.PHONY: all doc clean all-clean lib-clean doc-clean test-clean tarball-clean distclean install uninstall tarball test valgrind
 

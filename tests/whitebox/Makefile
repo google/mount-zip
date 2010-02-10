@@ -1,6 +1,7 @@
 CXXFLAGS:=$(CXXFLAGS) -g -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 VALGRIND=valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33
+LIB=../../lib/libfusezip.a
 
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
@@ -10,7 +11,7 @@ VALGRIND_TESTS=$(DEST:.x=.valgrind)
 
 all: $(DEST)
 
-$(DEST): %.x: %.o lib
+$(DEST): %.x: %.o $(LIB)
 	$(CXX) $(LDFLAGS) $< \
 	    -L../../lib -lfusezip \
 	    -o $@
@@ -20,10 +21,13 @@ $(OBJECTS): %.o: %.cpp
 	    -I../../lib \
 	    $< -o $@
 
-lib:
+$(LIB):
 	make -C ../../lib CXXFLAGS="$(CXXFLAGS)"
 
-clean: test-clean
+lib-clean:
+	make -C ../../lib clean
+
+clean: lib-clean test-clean
 	rm -f *.o $(DEST) $(OBJECTS)
 
 distclean: clean
@@ -45,5 +49,5 @@ $(VALGRIND_TESTS): %.valgrind: %.x
 
 valgrind: $(VALGRIND_TESTS)
 
-.PHONY: all clean distclean test test-clean valgrind lib 
+.PHONY: all clean distclean test test-clean valgrind lib-clean
 
