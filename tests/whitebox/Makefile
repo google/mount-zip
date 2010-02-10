@@ -1,4 +1,4 @@
-CXXFLAGS:=$(CXXFLAGS) -g -Wall -Wextra
+CXXFLAGS=-g -O2 -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 VALGRIND=valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33
 LIB=../../lib/libfusezip.a
@@ -22,7 +22,7 @@ $(OBJECTS): %.o: %.cpp
 	    $< -o $@
 
 $(LIB):
-	make -C ../../lib CXXFLAGS="$(CXXFLAGS)"
+	make -C ../../lib
 
 lib-clean:
 	make -C ../../lib clean
