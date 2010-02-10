@@ -1,9 +1,12 @@
 CXXFLAGS:=$(CXXFLAGS) -g -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
+VALGRIND=valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33
+
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
 DEST=$(OBJECTS:.o=.x)
 TESTS=$(DEST:.x=.test)
+VALGRIND_TESTS=$(DEST:.x=.valgrind)
 
 all: $(DEST)
 
@@ -35,10 +38,12 @@ test-clean:
 	rm -f *.x.core vgcore.*
 
 $(TESTS): %.test: %.x
-	$(WRAPPER) ./$<
+	./$<
 
-valgrind: all
-	make WRAPPER="valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33" test
+$(VALGRIND_TESTS): %.valgrind: %.x
+	$(VALGRIND) ./$<
+
+valgrind: $(VALGRIND_TESTS)
 
 .PHONY: all clean distclean test test-clean valgrind lib 
 
