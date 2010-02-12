@@ -41,7 +41,7 @@ private:
     struct CallBackStruct {
         size_t pos;
         const BigBuffer *buf;
-        const FileNode *fileNode;
+        time_t mtime;
     };
 
     chunks_t chunks;
@@ -102,7 +102,22 @@ public:
      *      std::bad_alloc  If there are no memory for buffer
      */
     int write(const char *buf, size_t size, offset_t offset);
-    int saveToZip(const FileNode *fileNode, struct zip *z, const char *fname, bool newFile, int index);
+
+    /**
+     * Create (or replace) file element in zip file. Class instance should
+     * not be destroyed until zip_close() is called.
+     *
+     * @param mtime     File modification time
+     * @param z         ZIP archive structure
+     * @param fname     File name
+     * @param newFile   Is file not yet created?
+     * @param index     File index in ZIP archive
+     * @return
+     *      0       If successfull
+     *      -ENOMEM If there are no memory
+     */
+    int saveToZip(time_t mtime, struct zip *z, const char *fname,
+            bool newFile, int index);
 
     /**
      * Truncate buffer at position offset.
