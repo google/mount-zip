@@ -116,6 +116,8 @@ public:
      *
      * @return  Number of bytes actually written. It can differ with
      *      'count' if offset+count>chunkSize.
+     * @throws
+     *      std::bad_alloc  If there are no memory for buffer
      */
     size_t write(const char *src, offset_t offset, size_t count) {
         if (offset + count > chunkSize) {
@@ -197,11 +199,6 @@ int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     return nread;
 }
 
-/**
- * Dispatch write request to chunks of a file and grow 'chunks' vector if
- * necessary.
- * If 'offset' is after file end, tail of last chunk cleared before growing.
- */
 int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
     int chunk = chunkNumber(offset);
     int pos = chunkOffset(offset);

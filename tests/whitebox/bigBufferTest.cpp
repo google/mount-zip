@@ -211,6 +211,73 @@ int main(int, char **) {
         assert(memcmp(buf, empty, nr) == 0);
     }
 
+    // read data created by truncate
+    {
+        char buf[BigBuffer::chunkSize];
+        char empty[BigBuffer::chunkSize];
+        memset(empty, 0, BigBuffer::chunkSize);
+        BigBuffer b;
+        b.truncate(BigBuffer::chunkSize);
+        assert(b.len == BigBuffer::chunkSize);
+        int nr = b.read(buf, BigBuffer::chunkSize, 0);
+        assert((unsigned)nr == BigBuffer::chunkSize);
+        assert(memcmp(buf, empty, BigBuffer::chunkSize) == 0);
+    }
+
+    // writing to file
+    {
+        char buf[0xff];
+        char buf2[0xff];
+        int nr, nw;
+        BigBuffer bb;
+
+        nw = bb.write(buf, 0, 0);
+        assert(nw == 0);
+        assert(bb.len == 0);
+
+        memset(buf, 1, 10);
+        memset(buf+10, 2, 10);
+        nw = bb.write(buf, 20, 0);
+        assert(nw == 20);
+        assert(bb.len == 20);
+        nr = bb.read(buf2, 30, 0);
+        assert(nr == 20);
+        assert(memcmp(buf, buf2, 20) == 0);
+
+        bb.truncate(0);
+        nw = bb.write(buf, 20, 0);
+        assert(nw == 20);
+        assert(bb.len == 20);
+        nr = bb.read(buf2, 20, 10);
+        assert(nr == 10);
+        assert(memcmp(buf + 10, buf2, 10) == 0);
+    }
+
+    // read data from file expanded by write
+    {
+        int n = BigBuffer::chunkSize * 2;
+        char buf[n];
+        char expected[n];
+        memset(expected, 0, n);
+        BigBuffer b;
+
+        memset(buf, 'a', 10);
+        memset(expected, 'a', 10);
+        b.write(buf, 10, 0);
+        assert(b.len == 10);
+
+        memset(buf, 'z', 10);
+        memset(expected + BigBuffer::chunkSize + 10, 'z', 10);
+        b.write(buf, 10, BigBuffer::chunkSize + 10);
+        assert(b.len == BigBuffer::chunkSize + 20);
+
+        int nr = b.read(buf, n, 0);
+        assert((unsigned)nr == BigBuffer::chunkSize + 20);
+        assert(memcmp(buf, expected, nr) == 0);
+    }
+
+    //TODO: read from zip, write to zip
+
     return EXIT_SUCCESS;
 }
 

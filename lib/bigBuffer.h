@@ -88,6 +88,19 @@ public:
      * @return always 0
      */
     int read(char *buf, size_t size, offset_t offset) const;
+
+    /**
+     * Dispatch write request to chunks of a file and grow 'chunks' vector if
+     * necessary.
+     * If 'offset' is after file end, tail of last chunk cleared before growing.
+     *
+     * @param buf       Source buffer
+     * @param size      Number of bytes to be written
+     * @param offset    Offset in file to start writing from
+     * @return number of bytes written
+     * @throws
+     *      std::bad_alloc  If there are no memory for buffer
+     */
     int write(const char *buf, size_t size, offset_t offset);
     int saveToZip(const FileNode *fileNode, struct zip *z, const char *fname, bool newFile, int index);
 
