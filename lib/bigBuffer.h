@@ -46,6 +46,12 @@ private:
 
     chunks_t chunks;
 
+    /**
+     * Callback for zip_source_function.
+     * ZIP_SOURCE_CLOSE is not needed to be handled, ZIP_SOURCE_ERROR is
+     * never called because read() always successfull.
+     * See zip_source_function(3) for details.
+     */
     static ssize_t zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd);
 
     /**

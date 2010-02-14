@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <cstring>
 
+// Public Morozoff design pattern :)
 #define private public
 
 #include "bigBuffer.h"
@@ -17,16 +18,15 @@ struct zip_source {};
 
 // libzip stub functions
 
-struct zip *zip_open(const char *, int, int *errorp) {
-    *errorp = 0;
+struct zip *zip_open(const char *, int, int *) {
+    assert(false);
     return NULL;
 }
 
 int zip_error_to_str(char *, size_t, int, int) {
+    assert(false);
     return 0;
 }
-
-// only stubs
 
 int zip_add(struct zip *, const char *, struct zip_source *) {
     assert(false);
@@ -274,6 +274,63 @@ void readExpanded() {
     assert(memcmp(buf, expected, nr) == 0);
 }
 
+// Test zip user function callback with empty file
+void zipUserFunctionCallBackEmpty() {
+    BigBuffer bb;
+    struct BigBuffer::CallBackStruct *cbs = new BigBuffer::CallBackStruct();
+    cbs->buf = &bb;
+    cbs->mtime = 12345;
+
+    struct zip_stat stat;
+    assert(BigBuffer::zipUserFunctionCallback(cbs, &stat, 0, ZIP_SOURCE_STAT)
+            == sizeof(struct zip_stat));
+    assert(stat.size == 0);
+    assert(stat.mtime == 12345);
+
+    assert(BigBuffer::zipUserFunctionCallback(cbs, NULL, 0, ZIP_SOURCE_OPEN)
+            == 0);
+    char buf[0xff];
+    assert(BigBuffer::zipUserFunctionCallback(cbs, buf, 0xff, ZIP_SOURCE_READ)
+            == 0);
+    assert(BigBuffer::zipUserFunctionCallback(cbs, NULL, 0, ZIP_SOURCE_CLOSE)
+            == 0);
+    assert(BigBuffer::zipUserFunctionCallback(cbs, NULL, 0, ZIP_SOURCE_FREE)
+            == 0);
+}
+
+// Test zip user function callback with non-empty file
+void zipUserFunctionCallBackNonEmpty() {
+    int n = BigBuffer::chunkSize*2;
+    char buf[n];
+    memset(buf, 'f', n);
+
+    BigBuffer bb;
+    bb.write(buf, n, 0);
+
+    struct BigBuffer::CallBackStruct *cbs = new BigBuffer::CallBackStruct();
+    cbs->buf = &bb;
+    cbs->mtime = 0;
+
+    struct zip_stat stat;
+    assert(BigBuffer::zipUserFunctionCallback(cbs, &stat, 0, ZIP_SOURCE_STAT)
+            == sizeof(struct zip_stat));
+    assert(stat.size == n);
+    assert(stat.mtime == 0);
+
+    assert(BigBuffer::zipUserFunctionCallback(cbs, NULL, 0, ZIP_SOURCE_OPEN)
+            == 0);
+    assert(BigBuffer::zipUserFunctionCallback(cbs, buf, BigBuffer::chunkSize,
+                ZIP_SOURCE_READ) == BigBuffer::chunkSize);
+    assert(BigBuffer::zipUserFunctionCallback(cbs, buf, BigBuffer::chunkSize,
+                ZIP_SOURCE_READ) == BigBuffer::chunkSize);
+    assert(BigBuffer::zipUserFunctionCallback(cbs, buf, BigBuffer::chunkSize,
+                ZIP_SOURCE_READ) == 0);
+    assert(BigBuffer::zipUserFunctionCallback(cbs, NULL, 0, ZIP_SOURCE_CLOSE)
+            == 0);
+    assert(BigBuffer::zipUserFunctionCallback(cbs, NULL, 0, ZIP_SOURCE_FREE)
+            == 0);
+}
+
 int main(int, char **) {
     initTest();
 
@@ -285,6 +342,8 @@ int main(int, char **) {
     truncateRead();
     writeFile();
     readExpanded();
+    zipUserFunctionCallBackEmpty();
+    zipUserFunctionCallBackNonEmpty();
     //TODO: read from zip, write to zip
 
     return EXIT_SUCCESS;
