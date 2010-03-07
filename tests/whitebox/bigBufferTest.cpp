@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <cstring>
+#include <cerrno>
 
 // Public Morozoff design pattern :)
 #define private public
@@ -17,11 +18,23 @@
 bool use_zip = false;
 
 // libzip stub structures
-struct zip {};
-struct zip_file {
-    int nodeId;
+struct zip {
+    bool fail_zip_fopen_index;
+    bool fail_zip_fread;
+    bool fail_zip_fclose;
+    bool fail_zip_source_function;
+    bool fail_zip_add;
+    bool fail_zip_replace;
+
+    struct zip_source *source;
 };
-struct zip_source {};
+struct zip_file {
+    struct zip *zip;
+};
+struct zip_source {
+    struct zip *zip;
+    void *cbs;
+};
 
 // libzip stub functions
 
@@ -35,9 +48,10 @@ int zip_error_to_str(char *, size_t, int, int) {
     return 0;
 }
 
-int zip_add(struct zip *, const char *, struct zip_source *) {
-    assert(false);
-    return 0;
+int zip_add(struct zip *z, const char *, struct zip_source *) {
+    assert(use_zip);
+
+    return z->fail_zip_add ? -1 : 0;
 }
 
 int zip_add_dir(struct zip *, const char *) {
@@ -57,25 +71,25 @@ int zip_delete(struct zip *, int) {
 
 int zip_fclose(struct zip_file *zf) {
     assert(use_zip);
-    bool fail = zf->nodeId == 3;
+    bool fail = zf->zip->fail_zip_fclose;
     free(zf);
-    return fail?-1:0;
+    return fail ? -1 : 0;
 }
 
-struct zip_file *zip_fopen_index(struct zip *, int nodeId, int) {
+struct zip_file *zip_fopen_index(struct zip *z, int, int) {
     assert(use_zip);
-    if (nodeId == 1) {
+    if (z->fail_zip_fopen_index) {
         return NULL;
     } else {
         struct zip_file *res = (struct zip_file *)malloc(sizeof(struct zip_file));
-        res->nodeId = nodeId;
+        res->zip = z;
         return res;
     }
 }
 
 ssize_t zip_fread(struct zip_file *zf, void *dest, size_t size) {
     assert(use_zip);
-    if (zf->nodeId == 2) {
+    if (zf->zip->fail_zip_fread) {
         return -1;
     } else {
         memset(dest, 'X', size);
@@ -93,18 +107,28 @@ int zip_rename(struct zip *, int, const char *) {
     return 0;
 }
 
-int zip_replace(struct zip *, int, struct zip_source *) {
-    assert(false);
-    return 0;
+int zip_replace(struct zip *z, int, struct zip_source *) {
+    assert(use_zip);
+    return z->fail_zip_replace ? -1 : 0;
 }
 
-void zip_source_free(struct zip_source *) {
-    assert(false);
+void zip_source_free(struct zip_source *z) {
+    assert(use_zip);
+    assert(z->zip->fail_zip_add || z->zip->fail_zip_replace);
+    free(z);
 }
 
-struct zip_source *zip_source_function(struct zip *, zip_source_callback, void *) {
-    assert(false);
-    return NULL;
+struct zip_source *zip_source_function(struct zip *z, zip_source_callback, void *cbs) {
+    assert(use_zip);
+    if (z->fail_zip_source_function) {
+        return NULL;
+    } else {
+        struct zip_source *zs = (struct zip_source *)malloc(sizeof(struct zip_source));
+        zs->zip = z;
+        zs->cbs = cbs;
+        z->source = zs;
+        return zs;
+    }
 }
 
 int zip_stat_index(struct zip *, int, int, struct zip_stat *) {
@@ -355,6 +379,7 @@ void zipUserFunctionCallBackNonEmpty() {
 void readZip() {
     int size = 100;
     struct zip z;
+    z.fail_zip_fopen_index = true;
     // invalid file
     {
         bool thrown = false;
@@ -366,6 +391,8 @@ void readZip() {
         }
         assert(thrown);
     }
+    z.fail_zip_fopen_index = false;
+    z.fail_zip_fread = true;
     // read error
     {
         bool thrown = false;
@@ -377,6 +404,8 @@ void readZip() {
         }
         assert(thrown);
     }
+    z.fail_zip_fread = false;
+    z.fail_zip_fclose = true;
     // close error
     {
         bool thrown = false;
@@ -388,14 +417,60 @@ void readZip() {
         }
         assert(thrown);
     }
+    z.fail_zip_fclose = false;
+    // normal case
     {
         BigBuffer bb(&z, 0, size);
         char *buf = (char *)malloc(size);
-        bb.read(buf, size, 0);
+        assert(bb.read(buf, size, 0) == size);
         for (int i = 0; i < size; ++i) {
             assert(buf[i] == 'X');
         }
         free(buf);
+    }
+}
+
+// Save file to zip
+// Check that saveToZip correctly working
+void writeZip() {
+    // new file
+    {
+        BigBuffer bb;
+        struct zip z;
+        z.fail_zip_source_function = true;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, -1) == -ENOMEM);
+
+        z.fail_zip_source_function = false;
+        z.fail_zip_add = true;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, -1) == -ENOMEM);
+
+        z.fail_zip_add = false;
+        z.source = NULL;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, -1) == 0);
+        delete (BigBuffer::CallBackStruct *)z.source->cbs;
+        free(z.source);
+    }
+    // existing file
+    {
+        int size = 11111;
+        struct zip z;
+        z.fail_zip_fopen_index = false;
+        z.fail_zip_fread = false;
+        z.fail_zip_fclose = false;
+        BigBuffer bb(&z, 0, size);
+
+        z.fail_zip_source_function = true;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, 11) == -ENOMEM);
+
+        z.fail_zip_source_function = false;
+        z.fail_zip_replace = true;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, 11) == -ENOMEM);
+
+        z.fail_zip_replace = false;
+        z.source = NULL;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, 11) == 0);
+        delete (BigBuffer::CallBackStruct *)z.source->cbs;
+        free(z.source);
     }
 }
 
@@ -415,7 +490,7 @@ int main(int, char **) {
 
     use_zip = true;
     readZip();
-    //TODO: write to zip
+    writeZip();
 
     return EXIT_SUCCESS;
 }
