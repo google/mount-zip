@@ -11,9 +11,16 @@
 #include "bigBuffer.h"
 #include "common.h"
 
+// global variables
+
+// is libzip functions should be called?
+bool use_zip = false;
+
 // libzip stub structures
 struct zip {};
-struct zip_file {};
+struct zip_file {
+    int nodeId;
+};
 struct zip_source {};
 
 // libzip stub functions
@@ -48,19 +55,32 @@ int zip_delete(struct zip *, int) {
     return 0;
 }
 
-int zip_fclose(struct zip_file *) {
-    assert(false);
-    return 0;
+int zip_fclose(struct zip_file *zf) {
+    assert(use_zip);
+    bool fail = zf->nodeId == 3;
+    free(zf);
+    return fail?-1:0;
 }
 
-struct zip_file *zip_fopen_index(struct zip *, int, int) {
-    assert(false);
-    return NULL;
+struct zip_file *zip_fopen_index(struct zip *, int nodeId, int) {
+    assert(use_zip);
+    if (nodeId == 1) {
+        return NULL;
+    } else {
+        struct zip_file *res = (struct zip_file *)malloc(sizeof(struct zip_file));
+        res->nodeId = nodeId;
+        return res;
+    }
 }
 
-ssize_t zip_fread(struct zip_file *, void *, size_t) {
-    assert(false);
-    return 0;
+ssize_t zip_fread(struct zip_file *zf, void *dest, size_t size) {
+    assert(use_zip);
+    if (zf->nodeId == 2) {
+        return -1;
+    } else {
+        memset(dest, 'X', size);
+        return size;
+    }
 }
 
 int zip_get_num_files(struct zip *) {
@@ -331,6 +351,54 @@ void zipUserFunctionCallBackNonEmpty() {
             == 0);
 }
 
+// Read from zip file
+void readZip() {
+    int size = 100;
+    struct zip z;
+    // invalid file
+    {
+        bool thrown = false;
+        try {
+            BigBuffer bb(&z, 1, size);
+        }
+        catch (const std::exception &e) {
+            thrown = true;
+        }
+        assert(thrown);
+    }
+    // read error
+    {
+        bool thrown = false;
+        try {
+            BigBuffer bb(&z, 2, size);
+        }
+        catch (const std::exception &e) {
+            thrown = true;
+        }
+        assert(thrown);
+    }
+    // close error
+    {
+        bool thrown = false;
+        try {
+            BigBuffer bb(&z, 3, size);
+        }
+        catch (const std::exception &e) {
+            thrown = true;
+        }
+        assert(thrown);
+    }
+    {
+        BigBuffer bb(&z, 0, size);
+        char *buf = (char *)malloc(size);
+        bb.read(buf, size, 0);
+        for (int i = 0; i < size; ++i) {
+            assert(buf[i] == 'X');
+        }
+        free(buf);
+    }
+}
+
 int main(int, char **) {
     initTest();
 
@@ -344,7 +412,10 @@ int main(int, char **) {
     readExpanded();
     zipUserFunctionCallBackEmpty();
     zipUserFunctionCallBackNonEmpty();
-    //TODO: read from zip, write to zip
+
+    use_zip = true;
+    readZip();
+    //TODO: write to zip
 
     return EXIT_SUCCESS;
 }

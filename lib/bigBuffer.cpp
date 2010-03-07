@@ -73,10 +73,15 @@ public:
 
     /**
      * Return pointer to internal storage and initialize it if needed.
+     * @throws
+     *      std::bad_alloc  If memory can not be allocated
      */
     char *ptr(bool init = false) {
         if (init && m_ptr == NULL) {
             m_ptr = (char *)malloc(chunkSize);
+            if (m_ptr == NULL) {
+                throw std::bad_alloc();
+            }
         }
         return m_ptr;
     }
@@ -149,9 +154,6 @@ public:
 BigBuffer::BigBuffer(): len(0) {
 }
 
-/**
- * Read file data from zip file
- */
 BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
     if (zf == NULL) {

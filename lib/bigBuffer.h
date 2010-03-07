@@ -78,8 +78,23 @@ private:
 public:
     offset_t len;
 
+    /**
+     * Create new file buffer without mapping to file in a zip archive
+     */
     BigBuffer();
+
+    /**
+     * Read file data from file inside zip archive
+     *
+     * @param z         Zip file
+     * @param nodeId    Node index inside zip file
+     * @param length    File length
+     * @throws 
+     *      std::exception  On file read error
+     *      std::bad_alloc  On memory insufficiency
+     */
     BigBuffer(struct zip *z, int nodeId, ssize_t length);
+
     ~BigBuffer();
 
     /**
