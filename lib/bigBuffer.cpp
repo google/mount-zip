@@ -272,9 +272,11 @@ int BigBuffer::saveToZip(time_t mtime, struct zip *z, const char *fname,
     cbs->buf = this;
     cbs->mtime = mtime;
     if ((s=zip_source_function(z, zipUserFunctionCallback, cbs)) == NULL) {
+        delete cbs;
         return -ENOMEM;
     }
     if ((newFile && zip_add(z, fname, s) < 0) || (!newFile && zip_replace(z, index, s) < 0)) {
+        delete cbs;
         zip_source_free(s);
         return -ENOMEM;
     }
