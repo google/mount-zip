@@ -38,42 +38,15 @@ struct zip_source {
 
 // libzip stub functions
 
-struct zip *zip_open(const char *, int, int *) {
-    assert(false);
-    return NULL;
-}
-
-int zip_error_to_str(char *, size_t, int, int) {
-    assert(false);
-    return 0;
-}
-
 int zip_add(struct zip *z, const char *, struct zip_source *) {
     assert(use_zip);
 
     return z->fail_zip_add ? -1 : 0;
 }
 
-int zip_add_dir(struct zip *, const char *) {
-    assert(false);
-    return 0;
-}
-
-int zip_close(struct zip *) {
-    assert(false);
-    return 0;
-}
-
-int zip_delete(struct zip *, int) {
-    assert(false);
-    return 0;
-}
-
-int zip_fclose(struct zip_file *zf) {
+int zip_replace(struct zip *z, int, struct zip_source *) {
     assert(use_zip);
-    bool fail = zf->zip->fail_zip_fclose;
-    free(zf);
-    return fail ? -1 : 0;
+    return z->fail_zip_replace ? -1 : 0;
 }
 
 struct zip_file *zip_fopen_index(struct zip *z, int, int) {
@@ -97,25 +70,11 @@ ssize_t zip_fread(struct zip_file *zf, void *dest, size_t size) {
     }
 }
 
-int zip_get_num_files(struct zip *) {
-    assert(false);
-    return 0;
-}
-
-int zip_rename(struct zip *, int, const char *) {
-    assert(false);
-    return 0;
-}
-
-int zip_replace(struct zip *z, int, struct zip_source *) {
+int zip_fclose(struct zip_file *zf) {
     assert(use_zip);
-    return z->fail_zip_replace ? -1 : 0;
-}
-
-void zip_source_free(struct zip_source *z) {
-    assert(use_zip);
-    assert(z->zip->fail_zip_add || z->zip->fail_zip_replace);
-    free(z);
+    bool fail = zf->zip->fail_zip_fclose;
+    free(zf);
+    return fail ? -1 : 0;
 }
 
 struct zip_source *zip_source_function(struct zip *z, zip_source_callback, void *cbs) {
@@ -129,6 +88,49 @@ struct zip_source *zip_source_function(struct zip *z, zip_source_callback, void 
         z->source = zs;
         return zs;
     }
+}
+
+void zip_source_free(struct zip_source *z) {
+    assert(use_zip);
+    assert(z->zip->fail_zip_add || z->zip->fail_zip_replace);
+    free(z);
+}
+
+// only stubs
+
+struct zip *zip_open(const char *, int, int *) {
+    assert(false);
+    return NULL;
+}
+
+int zip_error_to_str(char *, size_t, int, int) {
+    assert(false);
+    return 0;
+}
+
+int zip_add_dir(struct zip *, const char *) {
+    assert(false);
+    return 0;
+}
+
+int zip_close(struct zip *) {
+    assert(false);
+    return 0;
+}
+
+int zip_delete(struct zip *, int) {
+    assert(false);
+    return 0;
+}
+
+int zip_get_num_files(struct zip *) {
+    assert(false);
+    return 0;
+}
+
+int zip_rename(struct zip *, int, const char *) {
+    assert(false);
+    return 0;
 }
 
 int zip_stat_index(struct zip *, int, int, struct zip_stat *) {
