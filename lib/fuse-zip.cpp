@@ -91,7 +91,7 @@ void fusezip_destroy(void *data) {
     FuseZipData *d = (FuseZipData*)data;
     // Saving changed data
     for (filemap_t::const_iterator i = d->files.begin(); i != d->files.end(); ++i) {
-        if (i->second->isChanged()) {
+        if (i->second->isChanged() && !i->second->is_dir) {
             int res = i->second->save();
             if (res != 0) {
                 syslog(LOG_ERR, "Error while saving file %s in ZIP archive: %d", i->second->full_name, res);

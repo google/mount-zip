@@ -66,6 +66,13 @@ public:
     int read(char *buf, size_t size, offset_t offset) const;
     int write(const char *buf, size_t size, offset_t offset);
     int close();
+
+    /**
+     * Invoke zip_add() or zip_replace() for file to save it.
+     * Should be called only if item is needed to ba saved into zip file.
+     *
+     * @return 0 if success, != 0 on error
+     */
     int save();
 
     /**
