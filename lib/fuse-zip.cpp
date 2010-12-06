@@ -51,7 +51,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName) {
     int err;
     struct zip *zip_file;
 
-    if ((zip_file = zip_open(fileName, ZIP_CHECKCONS | ZIP_CREATE, &err)) == NULL) {
+    if ((zip_file = zip_open(fileName, ZIP_CREATE, &err)) == NULL) {
         char err_str[ERROR_STR_BUF_LEN];
         zip_error_to_str(err_str, ERROR_STR_BUF_LEN, err, errno);
         fprintf(stderr, "%s: cannot open zip archive %s: %s\n", program, fileName, err_str);
