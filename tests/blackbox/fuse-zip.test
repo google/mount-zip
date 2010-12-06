@@ -519,17 +519,16 @@ namespace eval ::fusezip::test {
         }
     }
 
-    fstest bad-archive {Bad archive} {
+    fstest bad-archive-crc {Bad archive} {
         set fname data/bad-archive.zip
-        if {![ catch {mount} err opts ] &&
-                [ dict get $opts -errorcode ] eq "NOTMOUNTED"} {
-            error "Mount error is expected"
+        mount
+        if {![catch {open $mountdir/bash.txt r} err opts]} {
+            error "File read error is expected"
         } else {
-            set msg [ stripValgrindOutput [ join $error \n ] ]
-            if {![ regexp {^fuse-zip: cannot open zip archive} $msg ]} {
-                error "Invalid error message"
-            }
+            set code [dict get $opts -errorcode]
+            assert {[lrange $code 0 1] == {POSIX EIO}}
         }
+        umount
     }
 
     fstest mount-umount {Mount and unmount nonexistent file} {
