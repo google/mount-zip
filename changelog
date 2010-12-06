@@ -1,3 +1,9 @@
+2010-12-06 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.2.13:
+	- Fixed issue #27: Android APK Support
+	- Fixed issue #28: doesn't honor the -r flag for some zip files
+
 2010-02-07 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.2.12:
