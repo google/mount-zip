@@ -83,7 +83,7 @@ namespace eval ::fusezip::test {
             if {[ info exists ::env(VALGRIND_ARGS) ]} {
                 set additional [ split $::env(VALGRIND_ARGS) ]
             }
-            set res [ list valgrind  --leak-check=full --track-origins=yes --suppressions=valgrind.supp {*}$additional ]
+            set res [ list valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33 --suppressions=valgrind.supp {*}$additional ]
         } else {
             set res {}
         }
@@ -292,27 +292,6 @@ namespace eval ::fusezip::test {
             if {$output ne ""} {
                 error "Unexpected output from filesystem: $output"
             }
-            checkValgrindOutput [ join $error \n ]
-        }
-    }
-
-    # checkValgrindOutput --
-    #
-    #   Check valgrind output (if enabled) and throw error if at least one leak
-    #   detected.
-
-    proc checkValgrindOutput {data} {
-        variable valgrind
-
-        if {$valgrind} {
-           if {[ regexp {==\d+== ERROR SUMMARY: (\d+) errors from (\d+) contexts \(suppressed: (\d+) from (\d+)\)} \
-                [ lindex [ split $data "\n" ] end ] dummy errors contexts suppressed total ]} {
-               if {$errors != 0} {
-                   error "valgrind: $errors memory errors detected!"
-               }
-           } else {
-               error "Unable to parse valgrind output"
-           }
         }
     }
 
@@ -506,7 +485,6 @@ namespace eval ::fusezip::test {
         close $w
         set data [ string trim [ read $r ] ]
         close $r
-        checkValgrindOutput $data
         if {![ regexp {^usage: fuse-zip } [ stripValgrindOutput $data ] ]} {
             error "Usage info expected, but `$data' given"
         }
@@ -522,7 +500,6 @@ namespace eval ::fusezip::test {
         close $w
         set data [ string trim [ read $r ] ]
         close $r
-        checkValgrindOutput $data
         if {![ regexp {^(.*?version.*?\d+\.\d+\n)+$} \
                 "[ stripValgrindOutput $data ]\n" ]} {
             error "Version info expected"

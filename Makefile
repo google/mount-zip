@@ -1,6 +1,8 @@
 DEST=fuse-zip
 LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs) -Llib -lfusezip
-CXXFLAGS:=$(CXXFLAGS) -Wall -Wextra
+LIB=lib/libfusezip.a
+CXXFLAGS=-g -O2 -Wall -Wextra
+RELEASE_CXXFLAGS=-O2 -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 SOURCES=main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
@@ -16,7 +18,7 @@ doc: $(MAN)
 
 doc-clean: man-clean
 
-$(DEST): $(OBJECTS) lib
+$(DEST): $(OBJECTS) $(LIB)
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) \
 	    -o $@
 
@@ -26,7 +28,7 @@ main.o: main.cpp
 	    -Ilib \
 	    -o $@
 
-lib:
+$(LIB):
 	make -C lib
 
 lib-clean:
@@ -35,7 +37,7 @@ lib-clean:
 distclean: clean doc-clean
 	rm -f $(DEST)
 
-clean: lib-clean all-clean tarball-clean
+clean: lib-clean all-clean test-clean tarball-clean
 
 all-clean:
 	rm -f $(CLEANFILES)
@@ -59,20 +61,23 @@ uninstall:
 	rm -r "$(INSTALLPREFIX)/share/doc/$(DEST)"
 	rm "$(INSTALLPREFIX)/share/man/man1/$(MAN)"
 
-tarball: all doc
+tarball:
 	./makeArchives.sh
 
 tarball-clean:
 	rm -f fuse-zip-*.tar.gz fuse-zip-tests-*.tar.gz
 
-debug:
-	make CXXFLAGS="-g $(CXXFLAGS)"
+release:
+	make CXXFLAGS="$(RELEASE_CXXFLAGS)" all doc
 
 test: $(DEST)
 	make -C tests
 
-valgrind: clean debug
+test-clean:
+	make -C tests clean
+
+valgrind:
 	make -C tests valgrind
 
-.PHONY: all lib doc clean all-clean lib-clean doc-clean distclean install uninstall tarball test
+.PHONY: all release doc clean all-clean lib-clean doc-clean test-clean tarball-clean distclean install uninstall tarball test valgrind
 

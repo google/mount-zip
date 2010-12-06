@@ -11,7 +11,7 @@ GNU make        http://www.gnu.org/software/make/
 
 To build fuse-zip do the following:
 
-$ make
+$ make release
 
 To install do:
 

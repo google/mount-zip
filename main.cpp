@@ -19,12 +19,10 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
-#define FUSE_USE_VERSION 27
-#define PROGRAM "fuse-zip"
-#define VERSION "0.2.12"
-
 #define KEY_HELP (0)
 #define KEY_VERSION (1)
+
+#include "config.h"
 
 #include <fuse.h>
 #include <fuse_opt.h>

@@ -217,7 +217,8 @@ int FileNode::close() {
 }
 
 int FileNode::save() {
-    return buffer->saveToZip(this, data->m_zip, full_name, state == NEW, id);
+    return buffer->saveToZip(stat.mtime, data->m_zip, full_name,
+            state == NEW, id);
 }
 
 int FileNode::truncate(offset_t offset) {

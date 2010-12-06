@@ -19,9 +19,10 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
-#define FUSE_USE_VERSION 27
 #define STANDARD_BLOCK_SIZE (512)
 #define ERROR_STR_BUF_LEN 0x100
+
+#include "../config.h"
 
 #include <fuse.h>
 #include <zip.h>

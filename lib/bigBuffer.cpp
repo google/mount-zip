@@ -24,7 +24,6 @@
 #include <cstring>
 
 #include "bigBuffer.h"
-#include "fileNode.h"
 
 /**
  * Class that keep chunk of file data.
@@ -74,10 +73,15 @@ public:
 
     /**
      * Return pointer to internal storage and initialize it if needed.
+     * @throws
+     *      std::bad_alloc  If memory can not be allocated
      */
     char *ptr(bool init = false) {
         if (init && m_ptr == NULL) {
             m_ptr = (char *)malloc(chunkSize);
+            if (m_ptr == NULL) {
+                throw std::bad_alloc();
+            }
         }
         return m_ptr;
     }
@@ -116,6 +120,8 @@ public:
      *
      * @return  Number of bytes actually written. It can differ with
      *      'count' if offset+count>chunkSize.
+     * @throws
+     *      std::bad_alloc  If there are no memory for buffer
      */
     size_t write(const char *src, offset_t offset, size_t count) {
         if (offset + count > chunkSize) {
@@ -148,9 +154,6 @@ public:
 BigBuffer::BigBuffer(): len(0) {
 }
 
-/**
- * Read file data from zip file
- */
 BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
     if (zf == NULL) {
@@ -176,15 +179,9 @@ BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
 BigBuffer::~BigBuffer() {
 }
 
-/**
- * Dispatch read requests to chunks of a file and write result to resulting
- * buffer.
- * Reading after end of file is not allowed, so 'size' is decreased to fit
- * file boundaries.
- */
 int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     if (offset > len) {
-        return -EINVAL;
+        return 0;
     }
     int chunk = chunkNumber(offset);
     int pos = chunkOffset(offset);
@@ -203,11 +200,6 @@ int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     return nread;
 }
 
-/**
- * Dispatch write request to chunks of a file and grow 'chunks' vector if
- * necessary.
- * If 'offset' is after file end, tail of last chunk cleared before growing.
- */
 int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
     int chunk = chunkNumber(offset);
     int pos = chunkOffset(offset);
@@ -260,7 +252,7 @@ ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, 
             struct zip_stat *st = (struct zip_stat*)data;
             zip_stat_init(st);
             st->size = b->buf->len;
-            st->mtime = b->fileNode->stat.mtime;
+            st->mtime = b->mtime;
             return sizeof(struct zip_stat);
         }
         case ZIP_SOURCE_FREE: {
@@ -273,15 +265,18 @@ ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, 
     }
 }
 
-int BigBuffer::saveToZip(const FileNode *fileNode, struct zip *z, const char *fname, bool newFile, int index) {
+int BigBuffer::saveToZip(time_t mtime, struct zip *z, const char *fname,
+        bool newFile, int index) {
     struct zip_source *s;
     struct CallBackStruct *cbs = new CallBackStruct();
     cbs->buf = this;
-    cbs->fileNode = fileNode;
+    cbs->mtime = mtime;
     if ((s=zip_source_function(z, zipUserFunctionCallback, cbs)) == NULL) {
+        delete cbs;
         return -ENOMEM;
     }
     if ((newFile && zip_add(z, fname, s) < 0) || (!newFile && zip_replace(z, index, s) < 0)) {
+        delete cbs;
         zip_source_free(s);
         return -ENOMEM;
     }
