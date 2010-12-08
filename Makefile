@@ -19,7 +19,7 @@ doc: $(MAN)
 doc-clean: man-clean
 
 $(DEST): $(OBJECTS) $(LIB)
-	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) \
+	$(CXX) $(OBJECTS) $(LDFLAGS) $(LIBS) \
 	    -o $@
 
 # main.cpp must be compiled separately with FUSEFLAGS
