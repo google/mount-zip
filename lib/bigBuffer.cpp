@@ -160,7 +160,8 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
     if (zf == NULL) {
         throw std::exception();
     }
-    chunks.resize(chunksCount(length), ChunkWrapper());
+    unsigned int ccount = chunksCount(length);
+    chunks.resize(ccount, ChunkWrapper());
     unsigned int chunk = 0;
     ssize_t nr;
     while (length > 0) {
@@ -171,6 +172,12 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
         }
         ++chunk;
         length -= nr;
+        if (chunk == ccount && length != 0) {
+            // Allocated memory are exhausted, but there are unread bytes (or
+            // file is longer that given length). Possibly CRC error.
+            zip_fclose(zf);
+            throw std::exception();
+        }
     }
     if (zip_fclose(zf)) {
         throw std::exception();
