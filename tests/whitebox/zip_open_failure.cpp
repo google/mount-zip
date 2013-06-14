@@ -27,7 +27,7 @@ struct zip *zip_open(const char *, int, int *errorp) {
     return NULL;
 }
 
-int zip_error_to_str(char *buf, size_t len, int, int) {
+int zip_error_to_str(char *buf, zip_uint64_t len, int, int) {
     return strncpy(buf, "Expected error", len) - buf;
 }
 
@@ -68,7 +68,7 @@ struct zip_file *zip_fopen_index(struct zip *, zip_uint64_t, zip_flags_t) {
     return NULL;
 }
 
-ssize_t zip_fread(struct zip_file *, void *, size_t) {
+zip_int64_t zip_fread(struct zip_file *, void *, zip_uint64_t) {
     assert(false);
     return 0;
 }

@@ -60,7 +60,7 @@ struct zip_file *zip_fopen_index(struct zip *z, zip_uint64_t, zip_flags_t) {
     }
 }
 
-ssize_t zip_fread(struct zip_file *zf, void *dest, size_t size) {
+zip_int64_t zip_fread(struct zip_file *zf, void *dest, zip_uint64_t size) {
     assert(use_zip);
     if (zf->zip->fail_zip_fread) {
         return -1;
@@ -103,7 +103,7 @@ struct zip *zip_open(const char *, int, int *) {
     return NULL;
 }
 
-int zip_error_to_str(char *, size_t, int, int) {
+int zip_error_to_str(char *, zip_uint64_t, int, int) {
     assert(false);
     return 0;
 }
