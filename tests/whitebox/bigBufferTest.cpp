@@ -38,18 +38,18 @@ struct zip_source {
 
 // libzip stub functions
 
-int zip_add(struct zip *z, const char *, struct zip_source *) {
+zip_int64_t zip_file_add(struct zip *z, const char *, struct zip_source *, zip_flags_t) {
     assert(use_zip);
 
     return z->fail_zip_add ? -1 : 0;
 }
 
-int zip_replace(struct zip *z, int, struct zip_source *) {
+int zip_file_replace(struct zip *z, zip_uint64_t, struct zip_source *, zip_flags_t) {
     assert(use_zip);
     return z->fail_zip_replace ? -1 : 0;
 }
 
-struct zip_file *zip_fopen_index(struct zip *z, int, int) {
+struct zip_file *zip_fopen_index(struct zip *z, zip_uint64_t, zip_flags_t) {
     assert(use_zip);
     if (z->fail_zip_fopen_index) {
         return NULL;
@@ -108,7 +108,7 @@ int zip_error_to_str(char *, size_t, int, int) {
     return 0;
 }
 
-int zip_add_dir(struct zip *, const char *) {
+zip_int64_t zip_dir_add(struct zip *, const char *, zip_flags_t) {
     assert(false);
     return 0;
 }
@@ -346,7 +346,7 @@ void zipUserFunctionCallBackEmpty() {
 
 // Test zip user function callback with non-empty file
 void zipUserFunctionCallBackNonEmpty() {
-    int n = BigBuffer::chunkSize*2;
+    zip_uint64_t n = BigBuffer::chunkSize*2;
     char buf[n];
     memset(buf, 'f', n);
 

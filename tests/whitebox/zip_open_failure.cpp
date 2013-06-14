@@ -33,12 +33,17 @@ int zip_error_to_str(char *buf, size_t len, int, int) {
 
 // only stubs
 
-int zip_add(struct zip *, const char *, struct zip_source *) {
+const char *zip_get_name(struct zip *, zip_uint64_t, zip_flags_t) {
+    assert(false);
+    return NULL;
+}
+
+zip_int64_t zip_file_add(struct zip *, const char *, struct zip_source *, zip_flags_t) {
     assert(false);
     return 0;
 }
 
-int zip_add_dir(struct zip *, const char *) {
+zip_int64_t zip_dir_add(struct zip *, const char *, zip_flags_t) {
     assert(false);
     return 0;
 }
@@ -48,7 +53,7 @@ int zip_close(struct zip *) {
     return 0;
 }
 
-int zip_delete(struct zip *, int) {
+int zip_delete(struct zip *, zip_uint64_t) {
     assert(false);
     return 0;
 }
@@ -58,7 +63,7 @@ int zip_fclose(struct zip_file *) {
     return 0;
 }
 
-struct zip_file *zip_fopen_index(struct zip *, int, int) {
+struct zip_file *zip_fopen_index(struct zip *, zip_uint64_t, zip_flags_t) {
     assert(false);
     return NULL;
 }
@@ -68,17 +73,17 @@ ssize_t zip_fread(struct zip_file *, void *, size_t) {
     return 0;
 }
 
-int zip_get_num_files(struct zip *) {
+zip_int64_t zip_get_num_entries(struct zip *, zip_flags_t) {
     assert(false);
     return 0;
 }
 
-int zip_rename(struct zip *, int, const char *) {
+int zip_file_rename(struct zip *, zip_uint64_t, const char *, zip_flags_t) {
     assert(false);
     return 0;
 }
 
-int zip_replace(struct zip *, int, struct zip_source *) {
+int zip_file_replace(struct zip *, zip_uint64_t, struct zip_source *, zip_flags_t) {
     assert(false);
     return 0;
 }
@@ -92,7 +97,7 @@ struct zip_source *zip_source_function(struct zip *, zip_source_callback, void *
     return NULL;
 }
 
-int zip_stat_index(struct zip *, int, int, struct zip_stat *) {
+int zip_stat_index(struct zip *, zip_uint64_t, zip_flags_t, struct zip_stat *) {
     assert(false);
     return 0;
 }
