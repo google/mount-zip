@@ -28,10 +28,11 @@
 #include "fileNode.h"
 #include "fuseZipData.h"
 
-const int FileNode::ROOT_NODE_INDEX = -1;
-const int FileNode::NEW_NODE_INDEX = -2;
+const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
+const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 
-FileNode::FileNode(FuseZipData *_data, const char *fname, int id): data(_data) {
+FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
+        data(_data) {
     this->id = id;
     this->is_dir = false;
     this->open_count = 0;

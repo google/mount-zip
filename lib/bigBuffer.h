@@ -138,7 +138,7 @@ public:
      *      -ENOMEM If there are no memory
      */
     int saveToZip(time_t mtime, struct zip *z, const char *fname,
-            bool newFile, int index);
+            bool newFile, zip_int64_t index);
 
     /**
      * Truncate buffer at position offset.

@@ -315,7 +315,7 @@ int fusezip_mkdir(const char *path, mode_t mode) {
     if (*path == '\0') {
         return -ENOENT;
     }
-    int idx = zip_dir_add(get_zip(), path + 1, ZIP_FL_ENC_UTF_8);
+    zip_int64_t idx = zip_dir_add(get_zip(), path + 1, ZIP_FL_ENC_UTF_8);
     if (idx < 0) {
         return -ENOMEM;
     }

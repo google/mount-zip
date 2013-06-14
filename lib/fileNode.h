@@ -44,9 +44,10 @@ private:
     void parse_name(char *fname);
     void attach();
 public:
-    static const int ROOT_NODE_INDEX, NEW_NODE_INDEX;
+    static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
 
-    FileNode(FuseZipData *_data, const char *fname, int id = NEW_NODE_INDEX);
+    FileNode(FuseZipData *_data, const char *fname,
+            zip_int64_t id = NEW_NODE_INDEX);
     ~FileNode();
 
     void detach();
@@ -94,7 +95,7 @@ public:
 
     char *name, *full_name;
     bool is_dir;
-    int id;
+    zip_int64_t id;
     nodelist_t childs;
     FileNode *parent;
 

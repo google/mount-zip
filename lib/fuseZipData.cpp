@@ -53,8 +53,8 @@ void FuseZipData::build_tree() {
     FileNode *root_node = new FileNode(this, "", FileNode::ROOT_NODE_INDEX);
     root_node->is_dir = true;
 
-    int n = zip_get_num_entries(m_zip, 0);
-    for (int i = 0; i < n; ++i) {
+    zip_int64_t n = zip_get_num_entries(m_zip, 0);
+    for (zip_int64_t i = 0; i < n; ++i) {
         const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
         try {
             FileNode *node = new FileNode(this, name, i);
@@ -68,7 +68,7 @@ void FuseZipData::build_tree() {
 
 int FuseZipData::removeNode(FileNode *node) const {
     node->detach();
-    int id = node->id;
+    zip_int64_t id = node->id;
     delete node;
     if (id >= 0) {
         return (zip_delete (m_zip, id) == 0)? 0 : ENOENT;

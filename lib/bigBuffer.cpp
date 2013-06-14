@@ -266,7 +266,7 @@ ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, 
 }
 
 int BigBuffer::saveToZip(time_t mtime, struct zip *z, const char *fname,
-        bool newFile, int index) {
+        bool newFile, zip_int64_t index) {
     struct zip_source *s;
     struct CallBackStruct *cbs = new CallBackStruct();
     cbs->buf = this;
