@@ -55,7 +55,7 @@ void FuseZipData::build_tree() {
 
     int n = zip_get_num_entries(m_zip, 0);
     for (int i = 0; i < n; ++i) {
-        const char *name = zip_get_name(m_zip, i, 0);
+        const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
         try {
             FileNode *node = new FileNode(this, name, i);
             (void) node;
