@@ -540,6 +540,20 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest 65536-files {Check that file system correctly handle more than 65535 files (issue #34)} {
+        set content {}
+        set count 65536
+        for {set i 1} {$i <= $count} {incr i} {
+            lappend content $i ""
+        }
+
+        create $content
+        mount
+        set fnames [glob -directory $mountdir -nocomplain -tails *]
+        assert {[llength $fnames] == $count} "not all files are visible"
+        umount
+    }
+
     fstest add-file-to-empty-archive {Add file to empty archive} {
         set fname $tmpdir/empty.zip
 
