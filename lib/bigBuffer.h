@@ -94,7 +94,7 @@ public:
      *      std::exception  On file read error
      *      std::bad_alloc  On memory insufficiency
      */
-    BigBuffer(struct zip *z, int nodeId, ssize_t length);
+    BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length);
 
     ~BigBuffer();
 

@@ -154,7 +154,8 @@ public:
 BigBuffer::BigBuffer(): len(0) {
 }
 
-BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
+BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
+        len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
     if (zf == NULL) {
         throw std::exception();
