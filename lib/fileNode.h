@@ -63,8 +63,8 @@ public:
     void rename_wo_reparenting(char *new_name);
 
     int open();
-    int read(char *buf, size_t size, offset_t offset) const;
-    int write(const char *buf, size_t size, offset_t offset);
+    int read(char *buf, size_t size, zip_uint64_t offset) const;
+    int write(const char *buf, size_t size, zip_uint64_t offset);
     int close();
 
     /**
@@ -84,13 +84,13 @@ public:
      *      EIO     If insufficient memory available (because ENOMEM not
      *              listed in truncate() error codes)
      */
-    int truncate(offset_t offset);
+    int truncate(zip_uint64_t offset);
 
     inline bool isChanged() const {
         return state == CHANGED || state == NEW;
     }
 
-    offset_t size() const;
+    zip_uint64_t size() const;
 
     char *name, *full_name;
     bool is_dir;

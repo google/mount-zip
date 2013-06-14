@@ -97,7 +97,7 @@ public:
      * @return  Number of bytes actually read. It can differ with 'count'
      *      if offset+count>chunkSize.
      */
-    size_t read(char *dest, offset_t offset, size_t count) const {
+    size_t read(char *dest, zip_uint64_t offset, size_t count) const {
         if (offset + count > chunkSize) {
             count = chunkSize - offset;
         }
@@ -123,7 +123,7 @@ public:
      * @throws
      *      std::bad_alloc  If there are no memory for buffer
      */
-    size_t write(const char *src, offset_t offset, size_t count) {
+    size_t write(const char *src, zip_uint64_t offset, size_t count) {
         if (offset + count > chunkSize) {
             count = chunkSize - offset;
         }
@@ -143,7 +143,7 @@ public:
     /**
      * Clear tail of internal buffer with zeroes starting from 'offset'.
      */
-    void clearTail(offset_t offset) {
+    void clearTail(zip_uint64_t offset) {
         if (m_ptr != NULL && offset < chunkSize) {
             memset(m_ptr + offset, 0, chunkSize - offset);
         }
@@ -179,7 +179,7 @@ BigBuffer::BigBuffer(struct zip *z, int nodeId, ssize_t length): len(length) {
 BigBuffer::~BigBuffer() {
 }
 
-int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
+int BigBuffer::read(char *buf, size_t size, zip_uint64_t offset) const {
     if (offset > len) {
         return 0;
     }
@@ -200,7 +200,7 @@ int BigBuffer::read(char *buf, size_t size, offset_t offset) const {
     return nread;
 }
 
-int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
+int BigBuffer::write(const char *buf, size_t size, zip_uint64_t offset) {
     int chunk = chunkNumber(offset);
     int pos = chunkOffset(offset);
     int nwritten = size;
@@ -225,7 +225,7 @@ int BigBuffer::write(const char *buf, size_t size, offset_t offset) {
     return nwritten;
 }
 
-void BigBuffer::truncate(offset_t offset) {
+void BigBuffer::truncate(zip_uint64_t offset) {
     chunks.resize(chunksCount(offset));
 
     if (offset > len && len > 0) {

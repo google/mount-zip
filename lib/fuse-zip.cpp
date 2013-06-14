@@ -41,7 +41,6 @@
 #include "types.h"
 #include "fileNode.h"
 #include "fuseZipData.h"
-#include "libZipWrapper.h"
 
 using namespace std;
 
@@ -129,8 +128,6 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     if (node == NULL) {
         return -ENOENT;
     }
-    struct zip_stat_64 zstat;
-    zip_stat_assign_64_to_default(&zstat, &node->stat);
     if (node->is_dir) {
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2 + node->childs.size();
@@ -142,7 +139,7 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     stbuf->st_ino = node->id;
     stbuf->st_blocks = (node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE;
     stbuf->st_size = node->size();
-    stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = zstat.mtime;
+    stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = node->stat.mtime;
     stbuf->st_uid = geteuid();
     stbuf->st_gid = getegid();
 

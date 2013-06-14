@@ -57,26 +57,26 @@ private:
     /**
      * Return number of chunks needed to keep 'offset' bytes.
      */
-    inline static unsigned int chunksCount(offset_t offset) {
+    inline static unsigned int chunksCount(zip_uint64_t offset) {
         return (offset + chunkSize - 1) / chunkSize;
     }
 
     /**
      * Return number of chunk where 'offset'-th byte is located.
      */
-    inline static unsigned int chunkNumber(offset_t offset) {
+    inline static unsigned int chunkNumber(zip_uint64_t offset) {
         return offset / chunkSize;
     }
 
     /**
      * Return offset inside chunk to 'offset'-th byte.
      */
-    inline static int chunkOffset(offset_t offset) {
+    inline static int chunkOffset(zip_uint64_t offset) {
         return offset % chunkSize;
     }
 
 public:
-    offset_t len;
+    zip_uint64_t len;
 
     /**
      * Create new file buffer without mapping to file in a zip archive
@@ -108,7 +108,7 @@ public:
      * @param offset    offset to start reading from
      * @return always 0
      */
-    int read(char *buf, size_t size, offset_t offset) const;
+    int read(char *buf, size_t size, zip_uint64_t offset) const;
 
     /**
      * Dispatch write request to chunks of a file and grow 'chunks' vector if
@@ -122,7 +122,7 @@ public:
      * @throws
      *      std::bad_alloc  If there are no memory for buffer
      */
-    int write(const char *buf, size_t size, offset_t offset);
+    int write(const char *buf, size_t size, zip_uint64_t offset);
 
     /**
      * Create (or replace) file element in zip file. Class instance should
@@ -149,7 +149,7 @@ public:
      * @throws
      *      std::bad_alloc  If insufficient memory available
      */
-    void truncate(offset_t offset);
+    void truncate(zip_uint64_t offset);
 };
 
 #endif

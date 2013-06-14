@@ -29,12 +29,6 @@
 #include <list>
 #include <map>
 
-#ifdef _LFS_LARGEFILE
-typedef off64_t offset_t;
-#else
-typedef off_t offset_t;
-#endif
-
 class FileNode;
 class FuseZipData;
 

@@ -193,11 +193,11 @@ int FileNode::open() {
     return 0;
 }
 
-int FileNode::read(char *buf, size_t size, offset_t offset) const {
+int FileNode::read(char *buf, size_t size, zip_uint64_t offset) const {
     return buffer->read(buf, size, offset);
 }
 
-int FileNode::write(const char *buf, size_t size, offset_t offset) {
+int FileNode::write(const char *buf, size_t size, zip_uint64_t offset) {
     if (state == OPENED) {
         state = CHANGED;
     }
@@ -221,7 +221,7 @@ int FileNode::save() {
             state == NEW, id);
 }
 
-int FileNode::truncate(offset_t offset) {
+int FileNode::truncate(zip_uint64_t offset) {
     if (state != CLOSED) {
         if (state != NEW) {
             state = CHANGED;
@@ -238,7 +238,7 @@ int FileNode::truncate(offset_t offset) {
     }
 }
 
-offset_t FileNode::size() const {
+zip_uint64_t FileNode::size() const {
     if (state == NEW || state == OPENED || state == CHANGED) {
         return buffer->len;
     } else {
