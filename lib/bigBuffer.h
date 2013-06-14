@@ -52,7 +52,8 @@ private:
      * never called because read() always successfull.
      * See zip_source_function(3) for details.
      */
-    static ssize_t zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd);
+    static zip_int64_t zipUserFunctionCallback(void *state, void *data,
+            zip_uint64_t len, enum zip_source_cmd cmd);
 
     /**
      * Return number of chunks needed to keep 'offset' bytes.

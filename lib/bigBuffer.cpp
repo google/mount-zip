@@ -236,7 +236,8 @@ void BigBuffer::truncate(zip_uint64_t offset) {
     len = offset;
 }
 
-ssize_t BigBuffer::zipUserFunctionCallback(void *state, void *data, size_t len, enum zip_source_cmd cmd) {
+zip_int64_t BigBuffer::zipUserFunctionCallback(void *state, void *data,
+        zip_uint64_t len, enum zip_source_cmd cmd) {
     CallBackStruct *b = (CallBackStruct*)state;
     switch (cmd) {
         case ZIP_SOURCE_OPEN: {
