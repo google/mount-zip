@@ -318,7 +318,7 @@ int fusezip_mkdir(const char *path, mode_t mode) {
     if (*path == '\0') {
         return -ENOENT;
     }
-    int idx = zip_add_dir(get_zip(), path + 1);
+    int idx = zip_dir_add(get_zip(), path + 1, ZIP_FL_ENC_UTF_8);
     if (idx < 0) {
         return -ENOMEM;
     }
@@ -388,12 +388,12 @@ int fusezip_rename(const char *path, const char *new_path) {
                     if (nn->is_dir) {
                         strcat(name, "/");
                     }
-                    zip_rename(z, nn->id, name);
+                    zip_file_rename(z, nn->id, name, ZIP_FL_ENC_UTF_8);
                     nn->rename_wo_reparenting(name);
                 }
             }
         }
-        zip_rename(z, node->id, new_name);
+        zip_file_rename(z, node->id, new_name, ZIP_FL_ENC_UTF_8);
         // Must be called after loop because new_name will be truncated
         node->rename(new_name);
 

@@ -53,7 +53,7 @@ void FuseZipData::build_tree() {
     FileNode *root_node = new FileNode(this, "", FileNode::ROOT_NODE_INDEX);
     root_node->is_dir = true;
 
-    int n = zip_get_num_files(m_zip);
+    int n = zip_get_num_entries(m_zip, 0);
     for (int i = 0; i < n; ++i) {
         const char *name = zip_get_name(m_zip, i, 0);
         try {
