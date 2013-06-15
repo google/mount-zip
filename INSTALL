@@ -1,7 +1,7 @@
 You need the following libraries:
 
 libfuse >= 2.7  http://fuse.sourceforge.net
-libzip >= 0.8   http://www.nih.at/libzip/
+libzip >= 0.11  http://www.nih.at/libzip/
 
 The following tools are required:
 
