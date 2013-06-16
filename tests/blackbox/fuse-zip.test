@@ -1271,6 +1271,19 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest rename-non-ascii-file {Rename file with non-ASCII characters in name} {
+        create {
+            \u0431\u0430\u043B\u0430\u043B\u0430\u0439\u043A\u0430 foobar
+        }
+        mount
+        file rename $mountdir/\u0431\u0430\u043B\u0430\u043B\u0430\u0439\u043A\u0430 $mountdir/\u043C\u0435\u0434\u0432\u0435\u0434\u044C
+        umount
+
+        check {
+            \u043C\u0435\u0434\u0432\u0435\u0434\u044C foobar
+        }
+    }
+
     fstest rename-file-new-dir {Rename file (new directory creation)} {
         create {
             foo.bar foobar
