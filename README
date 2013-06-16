@@ -71,5 +71,9 @@ See PerformancePage for details.
 = HINTS =
 
 # Added/changed files resides into memory until you unmount file system.
-# Adding/unpacking very big files(more than one half of available memory) may cause your system swapping. It is a good idea to use zip/unzip in that case :)
-# After adding/modifying files in archive it will be repacked at filesystem unmount. Hence, your file system must have enough space to keep tempopary files.
+# Adding/unpacking very big files(more than one half of available memory) may
+  cause your system swapping. It is a good idea to use zip/unzip in that case
+  :)
+# After adding/modifying files in archive it will be repacked at filesystem
+  unmount. Hence, your file system must have enough space to keep temporary
+  files.
