@@ -181,7 +181,7 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
         }
         ++chunk;
         length -= nr;
-        if (chunk == ccount && length != 0) {
+        if ((nr == 0 || chunk == ccount) && length != 0) {
             // Allocated memory are exhausted, but there are unread bytes (or
             // file is longer that given length). Possibly CRC error.
             zip_fclose(zf);
