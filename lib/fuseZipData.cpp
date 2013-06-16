@@ -25,16 +25,13 @@
 
 #include "fuseZipData.h"
 
-FuseZipData::FuseZipData(const char *archiveName, struct zip *z, char *cwd): m_zip(z), m_archiveName(archiveName), m_cwd(cwd)  {
-    if (cwd == NULL) {
-        throw std::bad_alloc();
-    }
-    build_tree();
+FuseZipData::FuseZipData(const char *archiveName, struct zip *z, const char *cwd): m_zip(z), m_archiveName(archiveName), m_cwd(cwd)  {
 }
 
 FuseZipData::~FuseZipData() {
-    if (chdir(m_cwd) != 0) {
-        syslog(LOG_ERR, "Unable to chdir() to archive directory %s. Trying to save file into /tmp", m_cwd);
+    if (chdir(m_cwd.c_str()) != 0) {
+        syslog(LOG_ERR, "Unable to chdir() to archive directory %s. Trying to save file into /tmp",
+                m_cwd.c_str());
         if (chdir(getenv("TMP")) != 0) {
             chdir("/tmp");
         }
@@ -46,7 +43,6 @@ FuseZipData::~FuseZipData() {
     for (filemap_t::iterator i = files.begin(); i != files.end(); ++i) {
         delete i->second;
     }
-    free(m_cwd);
 }
 
 void FuseZipData::build_tree() {

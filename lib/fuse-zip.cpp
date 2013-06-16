@@ -60,6 +60,9 @@ FuseZipData *initFuseZip(const char *program, const char *fileName) {
     try {
         // current working directory
         char *cwd = (char*)malloc(PATH_MAX + 1);
+        if (cwd == NULL) {
+            throw std::bad_alloc();
+        }
         if (getcwd(cwd, PATH_MAX) == NULL) {
             perror(NULL);
             return data;
@@ -68,6 +71,13 @@ FuseZipData *initFuseZip(const char *program, const char *fileName) {
         data = new FuseZipData(fileName, zip_file, cwd);
         if (data == NULL) {
             throw std::bad_alloc();
+        }
+        try {
+            data->build_tree();
+        }
+        catch (...) {
+            delete data;
+            throw;
         }
     }
     catch (std::bad_alloc) {
@@ -84,7 +94,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName) {
 void *fusezip_init(struct fuse_conn_info *conn) {
     (void) conn;
     FuseZipData *data = (FuseZipData*)fuse_get_context()->private_data;
-    syslog(LOG_INFO, "Mounting file system on %s (cwd=%s)", data->m_archiveName, data->m_cwd);
+    syslog(LOG_INFO, "Mounting file system on %s (cwd=%s)", data->m_archiveName, data->m_cwd.c_str());
     return data;
 }
 
@@ -174,7 +184,7 @@ int fusezip_statfs(const char *path, struct statvfs *buf) {
     // Getting amount of free space in directory with archive
     struct statvfs st;
     int err;
-    if ((err = statvfs(get_data()->m_cwd,&st)) != 0) {
+    if ((err = statvfs(get_data()->m_cwd.c_str(), &st)) != 0) {
         return -err;
     }
     buf->f_bavail = buf->f_bfree = st.f_frsize * st.f_bavail;

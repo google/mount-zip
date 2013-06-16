@@ -22,17 +22,17 @@
 #ifndef FUSEZIP_DATA
 #define FUSEZIP_DATA
 
+#include <string>
+
 #include "types.h"
 #include "fileNode.h"
 
 class FuseZipData {
-private:
-    void build_tree();
 public:
     filemap_t files;
     struct zip *m_zip;
     const char *m_archiveName;
-    char *m_cwd;
+    std::string m_cwd;
 
     /**
      * Keep archiveName and cwd in class fields and build file tree from z.
@@ -40,7 +40,7 @@ public:
      * 'cwd' and 'z' free()-ed in destructor.
      * 'archiveName' should be managed externally.
      */
-    FuseZipData(const char *archiveName, struct zip *z, char *cwd);
+    FuseZipData(const char *archiveName, struct zip *z, const char *cwd);
     ~FuseZipData();
 
     /**
@@ -51,6 +51,11 @@ public:
      * @return Error code or 0 is successful
      */
     int removeNode(FileNode *node) const;
+
+    /**
+     * Build tree of zip file entries from ZIP file
+     */
+    void build_tree();
 };
 
 #endif
