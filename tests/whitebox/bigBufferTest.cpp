@@ -21,12 +21,16 @@ bool use_zip = false;
 struct zip {
     bool fail_zip_fopen_index;
     bool fail_zip_fread;
+    bool zip_fread_custom_return;
+    zip_uint64_t zip_fread_custom_return_length;
     bool fail_zip_fclose;
     bool fail_zip_source_function;
     bool fail_zip_add;
     bool fail_zip_replace;
 
     struct zip_source *source;
+
+    zip(): zip_fread_custom_return(false) {}
 };
 struct zip_file {
     struct zip *zip;
@@ -65,6 +69,9 @@ zip_int64_t zip_fread(struct zip_file *zf, void *dest, zip_uint64_t size) {
     if (zf->zip->fail_zip_fread) {
         return -1;
     } else {
+        if (zf->zip->zip_fread_custom_return) {
+            size = zf->zip->zip_fread_custom_return_length;
+        }
         memset(dest, 'X', size);
         return size;
     }
@@ -483,6 +490,38 @@ void writeZip() {
     }
 }
 
+void zipFReadLengthFailure() {
+    BigBuffer bb;
+    struct zip z;
+    z.fail_zip_fopen_index = false;
+    z.fail_zip_fread = false;
+    z.zip_fread_custom_return = true;
+    z.zip_fread_custom_return_length = 22;
+    // data is longer that specified in header
+    {
+        bool thrown = false;
+        try {
+            BigBuffer bb(&z, 2, 10);
+        }
+        catch (const std::exception &e) {
+            thrown = true;
+        }
+        assert(thrown);
+    }
+    // zero read length
+    z.zip_fread_custom_return_length = 0;
+    {
+        bool thrown = false;
+        try {
+            BigBuffer bb(&z, 2, 10);
+        }
+        catch (const std::exception &e) {
+            thrown = true;
+        }
+        assert(thrown);
+    }
+}
+
 int main(int, char **) {
     initTest();
 
@@ -500,6 +539,8 @@ int main(int, char **) {
     use_zip = true;
     readZip();
     writeZip();
+
+    zipFReadLengthFailure();
 
     return EXIT_SUCCESS;
 }
