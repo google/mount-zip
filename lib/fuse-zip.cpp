@@ -69,6 +69,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName) {
         }
 
         data = new FuseZipData(fileName, zip_file, cwd);
+        free(cwd);
         if (data == NULL) {
             throw std::bad_alloc();
         }
