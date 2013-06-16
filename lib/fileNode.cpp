@@ -24,6 +24,8 @@
 #include <ctime>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
+#include <syslog.h>
 
 #include "fileNode.h"
 #include "fuseZipData.h"
@@ -113,7 +115,8 @@ void FileNode::attach() {
     if (other_iter != this->data->files.end()) {
         FileNode *other = other_iter->second;
         if (other->id != FileNode::NEW_NODE_INDEX) {
-            throw std::exception();
+            syslog(LOG_ERR, "duplicated file name: %s", this->full_name);
+            throw std::runtime_error("duplicate file names");
         }
         // ... update existing node information
         other->id = this->id;
@@ -134,7 +137,7 @@ void FileNode::attach() {
         if (parent_iter == data->files.end()) {
             // Relative paths are not supported
             if (strcmp(this->full_name, ".") == 0 || strcmp(this->full_name, "..") == 0) {
-                throw std::exception();
+                throw std::runtime_error("relative paths are not supported");
             }
             FileNode *p = new FileNode(data, this->full_name);
             p->is_dir = true;

@@ -107,6 +107,11 @@ const char *zip_strerror(struct zip *) {
     return NULL;
 }
 
+const char *zip_file_strerror(struct zip_file *) {
+    assert(false);
+    return NULL;
+}
+
 // test functions
 
 int main(int, char **argv) {

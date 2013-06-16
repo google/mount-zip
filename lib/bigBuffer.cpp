@@ -22,6 +22,8 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
+#include <syslog.h>
 
 #include "bigBuffer.h"
 
@@ -158,7 +160,8 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
         len(length) {
     struct zip_file *zf = zip_fopen_index(z, nodeId, 0);
     if (zf == NULL) {
-        throw std::exception();
+        syslog(LOG_WARNING, "%s", zip_strerror(z));
+        throw std::runtime_error(zip_strerror(z));
     }
     unsigned int ccount = chunksCount(length);
     chunks.resize(ccount, ChunkWrapper());
@@ -171,8 +174,10 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
         }
         nr = zip_fread(zf, chunks[chunk].ptr(true), readSize);
         if (nr < 0) {
+            std::string err = zip_file_strerror(zf);
+            syslog(LOG_WARNING, "%s", err.c_str());
             zip_fclose(zf);
-            throw std::exception();
+            throw std::runtime_error(err);
         }
         ++chunk;
         length -= nr;
@@ -180,11 +185,14 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
             // Allocated memory are exhausted, but there are unread bytes (or
             // file is longer that given length). Possibly CRC error.
             zip_fclose(zf);
-            throw std::exception();
+            syslog(LOG_WARNING, "length of file %s differ from data length",
+                    zip_get_name(z, nodeId, ZIP_FL_ENC_RAW));
+            throw std::runtime_error("data length differ");
         }
     }
     if (zip_fclose(zf)) {
-        throw std::exception();
+        syslog(LOG_WARNING, "%s", zip_strerror(z));
+        throw std::runtime_error(zip_strerror(z));
     }
 }
 

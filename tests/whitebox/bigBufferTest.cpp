@@ -96,6 +96,18 @@ void zip_source_free(struct zip_source *z) {
     free(z);
 }
 
+const char *zip_get_name(struct zip *, zip_uint64_t, zip_flags_t) {
+    return "file.name";
+}
+
+const char *zip_strerror(struct zip *) {
+    return "human-readable error (global)";
+}
+
+const char *zip_file_strerror(struct zip_file *) {
+    return "human-readable error (file-specific)";
+}
+
 // only stubs
 
 struct zip *zip_open(const char *, int, int *) {
@@ -136,11 +148,6 @@ int zip_rename(struct zip *, int, const char *) {
 int zip_stat_index(struct zip *, int, int, struct zip_stat *) {
     assert(false);
     return 0;
-}
-
-const char *zip_strerror(struct zip *) {
-    assert(false);
-    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////

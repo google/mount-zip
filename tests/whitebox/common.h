@@ -35,11 +35,6 @@ void zip_file_error_get(struct zip_file *, int *, int *) {
     assert(false);
 }
 
-const char *zip_file_strerror(struct zip_file *) {
-    assert(false);
-    return NULL;
-}
-
 struct zip_file *zip_fopen(struct zip *, const char *, int) {
     assert(false);
     return NULL;
