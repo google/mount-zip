@@ -163,9 +163,9 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
     unsigned int ccount = chunksCount(length);
     chunks.resize(ccount, ChunkWrapper());
     unsigned int chunk = 0;
-    ssize_t nr;
+    int nr;
     while (length > 0) {
-        ssize_t readSize = chunkSize;
+        zip_uint64_t readSize = chunkSize;
         if (readSize > length) {
             readSize = length;
         }
