@@ -165,7 +165,11 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
     unsigned int chunk = 0;
     ssize_t nr;
     while (length > 0) {
-        nr = zip_fread(zf, chunks[chunk].ptr(true), chunkSize);
+        ssize_t readSize = chunkSize;
+        if (readSize > length) {
+            readSize = length;
+        }
+        nr = zip_fread(zf, chunks[chunk].ptr(true), readSize);
         if (nr < 0) {
             zip_fclose(zf);
             throw std::exception();
