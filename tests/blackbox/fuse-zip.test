@@ -14,7 +14,7 @@ package require control
 namespace eval ::fusezip::test {
     namespace import ::control::assert
 
-    variable binary ../../fuse-zip
+    variable binary [file join [file dirname [info script]] ../../fuse-zip]
     variable tmpdir [ exec mktemp -d "/tmp/fuse-zip-tests-[ pid ].XXXXXXXXXX" ]
     # two minutes
     variable timeout [ expr {1000 * 60 * 2} ]
