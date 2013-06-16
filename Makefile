@@ -1,9 +1,10 @@
 DEST=fuse-zip
 LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs) -Llib -lfusezip
 LIB=lib/libfusezip.a
-CXXFLAGS=-g -O2 -Wall -Wextra
+CXXFLAGS=-g -O0 -Wall -Wextra
 RELEASE_CXXFLAGS=-O2 -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
+ZIPFLAGS=$(shell pkg-config libzip --cflags)
 SOURCES=main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 MANSRC=fuse-zip.1
@@ -24,7 +25,7 @@ $(DEST): $(OBJECTS) $(LIB)
 
 # main.cpp must be compiled separately with FUSEFLAGS
 main.o: main.cpp
-	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $< \
+	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $(ZIPFLAGS) $< \
 	    -Ilib \
 	    -o $@
 

@@ -1,6 +1,6 @@
 DEST=libfusezip.a
 LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
-CXXFLAGS=-g -O2 -Wall -Wextra
+CXXFLAGS=-g -O0 -Wall -Wextra
 RELEASE_CXXFLAGS=-O2 -Wall -Wextra
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 ZIPFLAGS=$(shell pkg-config libzip --cflags)
