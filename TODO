@@ -1,9 +1,5 @@
-* whitebox test suite
-* more unified exceptions and error cases handling
 * replace vector<T> with (s)list<T> in BigBuffer
 * rewrite files tree: keep only short path information to simplify rename(), use hash_map (unordered_map) instead of map
-* log zip file errors to syslog
-* truncate() without open-close file
 * incapsulate call for zip_* into FileNode
 * speed up position determination using bitwise operations
 * iterate over chunks by iterator instead of indexing
