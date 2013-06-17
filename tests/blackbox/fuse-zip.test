@@ -174,7 +174,7 @@ namespace eval ::fusezip::test {
                 incr numSkipped
             }
         }
-        file delete -force $tmpdir
+        catch {file delete -force $tmpdir}
     }
 
     # mount --
@@ -515,7 +515,7 @@ namespace eval ::fusezip::test {
         } else {
             set msg [ stripValgrindOutput [ join $error \n ] ]
             if {![ regexp {^fuse: bad mount point} $msg ]} {
-                error "Invalid error message"
+                error "Invalid error message: $msg"
             }
         }
     }
@@ -1496,6 +1496,19 @@ namespace eval ::fusezip::test {
         
         check {
             a b
+        }
+    }
+
+    fstest relative-paths {Check for relative paths in archive} {
+        set fname data/relative-paths.zip
+        if {![ catch {mount} err opts ] &&
+                [ dict get $opts -errorcode ] eq "NOTMOUNTED"} {
+            error "Mount error is expected"
+        } else {
+            set msg [ stripValgrindOutput [ join $error \n ] ]
+            if {![ regexp {^fuse-zip: unable to open ZIP file: relative paths are not supported} $msg ]} {
+                error "Invalid error message: $msg"
+            }
         }
     }
 
