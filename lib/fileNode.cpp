@@ -140,9 +140,9 @@ void FileNode::attach() {
         // Searching for parent node...
         filemap_t::const_iterator parent_iter = data->files.find(this->full_name);
         if (parent_iter == data->files.end()) {
-            // Relative paths are not supported
+            // paths relative to parent dir are not supported
             if (strcmp(this->full_name, ".") == 0 || strcmp(this->full_name, "..") == 0) {
-                throw std::runtime_error("relative paths are not supported");
+                throw std::runtime_error("paths relative to parent directory are not supported");
             }
             FileNode *p = new FileNode(data, this->full_name);
             p->is_dir = true;

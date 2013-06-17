@@ -509,8 +509,8 @@ namespace eval ::fusezip::test {
 
     fstest bad-mountpoint {Bad mountpoint} {
         file delete -force $mountdir
-        if {![ catch {mount} err opts ] &&
-                [ dict get $opts -errorcode ] eq "NOTMOUNTED"} {
+        if {![ catch {mount} err opts ] ||
+                [ dict get $opts -errorcode ] ne "NOTMOUNTED"} {
             error "Mount error is expected"
         } else {
             set msg [ stripValgrindOutput [ join $error \n ] ]
@@ -1499,14 +1499,14 @@ namespace eval ::fusezip::test {
         }
     }
 
-    fstest relative-paths {Check for relative paths in archive} {
-        set fname data/relative-paths.zip
-        if {![ catch {mount} err opts ] &&
-                [ dict get $opts -errorcode ] eq "NOTMOUNTED"} {
+    fstest parent-relative-paths {Check for paths relative to parent directory in archive} {
+        set fname data/parent-relative-paths.zip
+        if {![ catch {mount} err opts ] ||
+                [ dict get $opts -errorcode ] ne "NOTMOUNTED"} {
             error "Mount error is expected"
         } else {
             set msg [ stripValgrindOutput [ join $error \n ] ]
-            if {![ regexp {^fuse-zip: unable to open ZIP file: relative paths are not supported} $msg ]} {
+            if {![ regexp {^fuse-zip: unable to open ZIP file: paths relative to parent directory are not supported} $msg ]} {
                 error "Invalid error message: $msg"
             }
         }
