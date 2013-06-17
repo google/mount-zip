@@ -22,6 +22,8 @@
 #include <zip.h>
 #include <syslog.h>
 #include <cerrno>
+#include <cassert>
+#include <stdexcept>
 
 #include "fuseZipData.h"
 
@@ -52,6 +54,7 @@ void FuseZipData::build_tree() {
     zip_int64_t n = zip_get_num_entries(m_zip, 0);
     for (zip_int64_t i = 0; i < n; ++i) {
         const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
+        validateFileName(name);
         try {
             FileNode *node = new FileNode(this, name, i);
             (void) node;
@@ -73,3 +76,30 @@ int FuseZipData::removeNode(FileNode *node) const {
     }
 }
 
+void FuseZipData::validateFileName(const char *fname) {
+    if (fname[0] == '/') {
+        throw std::runtime_error("absolute paths are not supported");
+    }
+    // anomalies
+    if (fname[0] == 0) {
+        throw std::runtime_error("empty file name");
+    }
+    if (strstr(fname, "//") != NULL) {
+        throw std::runtime_error(std::string("bad file name (two slashes): ") + fname);
+    }
+
+    // . or .. in file/dir name
+    assert(*fname != 0);
+    const char *start = fname, *cur;
+    while ((cur = strchr(start + 1, '/')) != NULL) {
+        if ((cur - start == 1 && start[0] == '.') ||
+            (cur - start == 2 && start[0] == '.' && start[1] == '.')) {
+            throw std::runtime_error("paths relative to parent directory are not supported");
+        }
+        start = cur;
+    }
+    // end of string is reached
+    if (strcmp(start, ".") == 0 || strcmp(start, "..") == 0) {
+        throw std::runtime_error("paths relative to parent directory are not supported");
+    }
+}

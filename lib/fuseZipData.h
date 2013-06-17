@@ -28,6 +28,13 @@
 #include "fileNode.h"
 
 class FuseZipData {
+private:
+    /**
+     * Check that file name does not contain paths relative to parent
+     * directory or absolute paths
+     * @throws std::runtime_exception if name is invalid
+     */
+    static void validateFileName(const char *fname);
 public:
     filemap_t files;
     struct zip *m_zip;

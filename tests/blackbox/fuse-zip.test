@@ -1512,6 +1512,18 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest absolute-path {Check for absolute paths in archive} {
+        set fname data/absolute-path.zip
+        if {![catch {mount} err opts] || [dict get $opts -errorcode] ne "NOTMOUNTED"} {
+            error "Mount error is expected"
+        } else {
+            set msg [stripValgrindOutput [join $error \n]]
+            if {![regexp {^fuse-zip: unable to open ZIP file: absolute paths are not supported} $msg]} {
+                error "Invalid error message: $msg"
+            }
+        }
+    }
+
     finalize
 }
 namespace delete ::util::test
