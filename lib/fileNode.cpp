@@ -26,6 +26,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <syslog.h>
+#include <cassert>
 
 #include "fileNode.h"
 #include "fuseZipData.h"
@@ -51,6 +52,10 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
         state = CLOSED;
         if (id != ROOT_NODE_INDEX) {
             zip_stat_index(data->m_zip, this->id, 0, &stat);
+            // check that all used fields are valid
+            zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
+                ZIP_STAT_SIZE | ZIP_STAT_MTIME;
+            assert((stat.valid & needValid) == needValid);
         } else {
             zip_stat_init(&stat);
             stat.mtime = time(NULL);
