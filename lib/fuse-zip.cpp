@@ -84,10 +84,12 @@ FuseZipData *initFuseZip(const char *program, const char *fileName) {
     catch (std::bad_alloc) {
         syslog(LOG_ERR, "no enough memory");
         fprintf(stderr, "%s: no enough memory\n", program);
+        return NULL;
     }
     catch (const std::exception &e) {
         syslog(LOG_ERR, "error opening ZIP file: %s", e.what());
         fprintf(stderr, "%s: unable to open ZIP file: %s\n", program, e.what());
+        return NULL;
     }
     return data;
 }
