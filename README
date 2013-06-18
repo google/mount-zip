@@ -1,11 +1,16 @@
 = ABOUT =
 
-fuse-zip is a FUSE file system to navigate, extract, create and modify ZIP
-archives based in libzip implemented in C++.
+fuse-zip is a FUSE file system to navigate, extract, create and modify ZIP and
+ZIP64 archives based on libzip implemented in C++.
 
 With fuse-zip you really can work with ZIP archives as real directories.
 Unlike KIO or Gnome VFS, it can be used in any application without
 modifications.
+
+Since version 0.3.0 fuse-zip has support for absolute and parent-relative paths
+in file names, but only in read-only mode (-r command line switch). Absolute
+paths are displayed under ROOT directory, every ".." in path replaced by "UP"
+in directory name and "normal" files are placed under CUR directory.
 
 Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
 archives. Also, fuse-zip is faster that all known implementations on large
