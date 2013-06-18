@@ -152,7 +152,7 @@ void relativePaths() {
     }
     catch (const std::runtime_error &e) {
         thrown = true;
-        assert(strcmp(e.what(), "relative paths are not supported") == 0);
+        assert(strcmp(e.what(), "paths relative to parent directory are not supported") == 0);
     }
     assert(thrown);
 }
