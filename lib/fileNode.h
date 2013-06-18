@@ -22,6 +22,7 @@
 #ifndef FILE_NODE_H
 #define FILE_NODE_H
 
+#include <string>
 #include <unistd.h>
 
 #include "types.h"
@@ -41,7 +42,7 @@ private:
     int open_count;
     nodeState state;
 
-    void parse_name(char *fname);
+    void parse_name();
     void attach();
 public:
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
@@ -57,9 +58,8 @@ public:
      * Rename file without reparenting.
      *
      * 1. Remove file item from tree
-     * 2. Free ols file name string
-     * 3. Parse new name
-     * 4. Create link to new name in tree
+     * 2. Parse new name
+     * 3. Create link to new name in tree
      */
     void rename_wo_reparenting(char *new_name);
 
@@ -93,7 +93,8 @@ public:
 
     zip_uint64_t size() const;
 
-    char *name, *full_name;
+    const char *name;
+    std::string full_name;
     bool is_dir;
     zip_int64_t id;
     nodelist_t childs;

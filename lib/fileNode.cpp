@@ -35,7 +35,7 @@ const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 
 FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
-        data(_data) {
+        data(_data), full_name(fname) {
     this->id = id;
     this->is_dir = false;
     this->open_count = 0;
@@ -62,46 +62,35 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
             stat.size = 0;
         }
     }
-    char *t = strdup(fname);
-    if (t == NULL) {
-        throw std::bad_alloc();
-    }
-    parse_name(t);
-    try {
-        attach();
-    }
-    catch (...) {
-        free(full_name);
-        throw;
-    }
+    parse_name();
+    attach();
 }
 
 FileNode::~FileNode() {
-    free(full_name);
     if (state == OPENED || state == CHANGED || state == NEW) {
         delete buffer;
     }
 }
 
-void FileNode::parse_name(char *fname) {
-    this->full_name = fname;
-    if (*fname == '\0') {
+void FileNode::parse_name() {
+    if (full_name.empty()) {
         // in case of root directory of a virtual filesystem
-        this->name = this->full_name;
+        this->name = full_name.c_str();
         this->is_dir = true;
     } else {
-        char *lsl = full_name;
+        const char *lsl = full_name.c_str();
         while (*lsl++) {}
         lsl--;
-        while (lsl > full_name && *lsl != '/') {
+        while (lsl > full_name.c_str() && *lsl != '/') {
             lsl--;
         }
         // If the last symbol in file name is '/' then it is a directory
         if (*lsl == '/' && *(lsl+1) == '\0') {
-            // It will produce two \0s at the end of file name. I think that it is not a problem
-            *lsl = '\0';
+            // It will produce two \0s at the end of file name. I think that
+            // it is not a problem
+            full_name[full_name.size() - 1] = 0;
             this->is_dir = true;
-            while (lsl > full_name && *lsl != '/') {
+            while (lsl > full_name.c_str() && *lsl != '/') {
                 lsl--;
             }
         }
@@ -115,12 +104,13 @@ void FileNode::parse_name(char *fname) {
 
 void FileNode::attach() {
     filemap_t::const_iterator other_iter =
-        this->data->files.find(this->full_name);
+        this->data->files.find(full_name.c_str());
     // If Node with the same name already exists...
     if (other_iter != this->data->files.end()) {
         FileNode *other = other_iter->second;
         if (other->id != FileNode::NEW_NODE_INDEX) {
-            syslog(LOG_ERR, "duplicated file name: %s", this->full_name);
+            syslog(LOG_ERR, "duplicated file name: %s",
+                    full_name.c_str());
             throw std::runtime_error("duplicate file names");
         }
         // ... update existing node information
@@ -129,45 +119,46 @@ void FileNode::attach() {
         other->state = this->state;
         throw AlreadyExists();
     }
-    if (*this->full_name != '\0') {
+    if (!full_name.empty()) {
         // Adding new child to parent node. For items without '/' in fname it will be root_node.
-        char *lsl = this->name;
-        if (lsl > this->full_name) {
+        const char *lsl = this->name;
+        if (lsl > full_name.c_str()) {
             lsl--;
         }
         char c = *lsl;
-        *lsl = '\0';
+        *(const_cast <char*> (lsl)) = '\0';
         // Searching for parent node...
-        filemap_t::const_iterator parent_iter = data->files.find(this->full_name);
+        filemap_t::const_iterator parent_iter = data->files.find(
+                full_name.c_str());
         if (parent_iter == data->files.end()) {
-            FileNode *p = new FileNode(data, this->full_name);
+            FileNode *p = new FileNode(data, full_name.c_str());
             p->is_dir = true;
             this->parent = p;
         } else {
             this->parent = parent_iter->second;
         }
         this->parent->childs.push_back(this);
-        *lsl = c;
+        *(const_cast <char*> (lsl)) = c;
     }
-    this->data->files[this->full_name] = this;
+    this->data->files[full_name.c_str()] = this;
 }
 
 void FileNode::detach() {
-    data->files.erase(full_name);
+    data->files.erase(full_name.c_str());
     parent->childs.remove(this);
 }
 
 void FileNode::rename(char *fname) {
     detach();
-    free(full_name);
-    parse_name(fname);
+    full_name = fname;
+    parse_name();
     attach();
 }
 
 void FileNode::rename_wo_reparenting(char *new_name) {
-    data->files.erase(full_name);
-    free(full_name);
-    parse_name(new_name);
+    data->files.erase(full_name.c_str());
+    full_name = new_name;
+    parse_name();
     data->files[new_name] = this;
 }
 
@@ -222,7 +213,7 @@ int FileNode::close() {
 }
 
 int FileNode::save() {
-    return buffer->saveToZip(stat.mtime, data->m_zip, full_name,
+    return buffer->saveToZip(stat.mtime, data->m_zip, full_name.c_str(),
             state == NEW, id);
 }
 

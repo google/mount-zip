@@ -108,7 +108,8 @@ void fusezip_destroy(void *data) {
         if (i->second->isChanged() && !i->second->is_dir) {
             int res = i->second->save();
             if (res != 0) {
-                syslog(LOG_ERR, "Error while saving file %s in ZIP archive: %d", i->second->full_name, res);
+                syslog(LOG_ERR, "Error while saving file %s in ZIP archive: %d",
+                        i->second->full_name.c_str(), res);
             }
         }
     }
@@ -390,18 +391,19 @@ int fusezip_rename(const char *path, const char *new_path) {
                 for (nodelist_t::const_iterator i = n->childs.begin(); i != n->childs.end(); ++i) {
                     FileNode *nn = *i;
                     q.push(nn);
-                    char *name = (char*)malloc(len + strlen(nn->full_name) - oldLen + (nn->is_dir ? 2 : 1));
+                    char *name = (char*)malloc(len + nn->full_name.size() - oldLen + (nn->is_dir ? 2 : 1));
                     if (name == NULL) {
                         //TODO: check that we are have enough memory before entering this loop
                         return -ENOMEM;
                     }
                     strcpy(name, new_name);
-                    strcpy(name + len, nn->full_name + oldLen);
+                    strcpy(name + len, nn->full_name.c_str() + oldLen);
                     if (nn->is_dir) {
                         strcat(name, "/");
                     }
                     zip_file_rename(z, nn->id, name, ZIP_FL_ENC_UTF_8);
                     nn->rename_wo_reparenting(name);
+                    free(name);
                 }
             }
         }
