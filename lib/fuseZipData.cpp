@@ -144,7 +144,7 @@ void FuseZipData::convertFileName(const char *fname, bool readonly,
     assert(fname[0] != '/');
 
     const char *start = fname, *cur;
-    while ((cur = strchr(start + 1, '/')) != NULL) {
+    while (start[0] != 0 && (cur = strchr(start + 1, '/')) != NULL) {
         if ((cur - start == 1 && start[0] == '.') ||
             (cur - start == 2 && start[0] == '.' && start[1] == '.')) {
             throw std::runtime_error(std::string("bad file name: ") + orig);
