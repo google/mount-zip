@@ -90,13 +90,14 @@ void FuseZipData::validateFileName(const char *fname) {
 
     // . or .. in file/dir name
     assert(*fname != 0);
+    assert(*fname != '/');
     const char *start = fname, *cur;
     while ((cur = strchr(start + 1, '/')) != NULL) {
         if ((cur - start == 1 && start[0] == '.') ||
             (cur - start == 2 && start[0] == '.' && start[1] == '.')) {
             throw std::runtime_error("paths relative to parent directory are not supported");
         }
-        start = cur;
+        start = cur + 1;
     }
     // end of string is reached
     if (strcmp(start, ".") == 0 || strcmp(start, "..") == 0) {
