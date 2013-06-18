@@ -35,7 +35,8 @@ extern "C" {
  * @param fileName  ZIP file name
  * @return NULL if an error occured, otherwise pointer to FuseZipData structure.
  */
-class FuseZipData *initFuseZip(const char *program, const char *fileName);
+class FuseZipData *initFuseZip(const char *program, const char *fileName,
+        bool readonly);
 
 /**
  * Initialize filesystem

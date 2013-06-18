@@ -47,7 +47,9 @@ FuseZipData::~FuseZipData() {
     }
 }
 
-void FuseZipData::build_tree() {
+void FuseZipData::build_tree(bool readonly) {
+    (void)readonly;
+
     FileNode *root_node = new FileNode(this, "", FileNode::ROOT_NODE_INDEX);
     root_node->is_dir = true;
 

@@ -21,6 +21,7 @@
 
 #define KEY_HELP (0)
 #define KEY_VERSION (1)
+#define KEY_RO (2)
 
 #include "config.h"
 
@@ -69,6 +70,8 @@ struct fusezip_param {
     int strArgCount;
     // zip file name
     const char *fileName;
+    // read-only flag
+    bool readonly;
 };
 
 /**
@@ -103,6 +106,11 @@ static int process_arg(void *data, const char *arg, int key, struct fuse_args *o
             return KEEP;
         }
 
+        case KEY_RO: {
+            param->readonly = true;
+            return KEEP;
+        }
+
         case FUSE_OPT_KEY_NONOPT: {
             ++param->strArgCount;
             switch (param->strArgCount) {
@@ -133,6 +141,8 @@ static const struct fuse_opt fusezip_opts[] = {
     FUSE_OPT_KEY("--help",      KEY_HELP),
     FUSE_OPT_KEY("-V",          KEY_VERSION),
     FUSE_OPT_KEY("--version",   KEY_VERSION),
+    FUSE_OPT_KEY("-r",          KEY_RO),
+    FUSE_OPT_KEY("ro",          KEY_RO),
     {NULL, 0, 0}
 };
 
@@ -146,6 +156,7 @@ int main(int argc, char *argv[]) {
     struct fusezip_param param;
     param.help = false;
     param.version = false;
+    param.readonly = false;
     param.strArgCount = 0;
     param.fileName = NULL;
 
@@ -170,7 +181,8 @@ int main(int argc, char *argv[]) {
         }
 
         openlog(PROGRAM, LOG_PID, LOG_USER);
-        if ((data = initFuseZip(PROGRAM, param.fileName)) == NULL) {
+        if ((data = initFuseZip(PROGRAM, param.fileName, param.readonly))
+                == NULL) {
             fuse_opt_free_args(&args);
             return EXIT_FAILURE;
         }

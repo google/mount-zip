@@ -45,7 +45,8 @@
 using namespace std;
 
 //TODO: Move printf-s out this function
-FuseZipData *initFuseZip(const char *program, const char *fileName) {
+FuseZipData *initFuseZip(const char *program, const char *fileName,
+        bool readonly) {
     FuseZipData *data = NULL;
     int err;
     struct zip *zip_file;
@@ -74,7 +75,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName) {
             throw std::bad_alloc();
         }
         try {
-            data->build_tree();
+            data->build_tree(readonly);
         }
         catch (...) {
             delete data;

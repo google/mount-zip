@@ -133,7 +133,7 @@ void duplicateFileNames() {
     FuseZipData zd("test.zip", &z, "/tmp");
     bool thrown = false;
     try {
-        zd.build_tree();
+        zd.build_tree(false);
     }
     catch (const std::runtime_error &e) {
         thrown = true;
@@ -148,7 +148,7 @@ void relativePaths() {
     FuseZipData zd("test.zip", &z, "/tmp");
     bool thrown = false;
     try {
-        zd.build_tree();
+        zd.build_tree(false);
     }
     catch (const std::runtime_error &e) {
         thrown = true;

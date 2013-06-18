@@ -117,7 +117,7 @@ const char *zip_file_strerror(struct zip_file *) {
 int main(int, char **argv) {
     initTest();
 
-    FuseZipData *data = initFuseZip(argv[0], "test.zip");
+    FuseZipData *data = initFuseZip(argv[0], "test.zip", false);
     assert(data == NULL);
 
     return EXIT_SUCCESS;

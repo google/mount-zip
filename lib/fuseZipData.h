@@ -62,7 +62,7 @@ public:
     /**
      * Build tree of zip file entries from ZIP file
      */
-    void build_tree();
+    void build_tree(bool readonly);
 };
 
 #endif
