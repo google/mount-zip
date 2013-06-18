@@ -147,6 +147,8 @@ int main(int, char **) {
     FuseZipData::validateFileName("path/to/.hidden/dir");
 
     checkException("..", "paths relative to parent directory are not supported");
+    checkException("../abc", "paths relative to parent directory are not supported");
+    checkException("../../../abc", "paths relative to parent directory are not supported");
     checkException("abc/../cde", "paths relative to parent directory are not supported");
     checkException("abc/..", "paths relative to parent directory are not supported");
     FuseZipData::validateFileName("..superhidden");
