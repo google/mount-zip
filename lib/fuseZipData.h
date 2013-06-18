@@ -30,11 +30,26 @@
 class FuseZipData {
 private:
     /**
-     * Check that file name does not contain paths relative to parent
-     * directory or absolute paths
+     * Check that file name is non-empty and does not contain duplicate
+     * slashes
      * @throws std::runtime_exception if name is invalid
      */
     static void validateFileName(const char *fname);
+
+    /**
+     * In read-only mode convert file names to replace .. to UP and / to
+     * ROOT to make absolute and relative paths accessible via file system.
+     * In read-write mode throw an error if path is absolute or relative to
+     * parent directory.
+     * @param fname file name
+     * @param readonly read-only flag
+     * @param needPrefix prepend CUR directory prefix to "normal" file
+     * names to not mix them with parent-relative or absolute
+     * @param converted result string
+     * @throws std::runtime_exception if name is invalid
+     */
+    static void convertFileName(const char *fname, bool readonly,
+            bool needPrefix, std::string &converted);
 public:
     filemap_t files;
     struct zip *m_zip;

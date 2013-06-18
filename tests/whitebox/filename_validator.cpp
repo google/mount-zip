@@ -116,7 +116,7 @@ const char *zip_file_strerror(struct zip_file *) {
     return NULL;
 }
 
-void checkException(const char *fname, const char *prefix) {
+void checkValidationException(const char *fname, const char *prefix) {
     bool thrown = false;
     try {
         FuseZipData::validateFileName(fname);
@@ -128,32 +128,87 @@ void checkException(const char *fname, const char *prefix) {
     assert(thrown);
 }
 
+void checkConvertException(const char *fname, const char *prefix, bool readonly, bool needPrefix) {
+    bool thrown = false;
+    try {
+        std::string converted;
+        FuseZipData::convertFileName(fname, readonly, needPrefix, converted);
+    }
+    catch (const std::runtime_error &e) {
+        thrown = true;
+        assert(strncmp(e.what(), prefix, strlen(prefix)) == 0);
+    }
+    assert(thrown);
+}
+
+void checkConversion(const char *fname, bool readonly, bool needPrefix, const char *expected) {
+    std::string res;
+    FuseZipData::convertFileName(fname, readonly, needPrefix, res);
+    assert(res == expected);
+}
+
 int main(int, char **) {
     initTest();
 
+    // validator
     FuseZipData::validateFileName("normal.name");
     FuseZipData::validateFileName("path/to/normal.name");
 
-    checkException("", "empty file name");
-    checkException("/", "absolute paths are not supported");
-    checkException("moo//moo", "bad file name (two slashes): ");
-    checkException("/absolute/path", "absolute paths are not supported");
-
-    checkException(".", "paths relative to parent directory are not supported");
-    checkException("abc/./cde", "paths relative to parent directory are not supported");
-    checkException("abc/.", "paths relative to parent directory are not supported");
     FuseZipData::validateFileName(".hidden");
     FuseZipData::validateFileName("path/to/.hidden");
     FuseZipData::validateFileName("path/to/.hidden/dir");
 
-    checkException("..", "paths relative to parent directory are not supported");
-    checkException("../abc", "paths relative to parent directory are not supported");
-    checkException("../../../abc", "paths relative to parent directory are not supported");
-    checkException("abc/../cde", "paths relative to parent directory are not supported");
-    checkException("abc/..", "paths relative to parent directory are not supported");
     FuseZipData::validateFileName("..superhidden");
     FuseZipData::validateFileName("path/to/..superhidden");
     FuseZipData::validateFileName("path/to/..superhidden/dir");
+
+    checkValidationException("", "empty file name");
+    checkValidationException("moo//moo", "bad file name (two slashes): ");
+
+    // converter
+    checkConversion("normal.name", true, false, "normal.name");
+    checkConversion("normal.name", true, true, "CUR/normal.name");
+    checkConversion("path/to/normal.name", true, false, "path/to/normal.name");
+    checkConversion("path/to/normal.name", true, true, "CUR/path/to/normal.name");
+
+    checkConvertException(".", "bad file name: ", true, false);
+    checkConvertException("./", "bad file name: ", true, false);
+    checkConvertException("abc/./cde", "bad file name: ", true, false);
+    checkConvertException("abc/.", "bad file name: ", true, false);
+
+    checkConversion(".hidden", false, false, ".hidden");
+    checkConversion("path/to/.hidden", false, false, "path/to/.hidden");
+    checkConversion("path/to/.hidden/dir", false, false, "path/to/.hidden/dir");
+
+    checkConvertException(".", "bad file name: .", false, true);
+    checkConvertException(".", "bad file name: .", true, true);
+    checkConvertException("/.", "bad file name: /.", true, true);
+    checkConvertException("./", "bad file name: ./", false, false);
+    checkConvertException("./", "bad file name: ./", true, false);
+
+    checkConvertException("..", "bad file name: ..", false, true);
+    checkConvertException("../", "paths relative to parent directory are not supported", false, true);
+    checkConversion("../", true, true, "UP/");
+    checkConversion("../../../", true, true, "UPUPUP/");
+
+    checkConvertException("/..", "bad file name: /..", true, true);
+    checkConvertException("/../blah", "bad file name: /../blah", true, true);
+
+    checkConversion("../abc", true, true, "UP/abc");
+    checkConversion("../../../abc", true, true, "UPUPUP/abc");
+
+    checkConvertException("abc/../cde", "bad file name: ", false, false);
+    checkConvertException("abc/../cde", "bad file name: ", true, true);
+    checkConvertException("abc/..", "bad file name: ", false, false);
+    checkConvertException("abc/..", "bad file name: ", true, true);
+    checkConvertException("../abc/..", "bad file name: ", true, true);
+
+    checkConvertException("/", "absolute paths are not supported in read-write mode", false, false);
+    checkConvertException("/rootname", "absolute paths are not supported in read-write mode", false, false);
+
+    checkConversion("/", true, true, "ROOT/");
+    checkConversion("/rootname", true, true, "ROOT/rootname");
+    checkConversion("/path/name", true, true, "ROOT/path/name");
 
     return EXIT_SUCCESS;
 }

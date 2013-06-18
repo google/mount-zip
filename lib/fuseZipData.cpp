@@ -54,11 +54,23 @@ void FuseZipData::build_tree(bool readonly) {
     root_node->is_dir = true;
 
     zip_int64_t n = zip_get_num_entries(m_zip, 0);
+    // search for absolute or parent-relative paths
+    bool needPrefix = false;
+    if (readonly) {
+        for (zip_int64_t i = 0; i < n; ++i) {
+            const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
+            if ((name[0] == '/') || (strncmp(name, "../", 3) == 0)) {
+                needPrefix = true;
+            }
+        }
+    }
+    // add zip entries into tree
     for (zip_int64_t i = 0; i < n; ++i) {
         const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
-        validateFileName(name);
+        std::string converted;
+        convertFileName(name, readonly, needPrefix, converted);
         try {
-            FileNode *node = new FileNode(this, name, i);
+            FileNode *node = new FileNode(this, converted.c_str(), i);
             (void) node;
         }
         catch (const FileNode::AlreadyExists &e) {
@@ -79,30 +91,71 @@ int FuseZipData::removeNode(FileNode *node) const {
 }
 
 void FuseZipData::validateFileName(const char *fname) {
-    if (fname[0] == '/') {
-        throw std::runtime_error("absolute paths are not supported");
-    }
-    // anomalies
     if (fname[0] == 0) {
         throw std::runtime_error("empty file name");
     }
     if (strstr(fname, "//") != NULL) {
         throw std::runtime_error(std::string("bad file name (two slashes): ") + fname);
     }
+}
 
-    // . or .. in file/dir name
-    assert(*fname != 0);
-    assert(*fname != '/');
+void FuseZipData::convertFileName(const char *fname, bool readonly,
+        bool needPrefix, std::string &converted) {
+    const char *UP_PREFIX = "UP";
+    const char *CUR_PREFIX = "CUR";
+    const char *ROOT_PREFIX = "ROOT";
+
+    validateFileName(fname);
+
+    assert(fname[0] != 0);
+    const char *orig = fname;
+    bool parentRelative = false;
+    converted.reserve(strlen(fname) + strlen(ROOT_PREFIX) + 1);
+    converted = "";
+    // add prefix
+    if (fname[0] == '/') {
+        if (!readonly) {
+            throw std::runtime_error("absolute paths are not supported in read-write mode");
+        } else {
+            assert(needPrefix);
+            converted.append(ROOT_PREFIX);
+            ++fname;
+        }
+    } else {
+        while (strncmp(fname, "../", 3) == 0) {
+            if (!readonly) {
+                throw std::runtime_error("paths relative to parent directory are not supported in read-write mode");
+            }
+            assert(needPrefix);
+            converted.append(UP_PREFIX);
+            fname += strlen("../");
+            parentRelative = true;
+        }
+        if (needPrefix && !parentRelative) {
+            converted.append(CUR_PREFIX);
+        }
+    }
+    if (needPrefix) {
+        converted.append("/");
+    }
+    if (fname[0] == 0) {
+        return;
+    }
+    assert(fname[0] != '/');
+
     const char *start = fname, *cur;
     while ((cur = strchr(start + 1, '/')) != NULL) {
         if ((cur - start == 1 && start[0] == '.') ||
             (cur - start == 2 && start[0] == '.' && start[1] == '.')) {
-            throw std::runtime_error("paths relative to parent directory are not supported");
+            throw std::runtime_error(std::string("bad file name: ") + orig);
         }
+        converted.append(start, cur - start + 1);
         start = cur + 1;
     }
     // end of string is reached
     if (strcmp(start, ".") == 0 || strcmp(start, "..") == 0) {
-        throw std::runtime_error("paths relative to parent directory are not supported");
+        throw std::runtime_error(std::string("bad file name: ") + orig);
     }
+    converted.append(start);
 }
+

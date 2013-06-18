@@ -1499,7 +1499,7 @@ namespace eval ::fusezip::test {
         }
     }
 
-    fstest parent-relative-paths {Check for paths relative to parent directory in archive} {
+    fstest parent-relative-paths-rw {Check for paths relative to parent directory in archive (read-write)} {
         set fname data/parent-relative-paths.zip
         if {![ catch {mount} err opts ] ||
                 [ dict get $opts -errorcode ] ne "NOTMOUNTED"} {
@@ -1512,7 +1512,7 @@ namespace eval ::fusezip::test {
         }
     }
 
-    fstest absolute-path {Check for absolute paths in archive} {
+    fstest absolute-path-rw {Check for absolute paths in archive (read-write)} {
         set fname data/absolute-path.zip
         if {![catch {mount} err opts] || [dict get $opts -errorcode] ne "NOTMOUNTED"} {
             error "Mount error is expected"
@@ -1522,6 +1522,34 @@ namespace eval ::fusezip::test {
                 error "Invalid error message: $msg"
             }
         }
+    }
+
+    fstest parent-relative-paths-ro {Check for paths relative to parent directory in archive (read-only)} {
+        set fname data/parent-relative-paths.zip
+        mount -r
+        assert {[exec sh -c "cd $mountdir; find . -printf '%p '"] eq ". ./UPUP ./UPUP/INSTALL ./UP ./UP/other ./UP/other/LICENSE "}
+
+        set f [open $mountdir/UPUP/INSTALL r]
+        set data [read $f]
+        close $f
+
+        assert {[regexp {^You need the following libraries:} $data]} "invalid file content"
+
+        umount
+    }
+
+    fstest absolute-path-ro {Check for absolute paths in archive (read-only)} {
+        set fname data/absolute-path.zip
+        mount -r
+        assert {[exec sh -c "cd $mountdir; find . -printf '%p '"] eq ". ./ROOT ./ROOT/rootname.ext "}
+
+        set f [open $mountdir/ROOT/rootname.ext r]
+        set data [read $f]
+        close $f
+
+        assert {$data eq "AAAAAAAAAAAAAAAAAAAAAA"} "invalid file content"
+
+        umount
     }
 
     finalize

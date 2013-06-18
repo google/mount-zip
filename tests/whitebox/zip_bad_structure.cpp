@@ -20,6 +20,7 @@ struct fuse_context *fuse_get_context(void) {
 // libzip stub structures
 struct zip {
     std::string filename;
+    zip_int64_t count;
 };
 struct zip_file {};
 struct zip_source {};
@@ -35,8 +36,8 @@ int zip_error_to_str(char *buf, zip_uint64_t len, int, int) {
     return strncpy(buf, "Expected error", len) - buf;
 }
 
-zip_int64_t zip_get_num_entries(struct zip *, zip_flags_t) {
-    return 2;
+zip_int64_t zip_get_num_entries(struct zip *z, zip_flags_t) {
+    return z->count;
 }
 
 const char *zip_get_name(struct zip *z, zip_uint64_t, zip_flags_t) {
@@ -130,6 +131,7 @@ const char *zip_file_strerror(struct zip_file *) {
 void duplicateFileNames() {
     struct zip z;
     z.filename = "same_file.name";
+    z.count = 2;
     FuseZipData zd("test.zip", &z, "/tmp");
     bool thrown = false;
     try {
@@ -142,9 +144,10 @@ void duplicateFileNames() {
     assert(thrown);
 }
 
-void relativePaths() {
+void relativePathsReadOnly() {
     struct zip z;
     z.filename = "../file.name";
+    z.count = 1;
     FuseZipData zd("test.zip", &z, "/tmp");
     bool thrown = false;
     try {
@@ -152,16 +155,51 @@ void relativePaths() {
     }
     catch (const std::runtime_error &e) {
         thrown = true;
-        assert(strcmp(e.what(), "paths relative to parent directory are not supported") == 0);
+        assert(strcmp(e.what(), "paths relative to parent directory are not supported in read-write mode") == 0);
     }
     assert(thrown);
+}
+
+void absolutePathsReadOnly() {
+    struct zip z;
+    z.filename = "/file.name";
+    z.count = 1;
+    FuseZipData zd("test.zip", &z, "/tmp");
+    bool thrown = false;
+    try {
+        zd.build_tree(false);
+    }
+    catch (const std::runtime_error &e) {
+        thrown = true;
+        assert(strcmp(e.what(), "absolute paths are not supported in read-write mode") == 0);
+    }
+    assert(thrown);
+}
+
+void relativePathsReadWrite() {
+    struct zip z;
+    z.filename = "../file.name";
+    z.count = 1;
+    FuseZipData zd("test.zip", &z, "/tmp");
+    zd.build_tree(true);
+}
+
+void absolutePathsReadWrite() {
+    struct zip z;
+    z.filename = "/file.name";
+    z.count = 1;
+    FuseZipData zd("test.zip", &z, "/tmp");
+    zd.build_tree(true);
 }
 
 int main(int, char **) {
     initTest();
 
     duplicateFileNames();
-    relativePaths();
+    relativePathsReadOnly();
+    absolutePathsReadOnly();
+    relativePathsReadWrite();
+    absolutePathsReadWrite();
 
     return EXIT_SUCCESS;
 }
