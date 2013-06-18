@@ -1552,6 +1552,25 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest mixed-paths-ro {Check mixed paths in archive (absolute, relative and "normal")} {
+        set fname data/mixed-paths.zip
+        mount -r
+        assert {[exec sh -c "cd $mountdir; find . -printf '%p '"] eq ". ./ROOT ./ROOT/root ./ROOT/root/name.ext ./CUR ./CUR/normal.file ./UP ./UP/parent ./UP/parent/relative "}
+
+        foreach {fname expected} {
+            /ROOT/root/name.ext AAAAAAAAAA
+            /CUR/normal.file    BBBBBBBBBB
+            /UP/parent/relative CCCCCCCCCC
+        } {
+            set f [open $mountdir/$fname r]
+            set data [read $f]
+            close $f
+            assert {$data eq $expected} "invalid file content for $fname: $data"
+        }
+
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test
