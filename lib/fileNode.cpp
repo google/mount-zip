@@ -148,18 +148,18 @@ void FileNode::detach() {
     parent->childs.remove(this);
 }
 
-void FileNode::rename(char *fname) {
+void FileNode::rename(const char *fname) {
     detach();
     full_name = fname;
     parse_name();
     attach();
 }
 
-void FileNode::rename_wo_reparenting(char *new_name) {
+void FileNode::rename_wo_reparenting(const char *new_name) {
     data->files.erase(full_name.c_str());
     full_name = new_name;
     parse_name();
-    data->files[new_name] = this;
+    data->files[full_name.c_str()] = this;
 }
 
 int FileNode::open() {

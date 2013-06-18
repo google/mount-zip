@@ -365,19 +365,15 @@ int fusezip_rename(const char *path, const char *new_path) {
 
     int len = strlen(new_path);
     int oldLen = strlen(path + 1) + 1;
-    char *new_name;
+    std::string new_name;
     if (!node->is_dir) {
         --len;
         --oldLen;
     }
-    new_name = (char*)malloc(len + 1);
-    if (new_path == NULL) {
-        return -ENOMEM;
-    }
-    strcpy(new_name, new_path + 1);
+    new_name.reserve(len + (node->is_dir) ? 1 : 0);
+    new_name.append(new_path + 1);
     if (node->is_dir) {
-        new_name[len - 1] = '/';
-        new_name[len] = '\0';
+        new_name.push_back('/');
     }
 
     try {
@@ -397,7 +393,7 @@ int fusezip_rename(const char *path, const char *new_path) {
                         //TODO: check that we are have enough memory before entering this loop
                         return -ENOMEM;
                     }
-                    strcpy(name, new_name);
+                    strcpy(name, new_name.c_str());
                     strcpy(name + len, nn->full_name.c_str() + oldLen);
                     if (nn->is_dir) {
                         strcat(name, "/");
@@ -408,9 +404,8 @@ int fusezip_rename(const char *path, const char *new_path) {
                 }
             }
         }
-        zip_file_rename(z, node->id, new_name, ZIP_FL_ENC_UTF_8);
-        // Must be called after loop because new_name will be truncated
-        node->rename(new_name);
+        zip_file_rename(z, node->id, new_name.c_str(), ZIP_FL_ENC_UTF_8);
+        node->rename(new_name.c_str());
 
         return 0;
     }

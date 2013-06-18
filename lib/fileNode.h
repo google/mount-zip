@@ -52,7 +52,7 @@ public:
     ~FileNode();
 
     void detach();
-    void rename(char *fname);
+    void rename(const char *fname);
 
     /**
      * Rename file without reparenting.
@@ -61,7 +61,7 @@ public:
      * 2. Parse new name
      * 3. Create link to new name in tree
      */
-    void rename_wo_reparenting(char *new_name);
+    void rename_wo_reparenting(const char *new_name);
 
     int open();
     int read(char *buf, size_t size, zip_uint64_t offset) const;
