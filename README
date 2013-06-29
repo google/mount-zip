@@ -9,8 +9,8 @@ modifications.
 
 Since version 0.3.0 fuse-zip has support for absolute and parent-relative paths
 in file names, but only in read-only mode (-r command line switch). Absolute
-paths are displayed under ROOT directory, every ".." in path replaced by "UP"
-in directory name and "normal" files are placed under CUR directory.
+paths are displayed under "ROOT" directory, every ".." in path replaced by "UP"
+in directory name and "normal" files are placed under "CUR" directory.
 
 Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
 archives. Also, fuse-zip is faster that all known implementations on large
