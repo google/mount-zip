@@ -426,11 +426,19 @@ int fusezip_utimens(const char *path, const struct timespec tv[2]) {
     return 0;
 }
 
+#if ( __APPLE_ && __FreeBSD__ >= 10 )
+int fusezip_setxattr(const char *, const char *, const char *, size_t, int, uint32_t) {
+#else
 int fusezip_setxattr(const char *, const char *, const char *, size_t, int) {
+#endif
     return -ENOTSUP;
 }
 
+#if ( __APPLE_ && __FreeBSD__ >= 10 )
+int fusezip_getxattr(const char *, const char *, char *, size_t, uint32_t) {
+#else
 int fusezip_getxattr(const char *, const char *, char *, size_t) {
+#endif
     return -ENOTSUP;
 }
 
