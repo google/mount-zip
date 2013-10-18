@@ -370,7 +370,7 @@ int fusezip_rename(const char *path, const char *new_path) {
         --len;
         --oldLen;
     }
-    new_name.reserve(len + (node->is_dir) ? 1 : 0);
+    new_name.reserve(len + ((node->is_dir) ? 1 : 0));
     new_name.append(new_path + 1);
     if (node->is_dir) {
         new_name.push_back('/');
