@@ -86,7 +86,7 @@ int fusezip_rename(const char *path, const char *new_path);
 
 int fusezip_utimens(const char *path, const struct timespec tv[2]);
 
-#if ( __APPLE_ )
+#if ( __APPLE__ )
 int fusezip_setxattr(const char *, const char *, const char *, size_t, int, uint32_t);
 int fusezip_getxattr(const char *, const char *, char *, size_t, uint32_t);
 #else
