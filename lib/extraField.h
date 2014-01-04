@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 204 by Alexander Galanin                                //
+//  Copyright (C) 2014 by Alexander Galanin                                //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
