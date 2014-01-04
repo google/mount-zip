@@ -453,22 +453,27 @@ void writeZip() {
     {
         BigBuffer bb;
         struct zip z;
+        zip_int64_t id;
         z.fail_zip_source_function = true;
-        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, -1) == -ENOMEM);
+        id = -1;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, id) == -ENOMEM);
 
         z.fail_zip_source_function = false;
         z.fail_zip_add = true;
-        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, -1) == -ENOMEM);
+        id = -1;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, id) == -ENOMEM);
 
         z.fail_zip_add = false;
         z.source = NULL;
-        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, -1) == 0);
+        id = -1;
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", true, id) == 0);
         delete (BigBuffer::CallBackStruct *)z.source->cbs;
         free(z.source);
     }
     // existing file
     {
         int size = 11111;
+        zip_int64_t id = 11;
         struct zip z;
         z.fail_zip_fopen_index = false;
         z.fail_zip_fread = false;
@@ -476,15 +481,18 @@ void writeZip() {
         BigBuffer bb(&z, 0, size);
 
         z.fail_zip_source_function = true;
-        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, 11) == -ENOMEM);
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, id) == -ENOMEM);
+        assert(id == 11);
 
         z.fail_zip_source_function = false;
         z.fail_zip_replace = true;
-        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, 11) == -ENOMEM);
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, id) == -ENOMEM);
+        assert(id == 11);
 
         z.fail_zip_replace = false;
         z.source = NULL;
-        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, 11) == 0);
+        assert(bb.saveToZip(time(NULL), &z, "bebebe.txt", false, id) == 0);
+        assert(id == 11);
         delete (BigBuffer::CallBackStruct *)z.source->cbs;
         free(z.source);
     }
