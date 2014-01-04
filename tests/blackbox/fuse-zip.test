@@ -1629,6 +1629,29 @@ namespace eval ::fusezip::test {
         assert {$atime == 456} "mtime changed to $atime"
     }
 
+    fstest atime-mtime-modification {Check atime and mtime modification cases} {
+        create {
+            pet cat
+        }
+        set name $mountdir/pet
+        mount
+        set f [open $name w]
+        puts $f dog
+        close $f
+        set mtime1 [file mtime $name]
+        set atime1 [file atime $name]
+        after 2000
+        set f [open $name r]
+        read $f
+        close $f
+        set mtime2 [file mtime $name]
+        set atime2 [file atime $name]
+        umount
+
+        assert {$mtime1 == $mtime2} "mtime changed"
+        assert {$atime2 > $atime1} "atime not changed"
+    }
+
     finalize
 }
 namespace delete ::util::test

@@ -197,7 +197,8 @@ int FileNode::open() {
     return 0;
 }
 
-int FileNode::read(char *buf, size_t sz, zip_uint64_t offset) const {
+int FileNode::read(char *buf, size_t sz, zip_uint64_t offset) {
+    atime = time(NULL);
     return buffer->read(buf, sz, offset);
 }
 
@@ -205,6 +206,7 @@ int FileNode::write(const char *buf, size_t sz, zip_uint64_t offset) {
     if (state == OPENED) {
         state = CHANGED;
     }
+    mtime = atime = time(NULL);
     return buffer->write(buf, sz, offset);
 }
 
@@ -214,11 +216,7 @@ int FileNode::close() {
         delete buffer;
         state = CLOSED;
     }
-    time_t now = time(NULL);
-    atime = now;
-    if (state == CHANGED) {
-        mtime = now;
-    }
+    atime = time(NULL);
     return 0;
 }
 
@@ -245,6 +243,7 @@ int FileNode::truncate(zip_uint64_t offset) {
         catch (const std::bad_alloc &) {
             return EIO;
         }
+        mtime = atime = time(NULL);
     } else {
         return EBADF;
     }

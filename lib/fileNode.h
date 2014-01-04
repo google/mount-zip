@@ -67,7 +67,7 @@ public:
     void rename_wo_reparenting(const char *new_name);
 
     int open();
-    int read(char *buf, size_t size, zip_uint64_t offset) const;
+    int read(char *buf, size_t size, zip_uint64_t offset);
     int write(const char *buf, size_t size, zip_uint64_t offset);
     int close();
 
