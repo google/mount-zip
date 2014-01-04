@@ -133,13 +133,14 @@ public:
      * @param z         ZIP archive structure
      * @param fname     File name
      * @param newFile   Is file not yet created?
-     * @param index     File index in ZIP archive
+     * @param index     (INOUT) File index in ZIP archive. Set if new file
+     *                  is created
      * @return
      *      0       If successfull
      *      -ENOMEM If there are no memory
      */
     int saveToZip(time_t mtime, struct zip *z, const char *fname,
-            bool newFile, zip_int64_t index);
+            bool newFile, zip_int64_t &index);
 
     /**
      * Truncate buffer at position offset.

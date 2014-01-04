@@ -1608,6 +1608,27 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest time-preserve {Check that time is preserved across remounts} {
+        create {
+            foo.bar foobar
+        }
+        mount
+        set f [open $mountdir/foo.bar w]
+        puts $f "meow"
+        close $f
+        file mtime $mountdir/foo.bar 123
+        file atime $mountdir/foo.bar 456
+        umount
+
+        mount
+        set mtime [file mtime $mountdir/foo.bar]
+        set atime [file atime $mountdir/foo.bar]
+        umount
+
+        assert {$mtime == 123} "mtime changed to $mtime"
+        assert {$atime == 456} "mtime changed to $atime"
+    }
+
     finalize
 }
 namespace delete ::util::test

@@ -288,7 +288,7 @@ zip_int64_t BigBuffer::zipUserFunctionCallback(void *state, void *data,
 }
 
 int BigBuffer::saveToZip(time_t mtime, struct zip *z, const char *fname,
-        bool newFile, zip_int64_t index) {
+        bool newFile, zip_int64_t &index) {
     struct zip_source *s;
     struct CallBackStruct *cbs = new CallBackStruct();
     cbs->buf = this;
@@ -297,11 +297,15 @@ int BigBuffer::saveToZip(time_t mtime, struct zip *z, const char *fname,
         delete cbs;
         return -ENOMEM;
     }
-    if ((newFile && zip_file_add(z, fname, s, ZIP_FL_ENC_UTF_8) < 0)
+    zip_int64_t nid;
+    if ((newFile && (nid = zip_file_add(z, fname, s, ZIP_FL_ENC_UTF_8)) < 0)
             || (!newFile && zip_file_replace(z, index, s, ZIP_FL_ENC_UTF_8) < 0)) {
         delete cbs;
         zip_source_free(s);
         return -ENOMEM;
+    }
+    if (newFile) {
+        index = nid;
     }
     return 0;
 }

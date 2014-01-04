@@ -35,6 +35,9 @@
 const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 
+// ZIP extra fields
+const int FileNode::EXT_TIMESTAMP = 0x5455;
+
 FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
         data(_data), full_name(fname) {
     this->id = id;
@@ -220,8 +223,14 @@ int FileNode::close() {
 }
 
 int FileNode::save() {
-    return buffer->saveToZip(mtime, data->m_zip, full_name.c_str(),
+    // index is modified if state == NEW
+    int res = buffer->saveToZip(mtime, data->m_zip, full_name.c_str(),
             state == NEW, id);
+    if (res == 0) {
+        return updateExtraFields();
+    } else {
+        return res;
+    }
 }
 
 int FileNode::truncate(zip_uint64_t offset) {
@@ -254,7 +263,6 @@ zip_uint64_t FileNode::size() const {
  */
 void FileNode::processExtraFields () {
     zip_int16_t count;
-    const int EXT_TIMESTAMP = 0x5455;
 
     // 5455: Extended Timestamp Extra Field
     count = zip_file_extra_fields_count_by_id (data->m_zip, id,
@@ -275,5 +283,40 @@ void FileNode::processExtraFields () {
             }
         }
     }
+}
+
+/**
+ * Save timestamp into extra fields
+ * @return 0 on success
+ */
+int FileNode::updateExtraFields () {
+    static zip_flags_t locations[] = {ZIP_FL_CENTRAL, ZIP_FL_LOCAL};
+    zip_int16_t count;
+    const zip_uint8_t *field;
+    zip_uint16_t len;
+
+    for (unsigned int loc = 0; loc < sizeof(locations); ++loc) {
+        // remove old extra fields
+        count = zip_file_extra_fields_count (data->m_zip, id,
+                locations[loc]);
+        for (zip_int16_t i = count; i >= 0; --i) {
+            zip_uint16_t type;
+            const zip_uint8_t *ptr = zip_file_extra_field_get (data->m_zip,
+                    id, i, &type, NULL, locations[loc]);
+            if (ptr != NULL && type == EXT_TIMESTAMP) {
+                zip_file_extra_field_delete (data->m_zip, id, i,
+                        locations[loc]);
+            }
+        }
+        // add timestamps
+        field = ExtraField::createExtTimeStamp (locations[loc], mtime,
+                atime, len);
+        int res = zip_file_extra_field_set (data->m_zip, id, EXT_TIMESTAMP,
+                ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
+        if (res != 0) {
+            return res;
+        }
+    }
+    return 0;
 }
 

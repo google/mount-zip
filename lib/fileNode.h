@@ -36,6 +36,7 @@ private:
         CHANGED,
         NEW
     };
+    static const int EXT_TIMESTAMP;
 
     BigBuffer *buffer;
     FuseZipData *data;
@@ -45,6 +46,7 @@ private:
     void parse_name();
     void attach();
     void processExtraFields();
+    int updateExtraFields();
 public:
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
 
