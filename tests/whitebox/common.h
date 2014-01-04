@@ -120,3 +120,31 @@ int zip_unchange_archive(struct zip *) {
     return 0;
 }
 
+zip_int16_t zip_file_extra_fields_count(struct zip *, zip_uint64_t, zip_flags_t) {
+    return 0;
+}
+
+zip_int16_t zip_file_extra_fields_count_by_id(struct zip *, zip_uint64_t, zip_uint16_t, zip_flags_t) {
+    return 0;
+}
+
+const zip_uint8_t *zip_file_extra_field_get(struct zip *, zip_uint64_t, zip_uint16_t, zip_uint16_t *, zip_uint16_t *, zip_flags_t) {
+    assert(false);
+    return NULL;
+}
+
+const zip_uint8_t *zip_file_extra_field_get_by_id(struct zip *, zip_uint64_t, zip_uint16_t, zip_uint16_t, zip_uint16_t *, zip_flags_t) {
+    assert(false);
+    return NULL;
+}
+
+int zip_file_extra_field_delete(struct zip *, zip_uint64_t, zip_uint16_t, zip_flags_t) {
+    assert(false);
+    return 0;
+}
+
+int zip_file_extra_field_set(struct zip *, zip_uint64_t, zip_uint16_t, zip_uint16_t, const zip_uint8_t *, zip_uint16_t, zip_flags_t) {
+    assert(false);
+    return 0;
+}
+
