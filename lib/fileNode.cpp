@@ -30,6 +30,7 @@
 
 #include "fileNode.h"
 #include "fuseZipData.h"
+#include "extraField.h"
 
 const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
@@ -58,6 +59,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
             assert((stat.valid & needValid) == needValid);
             mtime = atime = stat.mtime;
             m_size = stat.size;
+            processExtraFields();
         } else {
             mtime = atime = time(NULL);
             m_size = 0;
@@ -244,6 +246,34 @@ zip_uint64_t FileNode::size() const {
         return buffer->len;
     } else {
         return m_size;
+    }
+}
+
+/**
+ * Get timestamp information from extra fields
+ */
+void FileNode::processExtraFields () {
+    zip_int16_t count;
+    const int EXT_TIMESTAMP = 0x5455;
+
+    // 5455: Extended Timestamp Extra Field
+    count = zip_file_extra_fields_count_by_id (data->m_zip, id,
+            EXT_TIMESTAMP, ZIP_FL_LOCAL);
+    for (zip_int16_t i = 0; i < count; ++i) {
+        zip_uint16_t len;
+        const zip_uint8_t *field = zip_file_extra_field_get_by_id
+            (data->m_zip, id, EXT_TIMESTAMP, i, &len, ZIP_FL_LOCAL);
+        bool has_mtime, has_atime;
+        time_t mt, at;
+        if (ExtraField::parseExtTimeStamp(len, field, has_mtime, mt,
+                    has_atime, at)) {
+            if (has_mtime) {
+                mtime = mt;
+            }
+            if (has_atime) {
+                atime = at;
+            }
+        }
     }
 }
 

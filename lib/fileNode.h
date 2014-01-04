@@ -44,6 +44,7 @@ private:
 
     void parse_name();
     void attach();
+    void processExtraFields();
 public:
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
 

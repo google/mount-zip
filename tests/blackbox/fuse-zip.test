@@ -1595,6 +1595,19 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest time-from-extra-field {Check that time correctly loaded from extra field} {
+        set fname data/extrafld.zip
+        mount -r
+
+        set mtime [file mtime $mountdir/README]
+        set atime [file atime $mountdir/README]
+
+        assert {$mtime == 0x51CE6FD4} "mtime must be Sat, 29 Jun 2013 09:25:40 +0400"
+        assert {$atime == 0x52C7E372} "atime must be Sat, 04 Jan 2014 14:33:22 +0400"
+
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test
