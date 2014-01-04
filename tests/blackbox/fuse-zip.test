@@ -1571,6 +1571,30 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest atime {Check that atime modified after file access} {
+        create {
+            foo.bar foobar
+        }
+        mount
+        file atime $mountdir/foo.bar 0
+        assert {[file atime $mountdir/foo.bar] == 0} "atime not modified"
+        # first access
+        set f [open $mountdir/foo.bar r]
+        close $f
+        after 2000
+        set atime1 [file atime $mountdir/foo.bar]
+        assert {abs($atime1 - [clock seconds]) < 60} "weird atime value $atime1"
+        after 2000
+        # second access
+        set f [open $mountdir/foo.bar r]
+        close $f
+        after 2000
+        set atime2 [file atime $mountdir/foo.bar]
+        assert {abs($atime2 - [clock seconds]) < 60} "weird atime value $atime2"
+        assert {$atime2 > $atime1} "atime1 ($atime1) should be less that atime2 ($atime2)"
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test

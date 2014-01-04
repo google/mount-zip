@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2013 by Alexander Galanin                          //
+//  Copyright (C) 2008-2014 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -45,21 +45,22 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
         if (!buffer) {
             throw std::bad_alloc();
         }
-        zip_stat_init(&stat);
-        stat.mtime = time(NULL);
-        stat.size = 0;
+        mtime = atime = time(NULL);
+        m_size = 0;
     } else {
         state = CLOSED;
         if (id != ROOT_NODE_INDEX) {
+            struct zip_stat stat;
             zip_stat_index(data->m_zip, this->id, 0, &stat);
             // check that all used fields are valid
             zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
                 ZIP_STAT_SIZE | ZIP_STAT_MTIME;
             assert((stat.valid & needValid) == needValid);
+            mtime = atime = stat.mtime;
+            m_size = stat.size;
         } else {
-            zip_stat_init(&stat);
-            stat.mtime = time(NULL);
-            stat.size = 0;
+            mtime = atime = time(NULL);
+            m_size = 0;
         }
     }
     parse_name();
@@ -115,7 +116,9 @@ void FileNode::attach() {
         }
         // ... update existing node information
         other->id = this->id;
-        other->stat = this->stat;
+        other->m_size = this->m_size;
+        other->mtime = this->mtime;
+        other->atime = this->atime;
         other->state = this->state;
         throw AlreadyExists();
     }
@@ -176,7 +179,7 @@ int FileNode::open() {
     if (state == CLOSED) {
         open_count = 1;
         try {
-            buffer = new BigBuffer(data->m_zip, id, stat.size);
+            buffer = new BigBuffer(data->m_zip, id, m_size);
             state = OPENED;
         }
         catch (std::bad_alloc) {
@@ -189,31 +192,33 @@ int FileNode::open() {
     return 0;
 }
 
-int FileNode::read(char *buf, size_t size, zip_uint64_t offset) const {
-    return buffer->read(buf, size, offset);
+int FileNode::read(char *buf, size_t sz, zip_uint64_t offset) const {
+    return buffer->read(buf, sz, offset);
 }
 
-int FileNode::write(const char *buf, size_t size, zip_uint64_t offset) {
+int FileNode::write(const char *buf, size_t sz, zip_uint64_t offset) {
     if (state == OPENED) {
         state = CHANGED;
     }
-    return buffer->write(buf, size, offset);
+    return buffer->write(buf, sz, offset);
 }
 
 int FileNode::close() {
-    stat.size = buffer->len;
+    m_size = buffer->len;
     if (state == OPENED && --open_count == 0) {
         delete buffer;
         state = CLOSED;
     }
+    time_t now = time(NULL);
+    atime = now;
     if (state == CHANGED) {
-        stat.mtime = time(NULL);
+        mtime = now;
     }
     return 0;
 }
 
 int FileNode::save() {
-    return buffer->saveToZip(stat.mtime, data->m_zip, full_name.c_str(),
+    return buffer->saveToZip(mtime, data->m_zip, full_name.c_str(),
             state == NEW, id);
 }
 
@@ -238,7 +243,7 @@ zip_uint64_t FileNode::size() const {
     if (state == NEW || state == OPENED || state == CHANGED) {
         return buffer->len;
     } else {
-        return stat.size;
+        return m_size;
     }
 }
 

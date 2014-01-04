@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2013 by Alexander Galanin                          //
+//  Copyright (C) 2008-2014 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -100,7 +100,8 @@ public:
     nodelist_t childs;
     FileNode *parent;
 
-    struct zip_stat stat;
+    time_t mtime, atime;
+    zip_uint64_t m_size;
 
     class AlreadyExists {
     };
