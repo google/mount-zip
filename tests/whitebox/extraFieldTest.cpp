@@ -50,11 +50,48 @@ void timestamp_bad () {
     assert(!ExtraField::parseExtTimeStamp(sizeof(data), data, has_mtime, mtime, has_atime, atime));
 }
 
+/**
+ * create timestamp extra field for CENTRAL directory
+ */
+void timestamp_create_central () {
+    zip_uint16_t len;
+    const zip_uint8_t *data;
+    const zip_uint8_t expected[] = {1 | 2, 4, 3, 2, 1};
+
+    data = ExtraField::createExtTimeStamp(ZIP_FL_CENTRAL, 0x01020304, 0x05060708, len);
+    assert(data != NULL);
+    assert(len == sizeof(expected));
+    
+    for (int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
+}
+
+/**
+ * create LOCAL timestamp extra field
+ */
+void timestamp_create_local () {
+    zip_uint16_t len;
+    const zip_uint8_t *data;
+    const zip_uint8_t expected[] = {1 | 2, 4, 3, 2, 1, 8, 7, 6, 5};
+
+    data = ExtraField::createExtTimeStamp(ZIP_FL_LOCAL, 0x01020304, 0x05060708, len);
+    assert(data != NULL);
+    assert(len == sizeof(expected));
+    
+    for (int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
+}
+
 int main(int, char **) {
     timestamp_mtime_atime_present_local();
     timestamp_mtime_cretime_present_local();
 
     timestamp_bad();
+
+    timestamp_create_central();
+    timestamp_create_local();
 
     return EXIT_SUCCESS;
 }

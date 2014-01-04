@@ -61,3 +61,30 @@ ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
 
     return true;
 }
+
+const zip_uint8_t *
+ExtraField::createExtTimeStamp (zip_flags_t location,
+        time_t mtime, time_t atime, zip_uint16_t &len) {
+    // one byte for flags and two 4-byte ints for mtime and atime
+    static zip_uint8_t data [1 + 4 + 4];
+    len = 0;
+
+    // mtime and atime
+    data[len++] = 1 | 2;
+
+    for (int i = 0; i < 4; ++i) {
+        data[len++] = mtime & 0xFF;
+        mtime >>= 8;
+    }
+    // The central-header extra field contains the modification time only,
+    // or no timestamp at all.
+    if (location == ZIP_FL_LOCAL) {
+        for (int i = 0; i < 4; ++i) {
+            data[len++] = atime & 0xFF;
+            atime >>= 8;
+        }
+    }
+
+    return data;
+}
+
