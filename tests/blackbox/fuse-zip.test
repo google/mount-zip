@@ -1693,6 +1693,31 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest dos-permissions {Check DOS file permissions handling} {
+        set fname data/dos-perm.zip
+        mount -r
+        assert {[file isdirectory $mountdir/dir]} "not a directory"
+        foreach name {hidden readonly normal} {
+            assert {[file isfile $mountdir/dir/$name.txt]} "file 'dir/$name.txt' is not regular"
+            if {$name eq "readonly"} {
+                assert {[file attributes $mountdir/dir/$name.txt -permissions] == 0444} "file 'dir/$name.txt' is writable"
+            } else {
+                assert {[file attributes $mountdir/dir/$name.txt -permissions] == 0666} "file 'dir/$name.txt' is writable"
+            }
+        }
+        umount
+    }
+
+    fstest unix-permissions {Check UNIX file permissions handling} {
+        set fname data/unix-perm.zip
+        mount -r
+        foreach name {640 642 666 6775 777} {
+            assert {[file isfile $mountdir/$name]} "file 'dir/$name.txt' is not regular"
+            assert {[file attributes $mountdir/$name -permissions] == "0$name"} "file '$name' is has wrong permissions"
+        }
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test
