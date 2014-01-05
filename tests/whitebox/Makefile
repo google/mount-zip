@@ -50,5 +50,5 @@ $(VALGRIND_TESTS): %.valgrind: %.x
 
 valgrind: $(VALGRIND_TESTS)
 
-.PHONY: all clean distclean test test-clean valgrind lib-clean
+.PHONY: all clean distclean test test-clean valgrind lib-clean $(LIB)
 
