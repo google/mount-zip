@@ -157,7 +157,8 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     stbuf->st_blocks = (node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE;
     stbuf->st_size = node->size();
     stbuf->st_atime = node->atime;
-    stbuf->st_mtime = stbuf->st_ctime = node->mtime;
+    stbuf->st_mtime = node->mtime;
+    stbuf->st_ctime = node->ctime;
     stbuf->st_uid = geteuid();
     stbuf->st_gid = getegid();
 

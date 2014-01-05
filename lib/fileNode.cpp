@@ -50,7 +50,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
             throw std::bad_alloc();
         }
         has_cretime = true;
-        mtime = atime = cretime = time(NULL);
+        mtime = atime = ctime = cretime = time(NULL);
         m_size = 0;
     } else {
         has_cretime = false;
@@ -62,16 +62,19 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
             zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
                 ZIP_STAT_SIZE | ZIP_STAT_MTIME;
             assert((stat.valid & needValid) == needValid);
-            mtime = atime = stat.mtime;
+            mtime = atime = ctime = stat.mtime;
             m_size = stat.size;
             processExtraFields();
         } else {
-            mtime = atime = time(NULL);
+            mtime = atime = ctime = time(NULL);
             m_size = 0;
         }
     }
     parse_name();
     attach();
+    if (id == NEW_NODE_INDEX && parent != NULL) {
+        parent->ctime = time(NULL);
+    }
 }
 
 FileNode::~FileNode() {
@@ -149,6 +152,8 @@ void FileNode::attach() {
         }
         this->parent->childs.push_back(this);
         *(const_cast <char*> (lsl)) = c;
+    } else {
+        parent = NULL;
     }
     this->data->files[full_name.c_str()] = this;
 }
@@ -159,10 +164,19 @@ void FileNode::detach() {
 }
 
 void FileNode::rename(const char *fname) {
+    FileNode *oldParent = parent;
     detach();
     full_name = fname;
     parse_name();
     attach();
+    if (parent != oldParent) {
+        if (oldParent != NULL) {
+            oldParent->ctime = time(NULL);
+        }
+        if (parent != NULL) {
+            parent->ctime = time(NULL);
+        }
+    }
 }
 
 void FileNode::rename_wo_reparenting(const char *new_name) {

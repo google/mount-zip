@@ -1640,18 +1640,30 @@ namespace eval ::fusezip::test {
         set f [open $name w]
         puts $f dog
         close $f
-        set mtime1 [file mtime $name]
-        set atime1 [file atime $name]
+        file stat $name stat1
         after 2000
         set f [open $name r]
         read $f
         close $f
-        set mtime2 [file mtime $name]
-        set atime2 [file atime $name]
+        file stat $name stat2
         umount
 
-        assert {$mtime1 == $mtime2} "mtime changed"
-        assert {$atime2 > $atime1} "atime not changed"
+        assert {$stat1(mtime) == $stat2(mtime)} "mtime changed"
+        assert {$stat2(atime) > $stat1(atime)} "atime not changed"
+        assert {$stat1(ctime) == $stat2(ctime)} "ctime changed"
+    }
+
+    fstest dir-ctime {Check ctime change on link count modification} {
+        create {
+            dir/
+        }
+        mount
+        file stat $mountdir/dir stat1
+        after 2000
+        makeFile {cat} pet $mountdir/dir
+        file stat $mountdir/dir stat2
+        umount
+        assert {$stat1(ctime) < $stat2(ctime)} "ctime not changed"
     }
 
     finalize

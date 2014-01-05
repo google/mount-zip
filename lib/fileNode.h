@@ -104,7 +104,7 @@ public:
     FileNode *parent;
 
     bool has_cretime;
-    time_t mtime, atime, cretime;
+    time_t mtime, atime, ctime, cretime;
     zip_uint64_t m_size;
 
     class AlreadyExists {
