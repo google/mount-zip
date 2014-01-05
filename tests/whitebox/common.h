@@ -148,3 +148,13 @@ int zip_file_extra_field_set(struct zip *, zip_uint64_t, zip_uint16_t, zip_uint1
     return 0;
 }
 
+int zip_file_get_external_attributes(struct zip *, zip_uint64_t, zip_flags_t, zip_uint8_t *opsysPtr, zip_uint32_t *attrPtr) {
+    *opsysPtr = ZIP_OPSYS_UNIX;
+    *attrPtr = 0;
+    return 0;
+}
+
+int zip_file_set_external_attributes(struct zip *, zip_uint64_t, zip_flags_t, zip_uint8_t, zip_uint32_t) {
+    return 0;
+}
+
