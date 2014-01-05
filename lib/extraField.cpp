@@ -23,7 +23,8 @@
 
 bool
 ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
-        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime) {
+        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime,
+        bool &hasCreTime, time_t &cretime) {
     if (len < 1) {
         return false;
     }
@@ -31,7 +32,7 @@ ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
     
     hasMTime = flags & 1;
     hasATime = flags & 2;
-    bool hasCreTime = flags & 4;
+    hasCreTime = flags & 4;
 
     const zip_uint8_t *end = data + len;
     if (hasMTime) {
@@ -55,8 +56,15 @@ ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
         atime = (time_t)t;
     }
     // only check that data format is correct
-    if (hasCreTime && data + 4 > end) {
-        return false;
+    if (hasCreTime) {
+        if (data + 4 > end) {
+            return false;
+        }
+        signed long t = *data++;
+        t += *data++ << 8;
+        t += *data++ << 16;
+        t += *data++ << 24;
+        cretime = (time_t)t;
     }
 
     return true;
@@ -64,13 +72,18 @@ ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
 
 const zip_uint8_t *
 ExtraField::createExtTimeStamp (zip_flags_t location,
-        time_t mtime, time_t atime, zip_uint16_t &len) {
-    // one byte for flags and two 4-byte ints for mtime and atime
-    static zip_uint8_t data [1 + 4 + 4];
+        time_t mtime, time_t atime, bool set_cretime, time_t cretime,
+        zip_uint16_t &len) {
+    // one byte for flags and three 4-byte ints for mtime, atime and cretime
+    static zip_uint8_t data [1 + 4 * 3];
     len = 0;
 
     // mtime and atime
-    data[len++] = 1 | 2;
+    zip_uint8_t flags = 1 | 2;
+    if (set_cretime) {
+        flags |= 4;
+    }
+    data[len++] = flags;
 
     for (int i = 0; i < 4; ++i) {
         data[len++] = mtime & 0xFF;
@@ -82,6 +95,12 @@ ExtraField::createExtTimeStamp (zip_flags_t location,
         for (int i = 0; i < 4; ++i) {
             data[len++] = atime & 0xFF;
             atime >>= 8;
+        }
+        if (set_cretime) {
+            for (int i = 0; i < 4; ++i) {
+                data[len++] = cretime & 0xFF;
+                cretime >>= 8;
+            }
         }
     }
 

@@ -35,23 +35,29 @@ struct ExtraField {
  * @param mtime (OUT) file modification time if present
  * @param hasATime (OUT) atime presence
  * @param atime (OUT) file access time if present
+ * @param hasCreTime (OUT) creation time presence
+ * @param cretime (OUT) file creation time if present
  * @return successful completion flag
  */
 static bool parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
-        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime);
+        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime,
+        bool &hasCreTime, time_t &cretime);
 
 /**
  * Create 'Extended Timestamp' extra field (0x5455) from mtime and atime.
- * Creation time field left empty.
+ * Creation time field is filled only if defined.
  * @param location location of timestamp field (ZIP_FL_CENTRAL or
  * ZIP_FL_LOCAL for central directory and local extra field respectively)
  * @param mtime modification time
  * @param atime access time
+ * @param set_cretime true if creation time is defined
+ * @param cretime creation time
  * @param len (OUT) data length
  * @return pointer to timestamp data (must not be free()-d)
  */
 static const zip_uint8_t *createExtTimeStamp (zip_flags_t location,
-        time_t mtime, time_t atime, zip_uint16_t &len);
+        time_t mtime, time_t atime, bool set_cretime, time_t cretime,
+        zip_uint16_t &len);
 
 };
 #endif

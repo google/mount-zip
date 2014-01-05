@@ -269,16 +269,17 @@ void FileNode::processExtraFields () {
         zip_uint16_t len;
         const zip_uint8_t *field = zip_file_extra_field_get_by_id
             (data->m_zip, id, EXT_TIMESTAMP, i, &len, ZIP_FL_LOCAL);
-        bool has_mtime, has_atime;
-        time_t mt, at;
+        bool has_mtime, has_atime, has_cretime;
+        time_t mt, at, cret;
         if (ExtraField::parseExtTimeStamp(len, field, has_mtime, mt,
-                    has_atime, at)) {
+                    has_atime, at, has_cretime, cret)) {
             if (has_mtime) {
                 mtime = mt;
             }
             if (has_atime) {
                 atime = at;
             }
+            //TODO: cretime
         }
     }
 }
@@ -307,8 +308,9 @@ int FileNode::updateExtraFields () {
             }
         }
         // add timestamps
+        // TODO: cretime
         field = ExtraField::createExtTimeStamp (locations[loc], mtime,
-                atime, len);
+                atime, false, 0, len);
         int res = zip_file_extra_field_set (data->m_zip, id, EXT_TIMESTAMP,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
