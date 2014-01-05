@@ -88,6 +88,7 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
     n->parent->ctime = n->cretime = n->mtime;
     // FUSE does not pass S_IFDIR bit here
     n->mode = S_IFDIR | mode;
+    n->is_dir = true;
     return n;
 }
 
