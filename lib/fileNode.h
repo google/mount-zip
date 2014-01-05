@@ -54,8 +54,8 @@ private:
     void attach();
     void processExtraFields();
     void processExternalAttributes();
-    int updateExtraFields();
-    int updateExternalAttributes();
+    int updateExtraFields() const;
+    int updateExternalAttributes() const;
 
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
     FileNode(FuseZipData *_data, const char *fname, zip_int64_t id);
@@ -109,6 +109,12 @@ public:
     int save();
 
     /**
+     * Save file metadata to ZIP
+     * @return libzip error code or 0 on success
+     */
+    int saveMetadata () const;
+
+    /**
      * Truncate file.
      *
      * @return
@@ -125,6 +131,10 @@ public:
 
     inline bool isMetadataChanged() const {
         return metadataChanged;
+    }
+
+    inline bool isTemporaryDir() const {
+        return (state == NEW_DIR) && (id == NEW_NODE_INDEX);
     }
 
     /**

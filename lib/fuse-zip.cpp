@@ -102,24 +102,53 @@ void *fusezip_init(struct fuse_conn_info *conn) {
     return data;
 }
 
+inline FuseZipData *get_data() {
+    return (FuseZipData*)fuse_get_context()->private_data;
+}
+
+inline struct zip *get_zip() {
+    return get_data()->m_zip;
+}
+
 void fusezip_destroy(void *data) {
     FuseZipData *d = (FuseZipData*)data;
     // Saving changed data
     for (filemap_t::const_iterator i = d->files.begin(); i != d->files.end(); ++i) {
-        if (i->second->isChanged() && !i->second->is_dir) {
-            int res = i->second->save();
+        FileNode *node = i->second;
+        if (node == d->rootNode()) {
+            continue;
+        }
+        bool saveMetadata = node->isMetadataChanged();
+        if (node->isChanged() && !node->is_dir) {
+            saveMetadata = true;
+            int res = node->save();
             if (res != 0) {
+                saveMetadata = false;
                 syslog(LOG_ERR, "Error while saving file %s in ZIP archive: %d",
-                        i->second->full_name.c_str(), res);
+                        node->full_name.c_str(), res);
+            }
+        }
+        if (saveMetadata) {
+            if (node->isTemporaryDir()) {
+                // persist temporary directory
+                zip_int64_t idx = zip_dir_add(get_zip(),
+                        node->full_name.c_str(), ZIP_FL_ENC_UTF_8);
+                if (idx < 0) {
+                    syslog(LOG_ERR, "Unable to save directory %s in ZIP archive",
+                        node->full_name.c_str());
+                    continue;
+                }
+                node->id = idx;
+            }
+            int res = node->saveMetadata();
+            if (res != 0) {
+                syslog(LOG_ERR, "Error while saving metadata for file %s in ZIP archive: %d",
+                        node->full_name.c_str(), res);
             }
         }
     }
     delete d;
     syslog(LOG_INFO, "File system unmounted");
-}
-
-inline FuseZipData *get_data() {
-    return (FuseZipData*)fuse_get_context()->private_data;
 }
 
 FileNode *get_file_node(const char *fname) {
@@ -130,10 +159,6 @@ FileNode *get_file_node(const char *fname) {
     } else {
         return i->second;
     }
-}
-
-inline struct zip *get_zip() {
-    return get_data()->m_zip;
 }
 
 int fusezip_getattr(const char *path, struct stat *stbuf) {

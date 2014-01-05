@@ -304,14 +304,13 @@ int FileNode::close() {
 
 int FileNode::save() {
     // index is modified if state == NEW
-    int res = buffer->saveToZip(m_mtime, data->m_zip, full_name.c_str(),
+    return buffer->saveToZip(m_mtime, data->m_zip, full_name.c_str(),
             state == NEW, id);
-    if (res == 0) {
-        assert(id >= 0);
-        return updateExtraFields() && updateExternalAttributes();
-    } else {
-        return res;
-    }
+}
+
+int FileNode::saveMetadata() const {
+    assert(id >= 0);
+    return updateExtraFields() && updateExternalAttributes();
 }
 
 int FileNode::truncate(zip_uint64_t offset) {
@@ -426,7 +425,7 @@ void FileNode::processExtraFields () {
  * Save timestamp into extra fields
  * @return 0 on success
  */
-int FileNode::updateExtraFields () {
+int FileNode::updateExtraFields () const {
     static zip_flags_t locations[] = {ZIP_FL_CENTRAL, ZIP_FL_LOCAL};
     zip_int16_t count;
     const zip_uint8_t *field;
@@ -467,7 +466,7 @@ void FileNode::chmod (mode_t mode) {
  * Save OS type and permissions into external attributes
  * @return libzip error code (ZIP_ER_MEMORY or ZIP_ER_RDONLY)
  */
-int FileNode::updateExternalAttributes() {
+int FileNode::updateExternalAttributes() const {
     assert(id >= 0);
     return zip_file_set_external_attributes (data->m_zip, id, 0,
             ZIP_OPSYS_UNIX, m_mode << 16);

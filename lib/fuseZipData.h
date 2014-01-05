@@ -50,6 +50,8 @@ private:
      */
     static void convertFileName(const char *fname, bool readonly,
             bool needPrefix, std::string &converted);
+
+    FileNode *m_root;
 public:
     filemap_t files;
     struct zip *m_zip;
@@ -78,6 +80,13 @@ public:
      * Build tree of zip file entries from ZIP file
      */
     void build_tree(bool readonly);
+
+    /**
+     * Return pointer to root filesystem node
+     */
+    inline FileNode *rootNode () const {
+        return m_root;
+    }
 };
 
 #endif

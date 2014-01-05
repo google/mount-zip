@@ -48,11 +48,7 @@ FuseZipData::~FuseZipData() {
 }
 
 void FuseZipData::build_tree(bool readonly) {
-    (void)readonly;
-
-    FileNode *root_node = FileNode::createRootNode(this);
-    root_node->is_dir = true;
-
+    m_root = FileNode::createRootNode(this);
     zip_int64_t n = zip_get_num_entries(m_zip, 0);
     // search for absolute or parent-relative paths
     bool needPrefix = false;
