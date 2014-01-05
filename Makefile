@@ -80,5 +80,5 @@ test-clean:
 valgrind:
 	make -C tests valgrind
 
-.PHONY: all release doc clean all-clean lib-clean doc-clean test-clean tarball-clean distclean install uninstall tarball test valgrind
+.PHONY: all release doc clean all-clean lib-clean doc-clean test-clean tarball-clean distclean install uninstall tarball test valgrind $(LIB)
 
