@@ -68,6 +68,10 @@ public:
     static FileNode *createFile(FuseZipData *data, const char *fname,
             mode_t mode);
     /**
+     * Create new symbolic link
+     */
+    static FileNode *createSymlink(FuseZipData *data, const char *fname);
+    /**
      * Create new directory for ZIP file entry
      */
     static FileNode *createDir(FuseZipData *data, const char *fname,

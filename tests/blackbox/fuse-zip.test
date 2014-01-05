@@ -1796,6 +1796,27 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest readlink {Check readlink} {
+        set fname data/symlink.zip
+        mount -r
+        assert {[file readlink $mountdir/symlink] eq "../tmp/date"} "invalid link content"
+        umount
+    }
+
+    fstest symlink {Check symlink} {
+        create {
+            foo bar
+        }
+        mount
+        file link -symbolic $mountdir/symlink /dev/null
+        assert {[file readlink $mountdir/symlink] eq "/dev/null"} "invalid link content"
+        umount
+
+        mount
+        assert {[file readlink $mountdir/symlink] eq "/dev/null"} "invalid link content after umount"
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test

@@ -218,6 +218,8 @@ int main(int argc, char *argv[]) {
     fusezip_oper.getxattr   =   fusezip_getxattr;
     fusezip_oper.listxattr  =   fusezip_listxattr;
     fusezip_oper.removexattr=   fusezip_removexattr;
+    fusezip_oper.readlink   =   fusezip_readlink;
+    fusezip_oper.symlink    =   fusezip_symlink;
 
 #if FUSE_VERSION >= 28
     // don't allow NULL path

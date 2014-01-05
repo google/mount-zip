@@ -62,6 +62,25 @@ FileNode *FileNode::createFile (FuseZipData *data, const char *fname,
     return n;
 }
 
+FileNode *FileNode::createSymlink(FuseZipData *data, const char *fname) {
+    FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    n->state = NEW;
+    n->is_dir = false;
+    n->buffer = new BigBuffer();
+    if (!n->buffer) {
+        throw std::bad_alloc();
+    }
+    n->has_cretime = true;
+    n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
+
+    n->parse_name();
+    n->attach();
+    n->parent->setCTime(n->m_mtime);
+    n->m_mode = S_IFLNK | 0777;
+
+    return n;
+}
+
 /**
  * Create intermediate directory to build full tree
  */

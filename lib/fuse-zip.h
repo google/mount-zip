@@ -114,6 +114,10 @@ int fusezip_releasedir(const char *, struct fuse_file_info *);
 
 int fusezip_access(const char *, int);
 
+int fusezip_readlink(const char *, char *, size_t);
+
+int fusezip_symlink(const char *, const char *);
+
 }
 
 #endif

@@ -512,3 +512,52 @@ int fusezip_access(const char *, int) {
     return 0;
 }
 
+int fusezip_readlink(const char *path, char *buf, size_t size) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (!S_ISLNK(node->mode())) {
+        return -EINVAL;
+    }
+    int res;
+    if ((res = node->open()) != 0) {
+        if (res == -EMFILE) {
+            res = -ENOMEM;
+        }
+        return res;
+    }
+    int count = node->read(buf, size - 1, 0);
+    buf[count] = '\0';
+    node->close();
+    return 0;
+}
+
+int fusezip_symlink(const char *dest, const char *path) {
+    if (*path == '\0') {
+        return -EACCES;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node != NULL) {
+        return -EEXIST;
+    }
+    node = FileNode::createSymlink (get_data(), path + 1);
+    if (!node) {
+        return -ENOMEM;
+    }
+
+    int res;
+    if ((res = node->open()) != 0) {
+        if (res == -EMFILE) {
+            res = -ENOMEM;
+        }
+        return res;
+    }
+    res = node->write(dest, strlen(dest), 0);
+    node->close();
+    return (res < 0) ? -ENOMEM : 0;
+}
+
