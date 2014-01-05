@@ -1469,6 +1469,30 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest dir-stub-delete-files {Check that stub directory persists after content erase} {
+        file copy data/not-full-path.zip $tmpdir/not-full-path.zip
+        set fname $tmpdir/not-full-path.zip
+        mount
+        file delete $mountdir/foo/bar
+        umount
+        check {
+            bebebe bebe\n
+            foo/
+        }
+    }
+
+    fstest dir-stub-chmod {Check that stub directory permissions persists} {
+        file copy data/not-full-path.zip $tmpdir/not-full-path.zip
+        set fname $tmpdir/not-full-path.zip
+        mount
+        file attributes $mountdir/foo/bar -permissions 0750
+        umount
+
+        mount
+        assert {([file attributes $mountdir/foo/bar -permissions] & 0777) == 0750} "directory permissions not persist"
+        umount
+    }
+
     fstest mkdir-rmdir {Check that mkdir()-rmdir() success} {
         create {
             a b
