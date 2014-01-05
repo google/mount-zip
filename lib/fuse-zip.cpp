@@ -233,8 +233,6 @@ int fusezip_open(const char *path, struct fuse_file_info *fi) {
 }
 
 int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
-    (void) mode;
-
     if (*path == '\0') {
         return -EACCES;
     }
@@ -242,7 +240,7 @@ int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     if (node != NULL) {
         return -EEXIST;
     }
-    node = FileNode::createFile (get_data(), path + 1);
+    node = FileNode::createFile (get_data(), path + 1, mode);
     if (!node) {
         return -ENOMEM;
     }
@@ -329,7 +327,6 @@ int fusezip_rmdir(const char *path) {
 }
 
 int fusezip_mkdir(const char *path, mode_t mode) {
-    (void) mode;
     if (*path == '\0') {
         return -ENOENT;
     }
@@ -337,11 +334,10 @@ int fusezip_mkdir(const char *path, mode_t mode) {
     if (idx < 0) {
         return -ENOMEM;
     }
-    FileNode *node = FileNode::createDir(get_data(), path + 1, idx);
+    FileNode *node = FileNode::createDir(get_data(), path + 1, idx, mode);
     if (!node) {
         return -ENOMEM;
     }
-    node->is_dir = true;
     return 0;
 }
 

@@ -42,7 +42,8 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id):
         data(_data), full_name(fname), id(_id) {
 }
 
-FileNode *FileNode::createFile (FuseZipData *data, const char *fname) {
+FileNode *FileNode::createFile (FuseZipData *data, const char *fname, 
+        mode_t mode) {
     FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
     n->state = NEW;
     n->is_dir = false;
@@ -56,6 +57,7 @@ FileNode *FileNode::createFile (FuseZipData *data, const char *fname) {
     n->parse_name();
     n->attach();
     n->parent->ctime = time(NULL);
+    n->mode = mode;
 
     return n;
 }
@@ -71,6 +73,7 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
     n->has_cretime = true;
     n->mtime = n->atime = n->ctime = n->cretime = time(NULL);
     n->m_size = 0;
+    n->mode = S_IFDIR | 0775;
 
     n->parse_name();
     n->attach();
@@ -79,9 +82,11 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
 }
 
 FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
-        zip_int64_t id) {
+        zip_int64_t id, mode_t mode) {
     FileNode *n = createNodeForZipEntry(data, fname, id);
     n->parent->ctime = time(NULL);
+    // FUSE does not pass S_IFDIR bit here
+    n->mode = S_IFDIR | mode;
     return n;
 }
 
@@ -93,6 +98,7 @@ FileNode *FileNode::createRootNode(FuseZipData *data) {
     n->m_size = 0;
     n->name = n->full_name.c_str();
     n->parent = NULL;
+    n->mode = S_IFDIR | 0775;
     data->files[n->full_name.c_str()] = n;
     return n;
 }
@@ -126,6 +132,7 @@ FileNode *FileNode::createNodeForZipEntry(FuseZipData *data,
         throw;
     }
 
+    n->processExternalAttributes();
     n->processExtraFields();
     return n;
 }

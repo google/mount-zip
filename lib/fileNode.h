@@ -59,12 +59,13 @@ public:
     /**
      * Create new regular file
      */
-    static FileNode *createFile(FuseZipData *data, const char *fname);
+    static FileNode *createFile(FuseZipData *data, const char *fname,
+            mode_t mode);
     /**
      * Create new directory for ZIP file entry
      */
     static FileNode *createDir(FuseZipData *data, const char *fname,
-            zip_int64_t id);
+            zip_int64_t id, mode_t mode);
     /**
      * Create root pseudo-node for file system
      */
