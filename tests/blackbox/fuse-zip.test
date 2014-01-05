@@ -1718,6 +1718,43 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest chmod-file {Check chmod() for file} {
+        create {
+            cat meow
+        }
+        mount
+        set n $mountdir/cat
+        set f [open $n w]
+        puts $f purr
+        close $f
+        file attributes $n -permissions 0666
+        assert {[file attributes $n -permissions] == 0666} "should be a=rw"
+        file attributes $n -permissions 0444
+        assert {[file attributes $n -permissions] == 0444} "should be a=r"
+        umount
+
+        mount
+        assert {[file attributes $n -permissions] == 0444} "permissions not persist"
+        umount
+    }
+
+    fstest chmod-dir {Check chmod() for directory} {
+        create {
+            cat/
+        }
+        mount
+        set n $mountdir/cat
+        file attributes $n -permissions 0777
+        assert {([file attributes $n -permissions] & 0777) == 0777} "should be a=rwx"
+        file attributes $n -permissions 0555
+        assert {([file attributes $n -permissions] & 0777) == 0555} "should be a=rx"
+        umount
+
+        #mount
+        #assert {([file attributes $n -permissions] & 0777) == 0555} "permissions not persist"
+        #umount
+    }
+
     finalize
 }
 namespace delete ::util::test

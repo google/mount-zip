@@ -448,7 +448,15 @@ int fusezip_removexattr(const char *, const char *) {
     return -ENOTSUP;
 }
 
-int fusezip_chmod(const char *, mode_t) {
+int fusezip_chmod(const char *path, mode_t mode) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    node->chmod(mode);
     return 0;
 }
 

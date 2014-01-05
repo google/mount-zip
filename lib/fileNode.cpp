@@ -306,7 +306,7 @@ int FileNode::save() {
             state == NEW, id);
     if (res == 0) {
         assert(id >= 0);
-        return updateExtraFields();
+        return updateExtraFields() && updateExternalAttributes();
     } else {
         return res;
     }
@@ -454,3 +454,17 @@ int FileNode::updateExtraFields () {
     return 0;
 }
 
+void FileNode::chmod (mode_t mode) {
+    this->mode = (this->mode & S_IFMT) | mode;
+    //TODO: set 'metadata modified' flag
+}
+
+/**
+ * Save OS type and permissions into external attributes
+ * @return libzip error code (ZIP_ER_MEMORY or ZIP_ER_RDONLY)
+ */
+int FileNode::updateExternalAttributes() {
+    assert(id >= 0);
+    return zip_file_set_external_attributes (data->m_zip, id, 0,
+            ZIP_OPSYS_UNIX, mode << 16);
+}

@@ -50,6 +50,7 @@ private:
     void processExtraFields();
     void processExternalAttributes();
     int updateExtraFields();
+    int updateExternalAttributes();
 
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
     FileNode(FuseZipData *_data, const char *fname, zip_int64_t id);
@@ -116,6 +117,11 @@ public:
     inline bool isChanged() const {
         return state == CHANGED || state == NEW;
     }
+
+    /**
+     * Change file mode
+     */
+    void chmod (mode_t mode);
 
     zip_uint64_t size() const;
 
