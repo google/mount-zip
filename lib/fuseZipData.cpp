@@ -83,7 +83,7 @@ void FuseZipData::build_tree(bool readonly) {
 int FuseZipData::removeNode(FileNode *node) const {
     node->detach();
     if (node->parent != NULL) {
-        node->parent->ctime = time(NULL);
+        node->parent->setCTime (time(NULL));
     }
     zip_int64_t id = node->id;
     delete node;

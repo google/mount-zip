@@ -45,6 +45,11 @@ private:
     int open_count;
     nodeState state;
 
+    zip_uint64_t m_size;
+    bool has_cretime;
+    mode_t m_mode;
+    time_t m_mtime, m_atime, m_ctime, cretime;
+
     void parse_name();
     void attach();
     void processExtraFields();
@@ -122,6 +127,26 @@ public:
      * Change file mode
      */
     void chmod (mode_t mode);
+    inline mode_t mode() const {
+        return m_mode;
+    }
+
+    /**
+     * set atime and mtime
+     */
+    void setTimes (time_t atime, time_t mtime);
+
+    void setCTime (time_t ctime);
+
+    inline time_t atime() const {
+        return m_atime;
+    }
+    inline time_t ctime() const {
+        return m_ctime;
+    }
+    inline time_t mtime() const {
+        return m_mtime;
+    }
 
     zip_uint64_t size() const;
 
@@ -131,11 +156,6 @@ public:
     zip_int64_t id;
     nodelist_t childs;
     FileNode *parent;
-
-    bool has_cretime;
-    time_t mtime, atime, ctime, cretime;
-    zip_uint64_t m_size;
-    mode_t mode;
 
     class AlreadyExists {
     };

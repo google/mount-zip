@@ -52,12 +52,12 @@ FileNode *FileNode::createFile (FuseZipData *data, const char *fname,
         throw std::bad_alloc();
     }
     n->has_cretime = true;
-    n->mtime = n->atime = n->ctime = n->cretime = time(NULL);
+    n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
 
     n->parse_name();
     n->attach();
-    n->parent->ctime = time(NULL);
-    n->mode = mode;
+    n->parent->setCTime(n->m_mtime);
+    n->m_mode = mode;
 
     return n;
 }
@@ -71,9 +71,9 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
     n->state = NEW_DIR;
     n->is_dir = true;
     n->has_cretime = true;
-    n->mtime = n->atime = n->ctime = n->cretime = time(NULL);
+    n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
     n->m_size = 0;
-    n->mode = S_IFDIR | 0775;
+    n->m_mode = S_IFDIR | 0775;
 
     n->parse_name();
     n->attach();
@@ -85,9 +85,9 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
         zip_int64_t id, mode_t mode) {
     FileNode *n = createNodeForZipEntry(data, fname, id);
     n->has_cretime = true;
-    n->parent->ctime = n->cretime = n->mtime;
+    n->parent->setCTime (n->cretime = n->m_mtime);
     // FUSE does not pass S_IFDIR bit here
-    n->mode = S_IFDIR | mode;
+    n->m_mode = S_IFDIR | mode;
     n->is_dir = true;
     return n;
 }
@@ -95,12 +95,12 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
 FileNode *FileNode::createRootNode(FuseZipData *data) {
     FileNode *n = new FileNode(data, "", ROOT_NODE_INDEX);
     n->state = NEW_DIR;
-    n->mtime = n->atime = n->ctime = n->cretime = time(NULL);
+    n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
     n->has_cretime = true;
     n->m_size = 0;
     n->name = n->full_name.c_str();
     n->parent = NULL;
-    n->mode = S_IFDIR | 0775;
+    n->m_mode = S_IFDIR | 0775;
     data->files[n->full_name.c_str()] = n;
     return n;
 }
@@ -120,7 +120,7 @@ FileNode *FileNode::createNodeForZipEntry(FuseZipData *data,
     // required fields are always valid for existing items or newly added
     // directories (see zip_stat_index.c from libzip)
     assert((stat.valid & needValid) == needValid);
-    n->mtime = n->atime = n->ctime = stat.mtime;
+    n->m_mtime = n->m_atime = n->m_ctime = stat.mtime;
     n->has_cretime = false;
     n->m_size = stat.size;
 
@@ -191,8 +191,8 @@ void FileNode::attach() {
         // ... update existing node information
         other->id = this->id;
         other->m_size = this->m_size;
-        other->mtime = this->mtime;
-        other->atime = this->atime;
+        other->m_mtime = this->m_mtime;
+        other->m_atime = this->m_atime;
         other->state = this->state;
         throw AlreadyExists();
     }
@@ -235,11 +235,12 @@ void FileNode::rename(const char *fname) {
     parse_name();
     attach();
     if (parent != oldParent) {
+        time_t now = time(NULL);
         if (oldParent != NULL) {
-            oldParent->ctime = time(NULL);
+            oldParent->setCTime (now);
         }
         if (parent != NULL) {
-            parent->ctime = time(NULL);
+            parent->setCTime (now);
         }
     }
 }
@@ -279,7 +280,7 @@ int FileNode::open() {
 }
 
 int FileNode::read(char *buf, size_t sz, zip_uint64_t offset) {
-    atime = time(NULL);
+    m_atime = time(NULL);
     return buffer->read(buf, sz, offset);
 }
 
@@ -287,7 +288,7 @@ int FileNode::write(const char *buf, size_t sz, zip_uint64_t offset) {
     if (state == OPENED) {
         state = CHANGED;
     }
-    mtime = time(NULL);
+    m_mtime = time(NULL);
     return buffer->write(buf, sz, offset);
 }
 
@@ -302,7 +303,7 @@ int FileNode::close() {
 
 int FileNode::save() {
     // index is modified if state == NEW
-    int res = buffer->saveToZip(mtime, data->m_zip, full_name.c_str(),
+    int res = buffer->saveToZip(m_mtime, data->m_zip, full_name.c_str(),
             state == NEW, id);
     if (res == 0) {
         assert(id >= 0);
@@ -324,7 +325,7 @@ int FileNode::truncate(zip_uint64_t offset) {
         catch (const std::bad_alloc &) {
             return EIO;
         }
-        mtime = time(NULL);
+        m_mtime = time(NULL);
     } else {
         return EBADF;
     }
@@ -348,12 +349,12 @@ void FileNode::processExternalAttributes () {
     zip_file_get_external_attributes(data->m_zip, id, 0, &opsys, &attr);
     switch (opsys) {
         case ZIP_OPSYS_UNIX: {
-            mode = attr >> 16;
+            m_mode = attr >> 16;
             // force is_dir value
             if (is_dir) {
-                mode = (mode & ~S_IFMT) | S_IFDIR;
+                m_mode = (m_mode & ~S_IFMT) | S_IFDIR;
             } else {
-                mode = mode & ~S_IFDIR;
+                m_mode = m_mode & ~S_IFDIR;
             }
             break;
         }
@@ -364,25 +365,25 @@ void FileNode::processExternalAttributes () {
              * Both WINDOWS_NTFS and OPSYS_MVS used here because of
              * difference in constant assignment by PKWARE and Info-ZIP
              */
-            mode = S_IRUSR | S_IRGRP | S_IROTH;
+            m_mode = S_IRUSR | S_IRGRP | S_IROTH;
             // read only
             if ((attr & 1) == 0) {
-                mode |= S_IWUSR | S_IWGRP | S_IWOTH;
+                m_mode |= S_IWUSR | S_IWGRP | S_IWOTH;
             }
             // directory
             if (is_dir) {
-                mode |= S_IFDIR | S_IXUSR | S_IXGRP | S_IXOTH;
+                m_mode |= S_IFDIR | S_IXUSR | S_IXGRP | S_IXOTH;
             } else {
-                mode |= S_IFREG;
+                m_mode |= S_IFREG;
             }
 
             break;
         }
         default: {
             if (is_dir) {
-                mode = S_IFDIR | 0775;
+                m_mode = S_IFDIR | 0775;
             } else {
-                mode = S_IFREG | 0664;
+                m_mode = S_IFREG | 0664;
             }
         }
     }
@@ -406,10 +407,10 @@ void FileNode::processExtraFields () {
         if (ExtraField::parseExtTimeStamp(len, field, has_mtime, mt,
                     has_atime, at, has_cretime, cret)) {
             if (has_mtime) {
-                mtime = mt;
+                m_mtime = mt;
             }
             if (has_atime) {
-                atime = at;
+                m_atime = at;
             }
             if (has_cretime) {
                 cretime = cret;
@@ -443,8 +444,8 @@ int FileNode::updateExtraFields () {
             }
         }
         // add timestamps
-        field = ExtraField::createExtTimeStamp (locations[loc], mtime,
-                atime, has_cretime, cretime, len);
+        field = ExtraField::createExtTimeStamp (locations[loc], m_mtime,
+                m_atime, has_cretime, cretime, len);
         int res = zip_file_extra_field_set (data->m_zip, id, EXT_TIMESTAMP,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
@@ -455,7 +456,7 @@ int FileNode::updateExtraFields () {
 }
 
 void FileNode::chmod (mode_t mode) {
-    this->mode = (this->mode & S_IFMT) | mode;
+    m_mode = (m_mode & S_IFMT) | mode;
     //TODO: set 'metadata modified' flag
 }
 
@@ -466,5 +467,16 @@ void FileNode::chmod (mode_t mode) {
 int FileNode::updateExternalAttributes() {
     assert(id >= 0);
     return zip_file_set_external_attributes (data->m_zip, id, 0,
-            ZIP_OPSYS_UNIX, mode << 16);
+            ZIP_OPSYS_UNIX, m_mode << 16);
+}
+
+void FileNode::setTimes (time_t atime, time_t mtime) {
+    m_atime = atime;
+    m_mtime = mtime;
+    //TODO: set 'metadata modified' flag
+}
+
+void FileNode::setCTime (time_t ctime) {
+    m_ctime = ctime;
+    //TODO: set 'metadata modified' flag
 }
