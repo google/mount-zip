@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2013 by Alexander Galanin                          //
+//  Copyright (C) 2008-2014 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -243,7 +243,7 @@ int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     if (node != NULL) {
         return -EEXIST;
     }
-    node = new FileNode(get_data(), path + 1);
+    node = FileNode::createFile (get_data(), path + 1);
     if (!node) {
         return -ENOMEM;
     }
@@ -338,7 +338,7 @@ int fusezip_mkdir(const char *path, mode_t mode) {
     if (idx < 0) {
         return -ENOMEM;
     }
-    FileNode *node = new FileNode(get_data(), path + 1, idx);
+    FileNode *node = FileNode::createDir(get_data(), path + 1, idx);
     if (!node) {
         return -ENOMEM;
     }

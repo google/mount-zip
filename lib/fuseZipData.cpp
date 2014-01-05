@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2013 by Alexander Galanin                          //
+//  Copyright (C) 2008-2014 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -50,7 +50,7 @@ FuseZipData::~FuseZipData() {
 void FuseZipData::build_tree(bool readonly) {
     (void)readonly;
 
-    FileNode *root_node = new FileNode(this, "", FileNode::ROOT_NODE_INDEX);
+    FileNode *root_node = FileNode::createRootNode(this);
     root_node->is_dir = true;
 
     zip_int64_t n = zip_get_num_entries(m_zip, 0);
@@ -70,7 +70,8 @@ void FuseZipData::build_tree(bool readonly) {
         std::string converted;
         convertFileName(name, readonly, needPrefix, converted);
         try {
-            FileNode *node = new FileNode(this, converted.c_str(), i);
+            FileNode *node = FileNode::createNodeForZipEntry(this,
+                    converted.c_str(), i);
             (void) node;
         }
         catch (const FileNode::AlreadyExists &e) {

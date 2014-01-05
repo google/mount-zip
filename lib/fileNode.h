@@ -34,7 +34,8 @@ private:
         CLOSED,
         OPENED,
         CHANGED,
-        NEW
+        NEW,
+        NEW_DIR
     };
     static const int EXT_TIMESTAMP;
 
@@ -47,11 +48,30 @@ private:
     void attach();
     void processExtraFields();
     int updateExtraFields();
-public:
-    static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
 
-    FileNode(FuseZipData *_data, const char *fname,
-            zip_int64_t id = NEW_NODE_INDEX);
+    static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
+    FileNode(FuseZipData *_data, const char *fname, zip_int64_t id);
+
+    static FileNode *createIntermediateDir(FuseZipData *data, const char *fname);
+public:
+    /**
+     * Create new regular file
+     */
+    static FileNode *createFile(FuseZipData *data, const char *fname);
+    /**
+     * Create new directory for ZIP file entry
+     */
+    static FileNode *createDir(FuseZipData *data, const char *fname,
+            zip_int64_t id);
+    /**
+     * Create root pseudo-node for file system
+     */
+    static FileNode *createRootNode(FuseZipData *data);
+    /**
+     * Create node for existing ZIP file entry
+     */
+    static FileNode *createNodeForZipEntry(FuseZipData *data,
+            const char *fname, zip_int64_t id);
     ~FileNode();
 
     void detach();

@@ -38,43 +38,96 @@ const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 // ZIP extra fields
 const int FileNode::EXT_TIMESTAMP = 0x5455;
 
-FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
-        data(_data), full_name(fname) {
-    this->id = id;
-    this->is_dir = false;
-    this->open_count = 0;
-    if (id == NEW_NODE_INDEX) {
-        state = NEW;
-        buffer = new BigBuffer();
-        if (!buffer) {
-            throw std::bad_alloc();
-        }
-        has_cretime = true;
-        mtime = atime = ctime = cretime = time(NULL);
-        m_size = 0;
-    } else {
-        has_cretime = false;
-        state = CLOSED;
-        if (id != ROOT_NODE_INDEX) {
-            struct zip_stat stat;
-            zip_stat_index(data->m_zip, this->id, 0, &stat);
-            // check that all used fields are valid
-            zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
-                ZIP_STAT_SIZE | ZIP_STAT_MTIME;
-            assert((stat.valid & needValid) == needValid);
-            mtime = atime = ctime = stat.mtime;
-            m_size = stat.size;
-            processExtraFields();
-        } else {
-            mtime = atime = ctime = time(NULL);
-            m_size = 0;
-        }
+FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id):
+        data(_data), full_name(fname), id(_id) {
+}
+
+FileNode *FileNode::createFile (FuseZipData *data, const char *fname) {
+    FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    n->state = NEW;
+    n->is_dir = false;
+    n->buffer = new BigBuffer();
+    if (!n->buffer) {
+        throw std::bad_alloc();
     }
-    parse_name();
-    attach();
-    if (id == NEW_NODE_INDEX && parent != NULL) {
-        parent->ctime = time(NULL);
+    n->has_cretime = true;
+    n->mtime = n->atime = n->ctime = n->cretime = time(NULL);
+
+    n->parse_name();
+    n->attach();
+    n->parent->ctime = time(NULL);
+
+    return n;
+}
+
+/**
+ * Create intermediate directory to build full tree
+ */
+FileNode *FileNode::createIntermediateDir(FuseZipData *data,
+        const char *fname) {
+    FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    n->state = NEW_DIR;
+    n->is_dir = true;
+    n->has_cretime = true;
+    n->mtime = n->atime = n->ctime = n->cretime = time(NULL);
+    n->m_size = 0;
+
+    n->parse_name();
+    n->attach();
+
+    return n;
+}
+
+FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
+        zip_int64_t id) {
+    FileNode *n = createNodeForZipEntry(data, fname, id);
+    n->parent->ctime = time(NULL);
+    return n;
+}
+
+FileNode *FileNode::createRootNode(FuseZipData *data) {
+    FileNode *n = new FileNode(data, "", ROOT_NODE_INDEX);
+    n->state = NEW_DIR;
+    n->mtime = n->atime = n->ctime = n->cretime = time(NULL);
+    n->has_cretime = true;
+    n->m_size = 0;
+    n->name = n->full_name.c_str();
+    n->parent = NULL;
+    data->files[n->full_name.c_str()] = n;
+    return n;
+}
+
+FileNode *FileNode::createNodeForZipEntry(FuseZipData *data,
+        const char *fname, zip_int64_t id) {
+    FileNode *n = new FileNode(data, fname, id);
+    n->is_dir = false;
+    n->open_count = 0;
+    n->state = CLOSED;
+
+    struct zip_stat stat;
+    zip_stat_index(data->m_zip, id, 0, &stat);
+    // check that all used fields are valid
+    zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
+        ZIP_STAT_SIZE | ZIP_STAT_MTIME;
+    // required fields are always valid for existing items or newly added
+    // directories (see zip_stat_index.c from libzip)
+    assert((stat.valid & needValid) == needValid);
+    n->mtime = n->atime = n->ctime = stat.mtime;
+    n->has_cretime = false;
+    n->m_size = stat.size;
+
+    n->parse_name();
+    //TODO: remove after existing node search redesign
+    try {
+        n->attach();
     }
+    catch (...) {
+        delete n;
+        throw;
+    }
+
+    n->processExtraFields();
+    return n;
 }
 
 FileNode::~FileNode() {
@@ -83,36 +136,38 @@ FileNode::~FileNode() {
     }
 }
 
+/**
+ * Get short name of a file. If last char is '/' then node is a directory
+ */
 void FileNode::parse_name() {
-    if (full_name.empty()) {
-        // in case of root directory of a virtual filesystem
-        this->name = full_name.c_str();
-        this->is_dir = true;
-    } else {
-        const char *lsl = full_name.c_str();
-        while (*lsl++) {}
+    assert(!full_name.empty());
+
+    const char *lsl = full_name.c_str();
+    while (*lsl++) {}
+    lsl--;
+    while (lsl > full_name.c_str() && *lsl != '/') {
         lsl--;
+    }
+    // If the last symbol in file name is '/' then it is a directory
+    if (*lsl == '/' && *(lsl+1) == '\0') {
+        // It will produce two \0s at the end of file name. I think that
+        // it is not a problem
+        full_name[full_name.size() - 1] = 0;
+        this->is_dir = true;
         while (lsl > full_name.c_str() && *lsl != '/') {
             lsl--;
         }
-        // If the last symbol in file name is '/' then it is a directory
-        if (*lsl == '/' && *(lsl+1) == '\0') {
-            // It will produce two \0s at the end of file name. I think that
-            // it is not a problem
-            full_name[full_name.size() - 1] = 0;
-            this->is_dir = true;
-            while (lsl > full_name.c_str() && *lsl != '/') {
-                lsl--;
-            }
-        }
-        // Setting short name of node
-        if (*lsl == '/') {
-            lsl++;
-        }
-        this->name = lsl;
     }
+    // Setting short name of node
+    if (*lsl == '/') {
+        lsl++;
+    }
+    this->name = lsl;
 }
 
+/**
+ * Attach to parent node. Parent nodes are created if not yet exist.
+ */
 void FileNode::attach() {
     filemap_t::const_iterator other_iter =
         this->data->files.find(full_name.c_str());
@@ -144,7 +199,8 @@ void FileNode::attach() {
         filemap_t::const_iterator parent_iter = data->files.find(
                 full_name.c_str());
         if (parent_iter == data->files.end()) {
-            FileNode *p = new FileNode(data, full_name.c_str());
+            //TODO: search for existing node by name
+            FileNode *p = createIntermediateDir(data, full_name.c_str());
             p->is_dir = true;
             this->parent = p;
         } else {
