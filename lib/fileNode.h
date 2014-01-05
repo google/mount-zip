@@ -103,7 +103,8 @@ public:
     nodelist_t childs;
     FileNode *parent;
 
-    time_t mtime, atime;
+    bool has_cretime;
+    time_t mtime, atime, cretime;
     zip_uint64_t m_size;
 
     class AlreadyExists {

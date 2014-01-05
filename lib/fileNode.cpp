@@ -49,9 +49,11 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t id):
         if (!buffer) {
             throw std::bad_alloc();
         }
-        mtime = atime = time(NULL);
+        has_cretime = true;
+        mtime = atime = cretime = time(NULL);
         m_size = 0;
     } else {
+        has_cretime = false;
         state = CLOSED;
         if (id != ROOT_NODE_INDEX) {
             struct zip_stat stat;
@@ -279,7 +281,10 @@ void FileNode::processExtraFields () {
             if (has_atime) {
                 atime = at;
             }
-            //TODO: cretime
+            if (has_cretime) {
+                cretime = cret;
+                this->has_cretime = true;
+            }
         }
     }
 }
@@ -308,9 +313,8 @@ int FileNode::updateExtraFields () {
             }
         }
         // add timestamps
-        // TODO: cretime
         field = ExtraField::createExtTimeStamp (locations[loc], mtime,
-                atime, false, 0, len);
+                atime, has_cretime, cretime, len);
         int res = zip_file_extra_field_set (data->m_zip, id, EXT_TIMESTAMP,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
