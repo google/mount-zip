@@ -107,7 +107,7 @@ public:
      * @param buf       destination buffer
      * @param size      requested bytes count
      * @param offset    offset to start reading from
-     * @return always 0
+     * @return number of bytes read
      */
     int read(char *buf, size_t size, zip_uint64_t offset) const;
 
