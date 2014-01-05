@@ -84,7 +84,8 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
 FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
         zip_int64_t id, mode_t mode) {
     FileNode *n = createNodeForZipEntry(data, fname, id);
-    n->parent->ctime = time(NULL);
+    n->has_cretime = true;
+    n->parent->ctime = n->cretime = n->mtime;
     // FUSE does not pass S_IFDIR bit here
     n->mode = S_IFDIR | mode;
     return n;
