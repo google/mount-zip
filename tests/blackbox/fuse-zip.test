@@ -1580,6 +1580,7 @@ namespace eval ::fusezip::test {
         assert {[file atime $mountdir/foo.bar] == 0} "atime not modified"
         # first access
         set f [open $mountdir/foo.bar r]
+        read $f
         close $f
         after 2000
         set atime1 [file atime $mountdir/foo.bar]
@@ -1587,6 +1588,7 @@ namespace eval ::fusezip::test {
         after 2000
         # second access
         set f [open $mountdir/foo.bar r]
+        read $f
         close $f
         after 2000
         set atime2 [file atime $mountdir/foo.bar]
