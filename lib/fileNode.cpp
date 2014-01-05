@@ -113,6 +113,7 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
 
 FileNode *FileNode::createRootNode(FuseZipData *data) {
     FileNode *n = new FileNode(data, "", ROOT_NODE_INDEX);
+    n->is_dir = true;
     n->state = NEW_DIR;
     n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
     n->has_cretime = true;
