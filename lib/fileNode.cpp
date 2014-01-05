@@ -305,6 +305,7 @@ int FileNode::save() {
     int res = buffer->saveToZip(mtime, data->m_zip, full_name.c_str(),
             state == NEW, id);
     if (res == 0) {
+        assert(id >= 0);
         return updateExtraFields();
     } else {
         return res;
@@ -343,6 +344,7 @@ zip_uint64_t FileNode::size() const {
 void FileNode::processExternalAttributes () {
     zip_uint8_t opsys;
     zip_uint32_t attr;
+    assert(id >= 0);
     zip_file_get_external_attributes(data->m_zip, id, 0, &opsys, &attr);
     switch (opsys) {
         case ZIP_OPSYS_UNIX: {
