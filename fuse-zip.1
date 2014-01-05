@@ -1,7 +1,7 @@
 .\" '\" t
 .\" ** The above line should force tbl to be a preprocessor **
 .\" Man page for fuse-zip
-.TH "fuse-zip" "1" "January 2010" "FUSE filesystem to read and modify ZIP archives" "FUSE filesystem to read and modify ZIP archives"
+.TH "fuse-zip" "1" "January 2014" "FUSE filesystem to read and modify ZIP archives" "FUSE filesystem to read and modify ZIP archives"
 .SH "NAME"
 fuse\-zip \- a FUSE filesystem for zip archives with write support
 .SH "SYNOPSIS"
@@ -43,6 +43,16 @@ Unlike KIO or Gnome VFS, it can be used in any application without modifications
 
 Unlike other FUSE filesystems, only fuse\-zip provides write support to ZIP archives.
 Also, fuse\-zip is faster that all known implementations on large archives with many files. 
+
+Since version 0.3.0 fuse-zip has support for absolute and parent-relative paths
+in file names, but only in read-only mode (-r command line switch). Absolute
+paths are displayed under "ROOT" directory, every ".." in path replaced by "UP"
+in directory name and "normal" files are placed under "CUR" directory.
+
+Support for UNIX file permissions and owner information has been added in
+version 0.4. See
+.B PERMISSIONS
+for details.
 .SH "USAGE"
 General usage would look like this
 
@@ -56,6 +66,9 @@ l l.
 .TE
 .PP
 Be patient. Wait for fuse-zip process finish after unmounting, especially on a big archives.
+.SH "PERMISSIONS"
+Access check will not be performed unless
+\fB-o default_permissions\fP mount option is given.
 .SH "FILES"
 .TP 
 .if !'po4a'hide' .I /var/log/user.log
@@ -73,5 +86,4 @@ Alexander Galanin <al@galanin.nnov.ru> http://galanin.nnov.ru/~al
 .br 
 .
 This manual page was originally written by Kirill Zaitsev <teferiincub@gmail.com>. Updated by Alexander Galanin.
-
 

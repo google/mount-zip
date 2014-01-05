@@ -1,6 +1,0 @@
-* replace vector<T> with (s)list<T> in BigBuffer
-* rewrite files tree: keep only short path information to simplify rename(), use hash_map (unordered_map) instead of map
-* incapsulate call for zip_* into FileNode
-* speed up position determination using bitwise operations
-* iterate over chunks by iterator instead of indexing
-* write memory cache to /tmp on fsync(). May be write compressed stream

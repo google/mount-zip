@@ -24,7 +24,6 @@ You can download fuse-zip at http://code.google.com/p/fuse-zip
 
 Alexander Galanin
   * E-mail:     al@galanin.nnov.ru
-  * XMPP:       gaa@jabber.ru
   * Homepage:   http://galanin.nnov.ru/~al/
 
 
@@ -72,6 +71,11 @@ fuse-zip have the greatest speed.
 You can download test suite from the web-site and make sure that it is true.
 See PerformancePage for details.
 
+== PERMISSIONS ==
+
+Support for UNIX file permissions and owner information has been added in
+version 0.4. Note that access check will not be performed unless
+'-o default_permissions' mount option is given.
 
 = HINTS =
 
@@ -82,3 +86,6 @@ See PerformancePage for details.
 # After adding/modifying files in archive it will be repacked at filesystem
   unmount. Hence, your file system must have enough space to keep temporary
   files.
+# Wait until fuse-zip process is finished after unmount before using archive
+  file.
+
