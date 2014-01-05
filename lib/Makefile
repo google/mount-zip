@@ -14,7 +14,7 @@ release:
 	make CXXFLAGS="$(RELEASE_CXXFLAGS)" all
 
 $(DEST): $(OBJECTS)
-	$(AR) -cq $@ $(OBJECTS)
+	$(AR) -cr $@ $(OBJECTS)
 
 # fuse-zip.cpp must be compiled separately with FUSEFLAGS
 fuse-zip.o: fuse-zip.cpp
