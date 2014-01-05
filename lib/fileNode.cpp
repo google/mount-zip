@@ -45,11 +45,15 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id):
 FileNode *FileNode::createFile (FuseZipData *data, const char *fname, 
         mode_t mode) {
     FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    if (n == NULL) {
+        return NULL;
+    }
     n->state = NEW;
     n->is_dir = false;
     n->buffer = new BigBuffer();
     if (!n->buffer) {
-        throw std::bad_alloc();
+        delete n;
+        return NULL;
     }
     n->has_cretime = true;
     n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
@@ -64,11 +68,15 @@ FileNode *FileNode::createFile (FuseZipData *data, const char *fname,
 
 FileNode *FileNode::createSymlink(FuseZipData *data, const char *fname) {
     FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    if (n == NULL) {
+        return NULL;
+    }
     n->state = NEW;
     n->is_dir = false;
     n->buffer = new BigBuffer();
     if (!n->buffer) {
-        throw std::bad_alloc();
+        delete n;
+        return NULL;
     }
     n->has_cretime = true;
     n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
@@ -87,6 +95,9 @@ FileNode *FileNode::createSymlink(FuseZipData *data, const char *fname) {
 FileNode *FileNode::createIntermediateDir(FuseZipData *data,
         const char *fname) {
     FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    if (n == NULL) {
+        return NULL;
+    }
     n->state = NEW_DIR;
     n->is_dir = true;
     n->has_cretime = true;
@@ -103,6 +114,9 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
 FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
         zip_int64_t id, mode_t mode) {
     FileNode *n = createNodeForZipEntry(data, fname, id);
+    if (n == NULL) {
+        return NULL;
+    }
     n->has_cretime = true;
     n->parent->setCTime (n->cretime = n->m_mtime);
     // FUSE does not pass S_IFDIR bit here
@@ -113,6 +127,9 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
 
 FileNode *FileNode::createRootNode(FuseZipData *data) {
     FileNode *n = new FileNode(data, "", ROOT_NODE_INDEX);
+    if (n == NULL) {
+        return NULL;
+    }
     n->is_dir = true;
     n->state = NEW_DIR;
     n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
@@ -128,6 +145,9 @@ FileNode *FileNode::createRootNode(FuseZipData *data) {
 FileNode *FileNode::createNodeForZipEntry(FuseZipData *data,
         const char *fname, zip_int64_t id) {
     FileNode *n = new FileNode(data, fname, id);
+    if (n == NULL) {
+        return NULL;
+    }
     n->is_dir = false;
     n->open_count = 0;
     n->state = CLOSED;
