@@ -457,6 +457,7 @@ int FileNode::updateExtraFields () {
 
 void FileNode::chmod (mode_t mode) {
     m_mode = (m_mode & S_IFMT) | mode;
+    m_ctime = time(NULL);
     //TODO: set 'metadata modified' flag
 }
 
