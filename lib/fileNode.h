@@ -46,7 +46,7 @@ private:
     nodeState state;
 
     zip_uint64_t m_size;
-    bool has_cretime;
+    bool has_cretime, metadataChanged;
     mode_t m_mode;
     time_t m_mtime, m_atime, m_ctime, cretime;
 
@@ -121,6 +121,10 @@ public:
 
     inline bool isChanged() const {
         return state == CHANGED || state == NEW;
+    }
+
+    inline bool isMetadataChanged() const {
+        return metadataChanged;
     }
 
     /**

@@ -39,7 +39,7 @@ const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 const int FileNode::EXT_TIMESTAMP = 0x5455;
 
 FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id):
-        data(_data), full_name(fname), id(_id) {
+        data(_data), metadataChanged(false), full_name(fname), id(_id) {
 }
 
 FileNode *FileNode::createFile (FuseZipData *data, const char *fname, 
@@ -289,6 +289,7 @@ int FileNode::write(const char *buf, size_t sz, zip_uint64_t offset) {
         state = CHANGED;
     }
     m_mtime = time(NULL);
+    metadataChanged = true;
     return buffer->write(buf, sz, offset);
 }
 
@@ -326,6 +327,7 @@ int FileNode::truncate(zip_uint64_t offset) {
             return EIO;
         }
         m_mtime = time(NULL);
+        metadataChanged = true;
     } else {
         return EBADF;
     }
@@ -458,7 +460,7 @@ int FileNode::updateExtraFields () {
 void FileNode::chmod (mode_t mode) {
     m_mode = (m_mode & S_IFMT) | mode;
     m_ctime = time(NULL);
-    //TODO: set 'metadata modified' flag
+    metadataChanged = true;
 }
 
 /**
@@ -474,10 +476,10 @@ int FileNode::updateExternalAttributes() {
 void FileNode::setTimes (time_t atime, time_t mtime) {
     m_atime = atime;
     m_mtime = mtime;
-    //TODO: set 'metadata modified' flag
+    metadataChanged = true;
 }
 
 void FileNode::setCTime (time_t ctime) {
     m_ctime = ctime;
-    //TODO: set 'metadata modified' flag
+    metadataChanged = true;
 }
