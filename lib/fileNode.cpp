@@ -329,6 +329,55 @@ zip_uint64_t FileNode::size() const {
 }
 
 /**
+ * Get file mode from external attributes.
+ */
+void FileNode::processExternalAttributes () {
+    zip_uint8_t opsys;
+    zip_uint32_t attr;
+    zip_file_get_external_attributes(data->m_zip, id, 0, &opsys, &attr);
+    switch (opsys) {
+        case ZIP_OPSYS_UNIX: {
+            mode = attr >> 16;
+            // force is_dir value
+            if (is_dir) {
+                mode = (mode & ~S_IFMT) | S_IFDIR;
+            } else {
+                mode = mode & ~S_IFDIR;
+            }
+            break;
+        }
+        case ZIP_OPSYS_DOS:
+        case ZIP_OPSYS_WINDOWS_NTFS:
+        case ZIP_OPSYS_MVS: {
+            /*
+             * Both WINDOWS_NTFS and OPSYS_MVS used here because of
+             * difference in constant assignment by PKWARE and Info-ZIP
+             */
+            mode = S_IRUSR | S_IRGRP | S_IROTH;
+            // read only
+            if ((attr & 1) == 0) {
+                mode |= S_IWUSR | S_IWGRP | S_IWOTH;
+            }
+            // directory
+            if (is_dir) {
+                mode |= S_IFDIR | S_IXUSR | S_IXGRP | S_IXOTH;
+            } else {
+                mode |= S_IFREG;
+            }
+
+            break;
+        }
+        default: {
+            if (is_dir) {
+                mode = S_IFDIR | 0775;
+            } else {
+                mode = S_IFREG | 0664;
+            }
+        }
+    }
+}
+
+/**
  * Get timestamp information from extra fields
  */
 void FileNode::processExtraFields () {

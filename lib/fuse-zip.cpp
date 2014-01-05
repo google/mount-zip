@@ -146,12 +146,11 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
         return -ENOENT;
     }
     if (node->is_dir) {
-        stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2 + node->childs.size();
     } else {
-        stbuf->st_mode = S_IFREG | 0644;
         stbuf->st_nlink = 1;
     }
+    stbuf->st_mode = node->mode;
     stbuf->st_blksize = STANDARD_BLOCK_SIZE;
     stbuf->st_ino = node->id;
     stbuf->st_blocks = (node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE;

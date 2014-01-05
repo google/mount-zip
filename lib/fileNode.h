@@ -24,6 +24,7 @@
 
 #include <string>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "types.h"
 #include "bigBuffer.h"
@@ -47,6 +48,7 @@ private:
     void parse_name();
     void attach();
     void processExtraFields();
+    void processExternalAttributes();
     int updateExtraFields();
 
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
@@ -126,6 +128,7 @@ public:
     bool has_cretime;
     time_t mtime, atime, ctime, cretime;
     zip_uint64_t m_size;
+    mode_t mode;
 
     class AlreadyExists {
     };
