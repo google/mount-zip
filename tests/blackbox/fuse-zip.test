@@ -1666,6 +1666,33 @@ namespace eval ::fusezip::test {
         assert {$stat1(ctime) < $stat2(ctime)} "ctime not changed"
     }
 
+    fstest dir-accessible-after-creation {Check that directory is accessible after creation} {
+        create {
+            file content
+        }
+        mount
+        file mkdir $mountdir/dir
+        assert {[file isdirectory $mountdir/dir]} "dir is not a directory"
+        file mkdir $mountdir/dir/subdir
+        assert {[file isdirectory $mountdir/dir/subdir]} "dir/subdir is not a directory"
+        umount
+    }
+
+    fstest file-accessible-after-creation {Check that file is readable after creation} {
+        create {
+            cat meow
+        }
+        mount
+        set f [open $mountdir/dog w]
+        puts $f woof
+        close $f
+        assert {[file isfile $mountdir/dog]} "file is not regular"
+        set f [open $mountdir/dog r]
+        read $f
+        close $f
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test
