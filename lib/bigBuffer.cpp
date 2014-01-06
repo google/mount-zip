@@ -273,6 +273,7 @@ zip_int64_t BigBuffer::zipUserFunctionCallback(void *state, void *data,
         case ZIP_SOURCE_STAT: {
             struct zip_stat *st = (struct zip_stat*)data;
             zip_stat_init(st);
+            st->valid = ZIP_STAT_SIZE | ZIP_STAT_MTIME;
             st->size = b->buf->len;
             st->mtime = b->mtime;
             return sizeof(struct zip_stat);
