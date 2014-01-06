@@ -144,7 +144,7 @@ void duplicateFileNames() {
     assert(thrown);
 }
 
-void relativePathsReadOnly() {
+void relativePathsReadWrite() {
     struct zip z;
     z.filename = "../file.name";
     z.count = 1;
@@ -160,7 +160,7 @@ void relativePathsReadOnly() {
     assert(thrown);
 }
 
-void absolutePathsReadOnly() {
+void absolutePathsReadWrite() {
     struct zip z;
     z.filename = "/file.name";
     z.count = 1;
@@ -176,7 +176,7 @@ void absolutePathsReadOnly() {
     assert(thrown);
 }
 
-void relativePathsReadWrite() {
+void relativePathsReadOnly() {
     struct zip z;
     z.filename = "../file.name";
     z.count = 1;
@@ -184,7 +184,7 @@ void relativePathsReadWrite() {
     zd.build_tree(true);
 }
 
-void absolutePathsReadWrite() {
+void absolutePathsReadOnly() {
     struct zip z;
     z.filename = "/file.name";
     z.count = 1;
