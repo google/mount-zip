@@ -38,7 +38,6 @@ private:
         NEW,
         NEW_DIR
     };
-    static const int EXT_TIMESTAMP;
 
     BigBuffer *buffer;
     FuseZipData *data;
@@ -49,6 +48,8 @@ private:
     bool has_cretime, metadataChanged;
     mode_t m_mode;
     time_t m_mtime, m_atime, m_ctime, cretime;
+    uid_t m_uid;
+    gid_t m_gid;
 
     void parse_name();
     void attach();
@@ -164,6 +165,18 @@ public:
     }
     inline time_t mtime() const {
         return m_mtime;
+    }
+
+
+    /**
+     * Change owner and group
+     */
+    void chown (uid_t uid, gid_t gid);
+    inline uid_t uid () const {
+        return m_uid;
+    }
+    inline gid_t gid () const {
+        return m_gid;
     }
 
     zip_uint64_t size() const;

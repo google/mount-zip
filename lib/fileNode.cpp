@@ -35,11 +35,13 @@
 const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 
-// ZIP extra fields
-const int FileNode::EXT_TIMESTAMP = 0x5455;
-
-FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id):
-        data(_data), metadataChanged(false), full_name(fname), id(_id) {
+FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id) {
+    data = _data;
+    metadataChanged = false;
+    full_name = fname;
+    id = _id;
+    m_uid = 0;
+    m_gid = 0;
 }
 
 FileNode *FileNode::createFile (FuseZipData *data, const char *fname, 
@@ -433,31 +435,65 @@ void FileNode::processExternalAttributes () {
 }
 
 /**
- * Get timestamp information from extra fields
+ * Get timestamp information from extra fields.
+ * Get owner and group information.
  */
 void FileNode::processExtraFields () {
     zip_int16_t count;
+    // times from timestamp have precedence
+    bool mtimeFromTimestamp = false, atimeFromTimestamp = false;
+    // UIDs and GIDs from UNIX extra fields with bigger type IDs have
+    // precedence
+    int lastProcessedUnixField = 0;
 
-    // 5455: Extended Timestamp Extra Field
-    count = zip_file_extra_fields_count_by_id (data->m_zip, id,
-            EXT_TIMESTAMP, ZIP_FL_LOCAL);
+    count = zip_file_extra_fields_count (data->m_zip, id, ZIP_FL_LOCAL);
     for (zip_int16_t i = 0; i < count; ++i) {
-        zip_uint16_t len;
-        const zip_uint8_t *field = zip_file_extra_field_get_by_id
-            (data->m_zip, id, EXT_TIMESTAMP, i, &len, ZIP_FL_LOCAL);
         bool has_mtime, has_atime, has_cretime;
         time_t mt, at, cret;
-        if (ExtraField::parseExtTimeStamp(len, field, has_mtime, mt,
-                    has_atime, at, has_cretime, cret)) {
-            if (has_mtime) {
-                m_mtime = mt;
+        zip_uint16_t type, len;
+        const zip_uint8_t *field = zip_file_extra_field_get (data->m_zip,
+                id, i, &type, &len, ZIP_FL_LOCAL);
+
+        switch (type) {
+            case FZ_EF_TIMESTAMP: {
+                if (ExtraField::parseExtTimeStamp (len, field, has_mtime, mt,
+                            has_atime, at, has_cretime, cret)) {
+                    if (has_mtime) {
+                        m_mtime = mt;
+                        mtimeFromTimestamp = true;
+                    }
+                    if (has_atime) {
+                        m_atime = at;
+                        atimeFromTimestamp = true;
+                    }
+                    if (has_cretime) {
+                        cretime = cret;
+                        this->has_cretime = true;
+                    }
+                }
+                break;
             }
-            if (has_atime) {
-                m_atime = at;
-            }
-            if (has_cretime) {
-                cretime = cret;
-                this->has_cretime = true;
+            case FZ_EF_PKWARE_UNIX:
+            case FZ_EF_INFOZIP_UNIX1:
+            case FZ_EF_INFOZIP_UNIX2:
+            case FZ_EF_INFOZIP_UNIXN: {
+                uid_t uid;
+                gid_t gid;
+                if (ExtraField::parseSimpleUnixField (type, len, field,
+                            uid, gid, has_mtime, mt, has_atime, at)) {
+                    if (type >= lastProcessedUnixField) {
+                        m_uid = uid;
+                        m_gid = gid;
+                        lastProcessedUnixField = type;
+                    }
+                    if (has_mtime && !mtimeFromTimestamp) {
+                        m_mtime = mt;
+                    }
+                    if (has_atime && !atimeFromTimestamp) {
+                        m_atime = at;
+                    }
+                }
+                break;
             }
         }
     }
@@ -481,7 +517,7 @@ int FileNode::updateExtraFields () const {
             zip_uint16_t type;
             const zip_uint8_t *ptr = zip_file_extra_field_get (data->m_zip,
                     id, i, &type, NULL, locations[loc]);
-            if (ptr != NULL && type == EXT_TIMESTAMP) {
+            if (ptr != NULL && type == FZ_EF_TIMESTAMP) {
                 zip_file_extra_field_delete (data->m_zip, id, i,
                         locations[loc]);
             }
@@ -489,8 +525,9 @@ int FileNode::updateExtraFields () const {
         // add timestamps
         field = ExtraField::createExtTimeStamp (locations[loc], m_mtime,
                 m_atime, has_cretime, cretime, len);
-        int res = zip_file_extra_field_set (data->m_zip, id, EXT_TIMESTAMP,
-                ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
+        int res = zip_file_extra_field_set (data->m_zip, id,
+                FZ_EF_TIMESTAMP, ZIP_EXTRA_FIELD_NEW, field, len,
+                locations[loc]);
         if (res != 0) {
             return res;
         }

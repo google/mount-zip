@@ -117,10 +117,8 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
         bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime) {
     const zip_uint8_t *end = data + len;
     switch (type) {
-        case 0x000D:
-            // PKWARE Unix Extra Field
-        case 0x5855:
-            // Info-ZIP Unix Extra Field (type 1)
+        case FZ_EF_PKWARE_UNIX:
+        case FZ_EF_INFOZIP_UNIX1:
             hasMTime = hasATime = true; 
             if (data + 12 > end) {
                 return false;
@@ -130,8 +128,7 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             uid = getShort (data);
             gid = getShort (data);
             break;
-        case 0x7855:
-            // Info-ZIP Unix Extra Field (type 2)
+        case FZ_EF_INFOZIP_UNIX2:
             hasMTime = hasATime = false; 
             if (data + 4 > end) {
                 return false;
@@ -139,8 +136,7 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             uid = getShort (data);
             gid = getShort (data);
             break;
-        case 0x7875: {
-            // Info-ZIP New Unix Extra Field
+        case FZ_EF_INFOZIP_UNIXN: {
             const zip_uint8_t *p;
             hasMTime = hasATime = false; 
             // version

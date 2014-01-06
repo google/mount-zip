@@ -183,8 +183,8 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     stbuf->st_atime = node->atime();
     stbuf->st_mtime = node->mtime();
     stbuf->st_ctime = node->ctime();
-    stbuf->st_uid = geteuid();
-    stbuf->st_gid = getegid();
+    stbuf->st_uid = node->uid();
+    stbuf->st_gid = node->gid();
 
     return 0;
 }
