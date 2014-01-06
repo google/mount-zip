@@ -407,7 +407,9 @@ void FileNode::processExternalAttributes () {
              * difference in constant assignment by PKWARE and Info-ZIP
              */
             m_mode = S_IRUSR | S_IRGRP | S_IROTH;
-            // read only
+            // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
+            // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
+            // FILE_ATTRIBUTE_READONLY
             if ((attr & 1) == 0) {
                 m_mode |= S_IWUSR | S_IWGRP | S_IWOTH;
             }
@@ -508,8 +510,26 @@ void FileNode::chmod (mode_t mode) {
  */
 int FileNode::updateExternalAttributes() const {
     assert(id >= 0);
+    // save UNIX attributes in high word
+    mode_t mode = m_mode << 16;
+
+    // save DOS attributes in low byte
+    // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
+    // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
+    if (is_dir) {
+        // FILE_ATTRIBUTE_DIRECTORY
+        mode |= 0x10;
+    }
+    if (name[0] == '.') {
+        // FILE_ATTRIBUTE_HIDDEN
+        mode |= 2;
+    }
+    if (!(mode & S_IWUSR)) {
+        // FILE_ATTRIBUTE_READONLY
+        mode |= 1;
+    }
     return zip_file_set_external_attributes (data->m_zip, id, 0,
-            ZIP_OPSYS_UNIX, m_mode << 16);
+            ZIP_OPSYS_UNIX, mode);
 }
 
 void FileNode::setTimes (time_t atime, time_t mtime) {
