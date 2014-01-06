@@ -484,7 +484,20 @@ int fusezip_chmod(const char *path, mode_t mode) {
     return 0;
 }
 
-int fusezip_chown(const char *, uid_t, gid_t) {
+int fusezip_chown(const char *path, uid_t uid, gid_t gid) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (uid != (uid_t) -1) {
+        node->setUid (uid);
+    }
+    if (gid != (gid_t) -1) {
+        node->setGid (gid);
+    }
     return 0;
 }
 

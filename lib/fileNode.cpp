@@ -541,6 +541,16 @@ void FileNode::chmod (mode_t mode) {
     metadataChanged = true;
 }
 
+void FileNode::setUid (uid_t uid) {
+    m_uid = uid;
+    metadataChanged = true;
+}
+
+void FileNode::setGid (gid_t gid) {
+    m_gid = gid;
+    metadataChanged = true;
+}
+
 /**
  * Save OS type and permissions into external attributes
  * @return libzip error code (ZIP_ER_MEMORY or ZIP_ER_RDONLY)

@@ -1826,6 +1826,21 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest chown {Check chown()} {
+        file copy data/no-owner-info.zip $tmpdir/new.zip
+        set fname $tmpdir/new.zip
+
+        mount
+        set n $mountdir/README
+        set uid [id effective userid]
+        set gid [id effective groupid]
+        file attributes $n -owner $uid -group $gid
+        file stat $n stat
+        assert {$stat(uid) == $uid} "owner is not me"
+        assert {$stat(gid) == $gid} "group is not mine"
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test

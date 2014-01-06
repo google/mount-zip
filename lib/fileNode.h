@@ -169,9 +169,10 @@ public:
 
 
     /**
-     * Change owner and group
+     * owner and group
      */
-    void chown (uid_t uid, gid_t gid);
+    void setUid (uid_t uid);
+    void setGid (gid_t gid);
     inline uid_t uid () const {
         return m_uid;
     }
