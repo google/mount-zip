@@ -1839,6 +1839,16 @@ namespace eval ::fusezip::test {
         assert {$stat(uid) == $uid} "owner is not me"
         assert {$stat(gid) == $gid} "group is not mine"
         umount
+
+        mount
+        file stat $n stat
+        assert {$stat(uid) == $uid} "owner not persist after remount"
+        assert {$stat(gid) == $gid} "group not persist after remount"
+        file attributes $n -owner 0 -group 0
+        file stat $n stat
+        assert {$stat(uid) == 0} "owner is not root"
+        assert {$stat(gid) == 0} "group is not root"
+        umount
     }
 
     finalize

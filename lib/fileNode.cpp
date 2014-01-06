@@ -505,29 +505,41 @@ void FileNode::processExtraFields () {
  */
 int FileNode::updateExtraFields () const {
     static zip_flags_t locations[] = {ZIP_FL_CENTRAL, ZIP_FL_LOCAL};
-    zip_int16_t count;
-    const zip_uint8_t *field;
-    zip_uint16_t len;
 
     for (unsigned int loc = 0; loc < sizeof(locations); ++loc) {
         // remove old extra fields
-        count = zip_file_extra_fields_count (data->m_zip, id,
+        zip_int16_t count = zip_file_extra_fields_count (data->m_zip, id,
                 locations[loc]);
+        const zip_uint8_t *field;
         for (zip_int16_t i = count; i >= 0; --i) {
             zip_uint16_t type;
-            const zip_uint8_t *ptr = zip_file_extra_field_get (data->m_zip,
-                    id, i, &type, NULL, locations[loc]);
-            if (ptr != NULL && type == FZ_EF_TIMESTAMP) {
+            field = zip_file_extra_field_get (data->m_zip, id, i, &type,
+                    NULL, locations[loc]);
+            // FZ_EF_PKWARE_UNIX not removed because can contain extra data
+            // that currently not handled by fuse-zip
+            if (field != NULL && (type == FZ_EF_TIMESTAMP ||
+                        type == FZ_EF_INFOZIP_UNIX1 ||
+                        type == FZ_EF_INFOZIP_UNIX2 ||
+                        type == FZ_EF_INFOZIP_UNIXN)) {
                 zip_file_extra_field_delete (data->m_zip, id, i,
                         locations[loc]);
             }
         }
+        // add new extra fields
+        zip_uint16_t len;
+        int res;
         // add timestamps
         field = ExtraField::createExtTimeStamp (locations[loc], m_mtime,
                 m_atime, has_cretime, cretime, len);
-        int res = zip_file_extra_field_set (data->m_zip, id,
-                FZ_EF_TIMESTAMP, ZIP_EXTRA_FIELD_NEW, field, len,
-                locations[loc]);
+        res = zip_file_extra_field_set (data->m_zip, id, FZ_EF_TIMESTAMP,
+                ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
+        if (res != 0) {
+            return res;
+        }
+        // add UNIX owner info
+        field = ExtraField::createInfoZipNewUnixField (m_uid, m_gid, len);
+        res = zip_file_extra_field_set (data->m_zip, id, FZ_EF_INFOZIP_UNIXN,
+                ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
             return res;
         }
