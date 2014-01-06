@@ -27,8 +27,8 @@
 struct ExtraField {
 
 /**
- * Parse 'Extended Timestamp' extra field (0x5455) to get mtime and
- * atime field values.
+ * Parse 'Extended Timestamp' LOCAL extra field (0x5455) to get mtime,
+ * atime and creation time values.
  * @param len (IN) field length in bytes
  * @param data (IN) field data
  * @param hasMTime (OUT) mtime presence
@@ -59,6 +59,54 @@ static const zip_uint8_t *createExtTimeStamp (zip_flags_t location,
         time_t mtime, time_t atime, bool set_cretime, time_t cretime,
         zip_uint16_t &len);
 
+/**
+ * Parse simple UNIX LOCAL extra field to extract UID/GID and (maybe)
+ * timestamps:
+ *  000D    PKWARE Unix Extra Field
+ *  5855    Info-ZIP Unix Extra Field (type 1)
+ *  7855    Info-ZIP Unix Extra Field (type 2)
+ *  7875    Info-ZIP New Unix Extra Field
+ * Variable part of 000D are currently ignored
+ *
+ * @param type extended field type ID
+ * @param len field length in bytes
+ * @param data field data
+ * @param uid (OUT) UID
+ * @param gid (OUT) GID
+ * @param hasMTime (OUT) mtime presence
+ * @param mtime (OUT) file modification time if present
+ * @param hasATime (OUT) atime presence
+ * @param atime (OUT) file access time if present
+ * @return successful completion flag
+ */
+static bool parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
+        const zip_uint8_t *data, uid_t &uid, gid_t &gid,
+        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime);
+
+/**
+ * Create Info-ZIP New Unix extra field (0x7875)
+ * @param uid UID
+ * @param gid GID
+ * @param len (OUT) data length
+ * @return pointer to timestamp data (must not be free()-d)
+ */
+static const zip_uint8_t *createInfoZipNewUnixField (uid_t uid, gid_t gid,
+        zip_uint16_t &len);
+
+private:
+/**
+ * Get Intel low-byte/high-byte order 32-bit number from data.
+ * Pointer is moved to next byte after parsed data.
+ */
+static unsigned long getLong (const zip_uint8_t *&data);
+
+/**
+ * Get Intel low-byte/high-byte order 16-bit number from data.
+ * Pointer is moved to next byte after parsed data.
+ */
+static unsigned short getShort (const zip_uint8_t *&data);
+
 };
+
 #endif
 

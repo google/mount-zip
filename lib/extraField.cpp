@@ -21,6 +21,22 @@
 
 #include "extraField.h"
 
+unsigned long
+ExtraField::getLong (const zip_uint8_t *&data) {
+    unsigned long t = *data++;
+    t += *data++ << 8;
+    t += *data++ << 16;
+    t += *data++ << 24;
+    return t;
+}
+
+unsigned short 
+ExtraField::getShort (const zip_uint8_t *&data) {
+    unsigned short t = *data++;
+    t += *data++ << 8;
+    return t;
+}
+
 bool
 ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
         bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime,
@@ -39,32 +55,20 @@ ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
         if (data + 4 > end) {
             return false;
         }
-        signed long t = *data++;
-        t += *data++ << 8;
-        t += *data++ << 16;
-        t += *data++ << 24;
-        mtime = (time_t)t;
+        mtime = (time_t)getLong(data);
     }
     if (hasATime) {
         if (data + 4 > end) {
             return false;
         }
-        signed long t = *data++;
-        t += *data++ << 8;
-        t += *data++ << 16;
-        t += *data++ << 24;
-        atime = (time_t)t;
+        atime = (time_t)getLong(data);
     }
     // only check that data format is correct
     if (hasCreTime) {
         if (data + 4 > end) {
             return false;
         }
-        signed long t = *data++;
-        t += *data++ << 8;
-        t += *data++ << 16;
-        t += *data++ << 24;
-        cretime = (time_t)t;
+        cretime = (time_t)getLong(data);
     }
 
     return true;
@@ -102,6 +106,107 @@ ExtraField::createExtTimeStamp (zip_flags_t location,
                 cretime >>= 8;
             }
         }
+    }
+
+    return data;
+}
+
+bool
+ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
+        const zip_uint8_t *data, uid_t &uid, gid_t &gid,
+        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime) {
+    const zip_uint8_t *end = data + len;
+    switch (type) {
+        case 0x000D:
+            // PKWARE Unix Extra Field
+        case 0x5855:
+            // Info-ZIP Unix Extra Field (type 1)
+            hasMTime = hasATime = true; 
+            if (data + 12 > end) {
+                return false;
+            }
+            atime = getLong (data);
+            mtime = getLong (data);
+            uid = getShort (data);
+            gid = getShort (data);
+            break;
+        case 0x7855:
+            // Info-ZIP Unix Extra Field (type 2)
+            hasMTime = hasATime = false; 
+            if (data + 4 > end) {
+                return false;
+            }
+            uid = getShort (data);
+            gid = getShort (data);
+            break;
+        case 0x7875: {
+            // Info-ZIP New Unix Extra Field
+            const zip_uint8_t *p;
+            hasMTime = hasATime = false; 
+            // version
+            if (len < 1) {
+                return false;
+            }
+            if (*data++ != 1) {
+                // unsupported version
+                return false;
+            }
+            // UID
+            if (data + 1 > end) {
+                return false;
+            }
+            int lenUid = *data++;
+            if (data + lenUid > end) {
+                return false;
+            }
+            p = data + lenUid;
+            uid = 0;
+            while (--p >= data) {
+                uid = (uid << 8) + *p;
+            }
+            data += lenUid;
+            // GID
+            if (data + 1 > end) {
+                return false;
+            }
+            int lenGid = *data++;
+            if (data + lenGid > end) {
+                return false;
+            }
+            p = data + lenGid;
+            gid = 0;
+            while (--p >= data) {
+                gid = (gid << 8) + *p;
+            }
+
+            break;
+        }
+        default:
+            return false;
+    }
+    return true;
+}
+
+const zip_uint8_t *
+ExtraField::createInfoZipNewUnixField (uid_t uid, gid_t gid,
+        zip_uint16_t &len) {
+    const int uidLen = sizeof(uid_t), gidLen = sizeof(gid_t);
+    static zip_uint8_t data [3 + uidLen + gidLen];
+
+    len = 0;
+    // version
+    data[len++] = 1;
+    // UID
+    data[len++] = uidLen;
+    for (int i = 0; i < uidLen; ++i) {
+        data[len++] = uid & 0xFF;
+        uid >>= 8;
+    }
+    // GID
+    data[len++] = gidLen;
+    for (int i = 0; i < gidLen; ++i) {
+        data[len++] = gid & 0xFF;
+        gid >>= 8;
     }
 
     return data;
