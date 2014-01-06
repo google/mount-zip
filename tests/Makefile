@@ -1,5 +1,5 @@
 all:
-	make -C blackbox
+	make -C blackbox all
 	make -C whitebox test
 
 valgrind:
