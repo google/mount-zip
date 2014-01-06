@@ -1816,6 +1816,15 @@ namespace eval ::fusezip::test {
         assert {[file readlink $mountdir/symlink] eq "/dev/null"} "invalid link content after umount"
         umount
     }
+    
+    fstest no-owner-info {Check that default owner:group is root:root} {
+        set fname data/no-owner-info.zip
+        mount -r
+        file stat $mountdir/README stat
+        assert {$stat(uid) == 0} "owner is not root"
+        assert {$stat(gid) == 0} "group is not root"
+        umount
+    }
 
     finalize
 }

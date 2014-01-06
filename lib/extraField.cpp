@@ -157,8 +157,14 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             }
             p = data + lenUid;
             uid = 0;
+            int overflowBytes = sizeof(uid_t) - lenUid;
             while (--p >= data) {
+                if (overflowBytes > 0 && *p != 0) {
+                    // UID overflow
+                    return false;
+                }
                 uid = (uid << 8) + *p;
+                overflowBytes--;
             }
             data += lenUid;
             // GID
@@ -171,8 +177,14 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             }
             p = data + lenGid;
             gid = 0;
+            overflowBytes = sizeof(gid_t) - lenGid;
             while (--p >= data) {
+                if (overflowBytes > 0 && *p != 0) {
+                    // GID overflow
+                    return false;
+                }
                 gid = (gid << 8) + *p;
+                overflowBytes--;
             }
 
             break;
