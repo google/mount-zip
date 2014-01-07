@@ -265,7 +265,8 @@ int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     if (node != NULL) {
         return -EEXIST;
     }
-    node = FileNode::createFile (get_data(), path + 1, mode);
+    node = FileNode::createFile (get_data(), path + 1,
+            fuse_get_context()->uid, fuse_get_context()->gid, mode);
     if (!node) {
         return -ENOMEM;
     }
@@ -359,7 +360,8 @@ int fusezip_mkdir(const char *path, mode_t mode) {
     if (idx < 0) {
         return -ENOMEM;
     }
-    FileNode *node = FileNode::createDir(get_data(), path + 1, idx, mode);
+    FileNode *node = FileNode::createDir(get_data(), path + 1, idx,
+            fuse_get_context()->uid, fuse_get_context()->gid, mode);
     if (!node) {
         return -ENOMEM;
     }

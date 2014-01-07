@@ -1851,6 +1851,23 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest new-file-owner {Check owner of new file} {
+        create {
+            foo bar
+        }
+        mount
+        set f [open $mountdir/cat w]
+        puts $f meow
+        close $f
+
+        set uid [id effective userid]
+        set gid [id effective groupid]
+        file stat $mountdir/cat stat
+        assert {$stat(uid) == $uid} "owner is not me"
+        assert {$stat(gid) == $gid} "group is not mine"
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test

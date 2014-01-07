@@ -67,7 +67,7 @@ public:
      * Create new regular file
      */
     static FileNode *createFile(FuseZipData *data, const char *fname,
-            mode_t mode);
+            uid_t owner, gid_t group, mode_t mode);
     /**
      * Create new symbolic link
      */
@@ -76,7 +76,7 @@ public:
      * Create new directory for ZIP file entry
      */
     static FileNode *createDir(FuseZipData *data, const char *fname,
-            zip_int64_t id, mode_t mode);
+            zip_int64_t id, uid_t owner, gid_t group, mode_t mode);
     /**
      * Create root pseudo-node for file system
      */

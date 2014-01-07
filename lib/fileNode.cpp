@@ -45,7 +45,7 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id) {
 }
 
 FileNode *FileNode::createFile (FuseZipData *data, const char *fname, 
-        mode_t mode) {
+        uid_t owner, gid_t group, mode_t mode) {
     FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
     if (n == NULL) {
         return NULL;
@@ -64,6 +64,8 @@ FileNode *FileNode::createFile (FuseZipData *data, const char *fname,
     n->attach();
     n->parent->setCTime(n->m_mtime);
     n->m_mode = mode;
+    n->m_uid = owner;
+    n->m_gid = group;
 
     return n;
 }
@@ -114,7 +116,7 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
 }
 
 FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
-        zip_int64_t id, mode_t mode) {
+        zip_int64_t id, uid_t owner, gid_t group, mode_t mode) {
     FileNode *n = createNodeForZipEntry(data, fname, id);
     if (n == NULL) {
         return NULL;
@@ -123,6 +125,8 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
     n->parent->setCTime (n->cretime = n->m_mtime);
     // FUSE does not pass S_IFDIR bit here
     n->m_mode = S_IFDIR | mode;
+    n->m_uid = owner;
+    n->m_gid = group;
     n->is_dir = true;
     return n;
 }
