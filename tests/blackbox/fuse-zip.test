@@ -1726,7 +1726,7 @@ namespace eval ::fusezip::test {
             if {$name eq "readonly"} {
                 assert {[file attributes $mountdir/dir/$name.txt -permissions] == 0444} "file 'dir/$name.txt' is writable"
             } else {
-                assert {[file attributes $mountdir/dir/$name.txt -permissions] == 0666} "file 'dir/$name.txt' is writable"
+                assert {[file attributes $mountdir/dir/$name.txt -permissions] == 0664} "file 'dir/$name.txt' is not writable"
             }
         }
         umount

@@ -408,16 +408,16 @@ void FileNode::processExternalAttributes () {
              * Both WINDOWS_NTFS and OPSYS_MVS used here because of
              * difference in constant assignment by PKWARE and Info-ZIP
              */
-            m_mode = S_IRUSR | S_IRGRP | S_IROTH;
+            m_mode = 0444;
             // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
             // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
             // FILE_ATTRIBUTE_READONLY
             if ((attr & 1) == 0) {
-                m_mode |= S_IWUSR | S_IWGRP | S_IWOTH;
+                m_mode |= 0220;
             }
             // directory
             if (is_dir) {
-                m_mode |= S_IFDIR | S_IXUSR | S_IXGRP | S_IXOTH;
+                m_mode |= S_IFDIR | 0111;
             } else {
                 m_mode |= S_IFREG;
             }
