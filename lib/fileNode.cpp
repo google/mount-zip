@@ -224,6 +224,7 @@ void FileNode::parse_name() {
  * Attach to parent node. Parent nodes are created if not yet exist.
  */
 void FileNode::attach() {
+    assert(id != ROOT_NODE_INDEX);
     filemap_t::const_iterator other_iter =
         this->data->files.find(full_name.c_str());
     // If Node with the same name already exists...
@@ -242,30 +243,29 @@ void FileNode::attach() {
         other->state = this->state;
         throw AlreadyExists();
     }
-    if (!full_name.empty()) {
-        // Adding new child to parent node. For items without '/' in fname it will be root_node.
-        const char *lsl = this->name;
-        if (lsl > full_name.c_str()) {
-            lsl--;
-        }
-        char c = *lsl;
-        *(const_cast <char*> (lsl)) = '\0';
-        // Searching for parent node...
-        filemap_t::const_iterator parent_iter = data->files.find(
-                full_name.c_str());
-        if (parent_iter == data->files.end()) {
-            //TODO: search for existing node by name
-            FileNode *p = createIntermediateDir(data, full_name.c_str());
-            p->is_dir = true;
-            this->parent = p;
-        } else {
-            this->parent = parent_iter->second;
-        }
-        this->parent->childs.push_back(this);
-        *(const_cast <char*> (lsl)) = c;
-    } else {
-        parent = NULL;
+
+    assert(!full_name.empty());
+    // Adding new child to parent node. For items without '/' in fname it will be root_node.
+    const char *lsl = this->name;
+    if (lsl > full_name.c_str()) {
+        lsl--;
     }
+    char c = *lsl;
+    *(const_cast <char*> (lsl)) = '\0';
+    // Searching for parent node...
+    filemap_t::const_iterator parent_iter = data->files.find(
+            full_name.c_str());
+    if (parent_iter == data->files.end()) {
+        //TODO: search for existing node by name
+        FileNode *p = createIntermediateDir(data, full_name.c_str());
+        p->is_dir = true;
+        this->parent = p;
+    } else {
+        this->parent = parent_iter->second;
+    }
+    this->parent->childs.push_back(this);
+    *(const_cast <char*> (lsl)) = c;
+
     this->data->files[full_name.c_str()] = this;
 }
 
