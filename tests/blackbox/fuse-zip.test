@@ -1458,6 +1458,23 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest dir-stub-rename-deep {Check stub dirs rename (deep dir structure)} {
+        file copy data/not-full-path-deep.zip $tmpdir/not-full-path.zip
+        set fname $tmpdir/not-full-path.zip
+        mount
+        assert {[file exists $mountdir/sim/salabim/rahat/lukum]}
+        file rename $mountdir/sim/salabim $mountdir/sim/sim
+        assert {[file exists $mountdir/sim/sim/rahat/lukum]}
+        umount
+        check {
+            sim/
+            sim/sim/
+            sim/sim/rahat/
+            sim/sim/rahat/lukum AAAAAAAAAA
+            sim/sim/rahat-lukum BBBBBBBBBB
+        }
+    }
+
     fstest dir-stub-rmdir {Check that stubbed dir removed successfully} {
         file copy data/not-full-path.zip $tmpdir/not-full-path.zip
         set fname $tmpdir/not-full-path.zip
@@ -1551,7 +1568,9 @@ namespace eval ::fusezip::test {
     fstest parent-relative-paths-ro {Check for paths relative to parent directory in archive (read-only)} {
         set fname data/parent-relative-paths.zip
         mount -r
-        assert {[exec sh -c "cd $mountdir; find . -printf '%p '"] eq ". ./UPUP ./UPUP/INSTALL ./UP ./UP/other ./UP/other/LICENSE "}
+        set actual [split [string trim [exec sh -c "cd $mountdir; find . -printf '%p '"]]]
+        set expected {. ./UPUP ./UPUP/INSTALL ./UP ./UP/other ./UP/other/LICENSE}
+        assert {[struct::set equal $actual $expected]} "file list is not equal"
 
         set f [open $mountdir/UPUP/INSTALL r]
         set data [read $f]
@@ -1565,7 +1584,9 @@ namespace eval ::fusezip::test {
     fstest absolute-path-ro {Check for absolute paths in archive (read-only)} {
         set fname data/absolute-path.zip
         mount -r
-        assert {[exec sh -c "cd $mountdir; find . -printf '%p '"] eq ". ./ROOT ./ROOT/rootname.ext "}
+        set actual [split [string trim [exec sh -c "cd $mountdir; find . -printf '%p '"]]]
+        set expected {. ./ROOT ./ROOT/rootname.ext}
+        assert {[struct::set equal $actual $expected]} "file list is not equal"
 
         set f [open $mountdir/ROOT/rootname.ext r]
         set data [read $f]
@@ -1579,7 +1600,9 @@ namespace eval ::fusezip::test {
     fstest mixed-paths-ro {Check mixed paths in archive (absolute, relative and "normal")} {
         set fname data/mixed-paths.zip
         mount -r
-        assert {[exec sh -c "cd $mountdir; find . -printf '%p '"] eq ". ./ROOT ./ROOT/root ./ROOT/root/name.ext ./CUR ./CUR/normal.file ./UP ./UP/parent ./UP/parent/relative "}
+        set actual [split [string trim [exec sh -c "cd $mountdir; find . -printf '%p '"]]]
+        set expected {. ./ROOT ./ROOT/root ./ROOT/root/name.ext ./CUR ./CUR/normal.file ./UP ./UP/parent ./UP/parent/relative}
+        assert {[struct::set equal $actual $expected]} "file list is not equal"
 
         foreach {fname expected} {
             /ROOT/root/name.ext AAAAAAAAAA
@@ -1866,6 +1889,50 @@ namespace eval ::fusezip::test {
         assert {$stat(uid) == $uid} "owner is not me"
         assert {$stat(gid) == $gid} "group is not mine"
         umount
+    }
+
+    fstest file-dir-same-name {Check that archive that contain file and intermediate dir with the same name recognised as broken} {
+        set fname data/file-dir-same-name.zip
+        if {![catch {mount -r} err opts] ||
+                [ dict get $opts -errorcode ] ne "NOTMOUNTED"} {
+            error "Mount error is expected"
+        } else {
+            set msg [stripValgrindOutput [join $error \n]]
+            if {![regexp {^fuse-zip: unable to open ZIP file: bad archive structure} $msg]} {
+                error "Invalid error message: $msg"
+            }
+        }
+    }
+
+    fstest ls-after-remove-file {list directory content after file removal} {
+        create {
+            filename.ext blah-blah
+            filename2.ext blah-blah
+        }
+        mount
+        file delete $mountdir/filename.ext
+        set fnames [glob -directory $mountdir -nocomplain -tails *]
+        assert {[llength $fnames] == 1} "one file expected"
+        assert {[lindex $fnames 0] eq "filename2.ext"} "one file expected"
+        umount
+        check {
+            filename2.ext blah-blah
+        }
+    }
+
+    fstest ls-after-rename-file {list directory content after file rename} {
+        create {
+            filename.ext blah-blah
+        }
+        mount
+        file rename $mountdir/filename.ext $mountdir/filename2.ext
+        set fnames [glob -directory $mountdir -nocomplain -tails *]
+        assert {[llength $fnames] == 1} "one file expected"
+        assert {[lindex $fnames 0] eq "filename2.ext"} "one file expected"
+        umount
+        check {
+            filename2.ext blah-blah
+        }
     }
 
     finalize
