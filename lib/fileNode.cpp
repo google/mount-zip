@@ -29,14 +29,13 @@
 #include <cassert>
 
 #include "fileNode.h"
-#include "fuseZipData.h"
 #include "extraField.h"
 
 const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 
-FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id) {
-    data = _data;
+FileNode::FileNode(struct zip *zip, const char *fname, zip_int64_t _id) {
+    this->zip = zip;
     metadataChanged = false;
     full_name = fname;
     id = _id;
@@ -44,9 +43,9 @@ FileNode::FileNode(FuseZipData *_data, const char *fname, zip_int64_t _id) {
     m_gid = 0;
 }
 
-FileNode *FileNode::createFile (FuseZipData *data, const char *fname, 
+FileNode *FileNode::createFile (struct zip *zip, const char *fname, 
         uid_t owner, gid_t group, mode_t mode) {
-    FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX);
     if (n == NULL) {
         return NULL;
     }
@@ -68,8 +67,8 @@ FileNode *FileNode::createFile (FuseZipData *data, const char *fname,
     return n;
 }
 
-FileNode *FileNode::createSymlink(FuseZipData *data, const char *fname) {
-    FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+FileNode *FileNode::createSymlink(struct zip *zip, const char *fname) {
+    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX);
     if (n == NULL) {
         return NULL;
     }
@@ -92,9 +91,9 @@ FileNode *FileNode::createSymlink(FuseZipData *data, const char *fname) {
 /**
  * Create intermediate directory to build full tree
  */
-FileNode *FileNode::createIntermediateDir(FuseZipData *data,
+FileNode *FileNode::createIntermediateDir(struct zip *zip,
         const char *fname) {
-    FileNode *n = new FileNode(data, fname, NEW_NODE_INDEX);
+    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX);
     if (n == NULL) {
         return NULL;
     }
@@ -110,9 +109,9 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
     return n;
 }
 
-FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
+FileNode *FileNode::createDir(struct zip *zip, const char *fname,
         zip_int64_t id, uid_t owner, gid_t group, mode_t mode) {
-    FileNode *n = createNodeForZipEntry(data, fname, id);
+    FileNode *n = createNodeForZipEntry(zip, fname, id);
     if (n == NULL) {
         return NULL;
     }
@@ -127,8 +126,8 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
     return n;
 }
 
-FileNode *FileNode::createRootNode(FuseZipData *data) {
-    FileNode *n = new FileNode(data, "", ROOT_NODE_INDEX);
+FileNode *FileNode::createRootNode() {
+    FileNode *n = new FileNode(NULL, "", ROOT_NODE_INDEX);
     if (n == NULL) {
         return NULL;
     }
@@ -142,9 +141,9 @@ FileNode *FileNode::createRootNode(FuseZipData *data) {
     return n;
 }
 
-FileNode *FileNode::createNodeForZipEntry(FuseZipData *data,
+FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
         const char *fname, zip_int64_t id) {
-    FileNode *n = new FileNode(data, fname, id);
+    FileNode *n = new FileNode(zip, fname, id);
     if (n == NULL) {
         return NULL;
     }
@@ -153,7 +152,7 @@ FileNode *FileNode::createNodeForZipEntry(FuseZipData *data,
     n->state = CLOSED;
 
     struct zip_stat stat;
-    zip_stat_index(data->m_zip, id, 0, &stat);
+    zip_stat_index(zip, id, 0, &stat);
     // check that all used fields are valid
     zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
         ZIP_STAT_SIZE | ZIP_STAT_MTIME;
@@ -233,7 +232,8 @@ int FileNode::open() {
     if (state == CLOSED) {
         open_count = 1;
         try {
-            buffer = new BigBuffer(data->m_zip, id, m_size);
+            assert (zip != NULL);
+            buffer = new BigBuffer(zip, id, m_size);
             state = OPENED;
         }
         catch (std::bad_alloc) {
@@ -272,7 +272,8 @@ int FileNode::close() {
 int FileNode::save() {
     assert (!is_dir);
     // index is modified if state == NEW
-    return buffer->saveToZip(m_mtime, data->m_zip, full_name.c_str(),
+    assert (zip != NULL);
+    return buffer->saveToZip(m_mtime, zip, full_name.c_str(),
             state == NEW, id);
 }
 
@@ -315,7 +316,8 @@ void FileNode::processExternalAttributes () {
     zip_uint8_t opsys;
     zip_uint32_t attr;
     assert(id >= 0);
-    zip_file_get_external_attributes(data->m_zip, id, 0, &opsys, &attr);
+    assert (zip != NULL);
+    zip_file_get_external_attributes(zip, id, 0, &opsys, &attr);
     switch (opsys) {
         case ZIP_OPSYS_UNIX: {
             m_mode = attr >> 16;
@@ -372,12 +374,14 @@ void FileNode::processExtraFields () {
     // precedence
     int lastProcessedUnixField = 0;
 
-    count = zip_file_extra_fields_count (data->m_zip, id, ZIP_FL_LOCAL);
+    assert (id >= 0);
+    assert (zip != NULL);
+    count = zip_file_extra_fields_count (zip, id, ZIP_FL_LOCAL);
     for (zip_int16_t i = 0; i < count; ++i) {
         bool has_mtime, has_atime, has_cretime;
         time_t mt, at, cret;
         zip_uint16_t type, len;
-        const zip_uint8_t *field = zip_file_extra_field_get (data->m_zip,
+        const zip_uint8_t *field = zip_file_extra_field_get (zip,
                 id, i, &type, &len, ZIP_FL_LOCAL);
 
         switch (type) {
@@ -432,14 +436,16 @@ void FileNode::processExtraFields () {
 int FileNode::updateExtraFields () const {
     static zip_flags_t locations[] = {ZIP_FL_CENTRAL, ZIP_FL_LOCAL};
 
+    assert (id >= 0);
+    assert (zip != NULL);
     for (unsigned int loc = 0; loc < sizeof(locations); ++loc) {
         // remove old extra fields
-        zip_int16_t count = zip_file_extra_fields_count (data->m_zip, id,
+        zip_int16_t count = zip_file_extra_fields_count (zip, id,
                 locations[loc]);
         const zip_uint8_t *field;
         for (zip_int16_t i = count; i >= 0; --i) {
             zip_uint16_t type;
-            field = zip_file_extra_field_get (data->m_zip, id, i, &type,
+            field = zip_file_extra_field_get (zip, id, i, &type,
                     NULL, locations[loc]);
             // FZ_EF_PKWARE_UNIX not removed because can contain extra data
             // that currently not handled by fuse-zip
@@ -447,7 +453,7 @@ int FileNode::updateExtraFields () const {
                         type == FZ_EF_INFOZIP_UNIX1 ||
                         type == FZ_EF_INFOZIP_UNIX2 ||
                         type == FZ_EF_INFOZIP_UNIXN)) {
-                zip_file_extra_field_delete (data->m_zip, id, i,
+                zip_file_extra_field_delete (zip, id, i,
                         locations[loc]);
             }
         }
@@ -457,14 +463,14 @@ int FileNode::updateExtraFields () const {
         // add timestamps
         field = ExtraField::createExtTimeStamp (locations[loc], m_mtime,
                 m_atime, has_cretime, cretime, len);
-        res = zip_file_extra_field_set (data->m_zip, id, FZ_EF_TIMESTAMP,
+        res = zip_file_extra_field_set (zip, id, FZ_EF_TIMESTAMP,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
             return res;
         }
         // add UNIX owner info
         field = ExtraField::createInfoZipNewUnixField (m_uid, m_gid, len);
-        res = zip_file_extra_field_set (data->m_zip, id, FZ_EF_INFOZIP_UNIXN,
+        res = zip_file_extra_field_set (zip, id, FZ_EF_INFOZIP_UNIXN,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
             return res;
@@ -495,6 +501,7 @@ void FileNode::setGid (gid_t gid) {
  */
 int FileNode::updateExternalAttributes() const {
     assert(id >= 0);
+    assert (zip != NULL);
     // save UNIX attributes in high word
     mode_t mode = m_mode << 16;
 
@@ -513,7 +520,7 @@ int FileNode::updateExternalAttributes() const {
         // FILE_ATTRIBUTE_READONLY
         mode |= 1;
     }
-    return zip_file_set_external_attributes (data->m_zip, id, 0,
+    return zip_file_set_external_attributes (zip, id, 0,
             ZIP_OPSYS_UNIX, mode);
 }
 

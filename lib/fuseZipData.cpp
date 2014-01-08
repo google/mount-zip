@@ -48,7 +48,7 @@ FuseZipData::~FuseZipData() {
 }
 
 void FuseZipData::build_tree(bool readonly) {
-    m_root = FileNode::createRootNode(this);
+    m_root = FileNode::createRootNode();
     if (m_root == NULL) {
         throw std::bad_alloc();
     }
@@ -75,7 +75,7 @@ void FuseZipData::build_tree(bool readonly) {
             syslog(LOG_ERR, "duplicated file name: %s", cname);
             throw std::runtime_error("duplicate file names");
         }
-        FileNode *node = FileNode::createNodeForZipEntry(this, cname, i);
+        FileNode *node = FileNode::createNodeForZipEntry(m_zip, cname, i);
         if (node == NULL) {
             throw std::bad_alloc();
         }
@@ -94,7 +94,7 @@ void FuseZipData::build_tree(bool readonly) {
 void FuseZipData::connectNodeToTree (FileNode *node) {
     FileNode *parent = findParent(node);
     if (parent == NULL) {
-        parent = FileNode::createIntermediateDir (this,
+        parent = FileNode::createIntermediateDir (m_zip,
                 node->getParentName().c_str());
         if (parent == NULL) {
             throw std::bad_alloc();

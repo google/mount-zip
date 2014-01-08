@@ -45,7 +45,7 @@ private:
     };
 
     BigBuffer *buffer;
-    FuseZipData *data;
+    struct zip *zip;
     int open_count;
     nodeState state;
 
@@ -63,34 +63,34 @@ private:
     int updateExternalAttributes() const;
 
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
-    FileNode(FuseZipData *_data, const char *fname, zip_int64_t id);
+    FileNode(struct zip *zip, const char *fname, zip_int64_t id);
 
 protected:
-    static FileNode *createIntermediateDir(FuseZipData *data, const char *fname);
+    static FileNode *createIntermediateDir(struct zip *zip, const char *fname);
 
 public:
     /**
      * Create new regular file
      */
-    static FileNode *createFile(FuseZipData *data, const char *fname,
+    static FileNode *createFile(struct zip *zip, const char *fname,
             uid_t owner, gid_t group, mode_t mode);
     /**
      * Create new symbolic link
      */
-    static FileNode *createSymlink(FuseZipData *data, const char *fname);
+    static FileNode *createSymlink(struct zip *zip, const char *fname);
     /**
      * Create new directory for ZIP file entry
      */
-    static FileNode *createDir(FuseZipData *data, const char *fname,
+    static FileNode *createDir(struct zip *zip, const char *fname,
             zip_int64_t id, uid_t owner, gid_t group, mode_t mode);
     /**
      * Create root pseudo-node for file system
      */
-    static FileNode *createRootNode(FuseZipData *data);
+    static FileNode *createRootNode();
     /**
      * Create node for existing ZIP file entry
      */
-    static FileNode *createNodeForZipEntry(FuseZipData *data,
+    static FileNode *createNodeForZipEntry(struct zip *zip,
             const char *fname, zip_int64_t id);
     ~FileNode();
     

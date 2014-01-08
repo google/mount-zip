@@ -85,7 +85,7 @@ const char *zip_strerror(struct zip *) {
  * Test parse_name()
  */
 void parseNameTest () {
-    auto_ptr<FileNode> n (FileNode::createRootNode(NULL));
+    auto_ptr<FileNode> n (FileNode::createRootNode());
 
     n->full_name = "test";
     n->parse_name ();
