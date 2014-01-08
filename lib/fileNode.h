@@ -31,6 +31,10 @@
 
 class FileNode {
 private:
+    // must not be defined
+    FileNode (const FileNode &);
+    FileNode &operator= (const FileNode &);
+
     enum nodeState {
         CLOSED,
         OPENED,
