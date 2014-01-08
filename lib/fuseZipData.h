@@ -51,9 +51,21 @@ private:
     static void convertFileName(const char *fname, bool readonly,
             bool needPrefix, std::string &converted);
 
+    /**
+     * Find node parent by its name
+     */
+    FileNode *findParent (const FileNode *node) const;
+
+    /**
+     * Create node parents (if not yet exist) and connect node to
+     * @throws std::bad_alloc
+     * @throws std::runtime_error - if parent is not directory
+     */
+    void connectNodeToTree (FileNode *node);
+
     FileNode *m_root;
-public:
     filemap_t files;
+public:
     struct zip *m_zip;
     const char *m_archiveName;
     std::string m_cwd;
@@ -74,7 +86,7 @@ public:
      * @param node Node to remove
      * @return Error code or 0 is successful
      */
-    int removeNode(FileNode *node) const;
+    int removeNode(FileNode *node);
 
     /**
      * Build tree of zip file entries from ZIP file
@@ -82,11 +94,36 @@ public:
     void build_tree(bool readonly);
 
     /**
-     * Return pointer to root filesystem node
+     * Insert new node into tree by adding it to parent's childs list and
+     * specifying node parent field.
      */
-    inline FileNode *rootNode () const {
-        return m_root;
+    void insertNode (FileNode *node);
+
+    /**
+     * Detach node from old parent, rename, attach to new parent.
+     * @param node
+     * @param newName new name
+     * @param reparent if false, node detaching is not performed
+     */
+    void renameNode (FileNode *node, const char *newName, bool reparent);
+
+    /**
+     * search for node
+     * @return node or NULL
+     */
+    FileNode *find (const char *fname) const;
+
+    /**
+     * Return number of files in tree
+     */
+    int numFiles () const {
+        return files.size() - 1;
     }
+
+    /**
+     * Save archive
+     */
+    void save ();
 };
 
 #endif

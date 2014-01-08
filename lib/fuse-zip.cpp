@@ -112,53 +112,13 @@ inline struct zip *get_zip() {
 
 void fusezip_destroy(void *data) {
     FuseZipData *d = (FuseZipData*)data;
-    // Saving changed data
-    for (filemap_t::const_iterator i = d->files.begin(); i != d->files.end(); ++i) {
-        FileNode *node = i->second;
-        if (node == d->rootNode()) {
-            continue;
-        }
-        bool saveMetadata = node->isMetadataChanged();
-        if (node->isChanged() && !node->is_dir) {
-            saveMetadata = true;
-            int res = node->save();
-            if (res != 0) {
-                saveMetadata = false;
-                syslog(LOG_ERR, "Error while saving file %s in ZIP archive: %d",
-                        node->full_name.c_str(), res);
-            }
-        }
-        if (saveMetadata) {
-            if (node->isTemporaryDir()) {
-                // persist temporary directory
-                zip_int64_t idx = zip_dir_add(get_zip(),
-                        node->full_name.c_str(), ZIP_FL_ENC_UTF_8);
-                if (idx < 0) {
-                    syslog(LOG_ERR, "Unable to save directory %s in ZIP archive",
-                        node->full_name.c_str());
-                    continue;
-                }
-                node->id = idx;
-            }
-            int res = node->saveMetadata();
-            if (res != 0) {
-                syslog(LOG_ERR, "Error while saving metadata for file %s in ZIP archive: %d",
-                        node->full_name.c_str(), res);
-            }
-        }
-    }
+    d->save ();
     delete d;
     syslog(LOG_INFO, "File system unmounted");
 }
 
 FileNode *get_file_node(const char *fname) {
-    FuseZipData *data = get_data();
-    filemap_t::iterator i = data->files.find(fname);
-    if (i == data->files.end()) {
-        return NULL;
-    } else {
-        return i->second;
-    }
+    return get_data()->find (fname);
 }
 
 int fusezip_getattr(const char *path, struct stat *stbuf) {
@@ -227,7 +187,7 @@ int fusezip_statfs(const char *path, struct statvfs *buf) {
     buf->f_ffree = 0;
     buf->f_favail = 0;
 
-    buf->f_files = get_data()->files.size() - 1;
+    buf->f_files = get_data()->numFiles();
     buf->f_namemax = 255;
 
     return 0;
@@ -267,9 +227,10 @@ int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     }
     node = FileNode::createFile (get_data(), path + 1,
             fuse_get_context()->uid, fuse_get_context()->gid, mode);
-    if (!node) {
+    if (node == NULL) {
         return -ENOMEM;
     }
+    get_data()->insertNode (node);
     fi->fh = (uint64_t)node;
 
     return node->open();
@@ -362,9 +323,10 @@ int fusezip_mkdir(const char *path, mode_t mode) {
     }
     FileNode *node = FileNode::createDir(get_data(), path + 1, idx,
             fuse_get_context()->uid, fuse_get_context()->gid, mode);
-    if (!node) {
+    if (node == NULL) {
         return -ENOMEM;
     }
+    get_data()->insertNode (node);
     return 0;
 }
 
@@ -422,14 +384,20 @@ int fusezip_rename(const char *path, const char *new_path) {
                     if (nn->is_dir) {
                         strcat(name, "/");
                     }
-                    zip_file_rename(z, nn->id, name, ZIP_FL_ENC_UTF_8);
-                    nn->rename_wo_reparenting(name);
+                    if (nn->id >= 0) {
+                        zip_file_rename(z, nn->id, name, ZIP_FL_ENC_UTF_8);
+                    }
+                    // changing child list may cause loop iterator corruption
+                    get_data()->renameNode (nn, name, false);
+                    
                     free(name);
                 }
             }
         }
-        zip_file_rename(z, node->id, new_name.c_str(), ZIP_FL_ENC_UTF_8);
-        node->rename(new_name.c_str());
+        if (node->id >= 0) {
+            zip_file_rename(z, node->id, new_name.c_str(), ZIP_FL_ENC_UTF_8);
+        }
+        get_data()->renameNode (node, new_name.c_str(), true);
 
         return 0;
     }
@@ -560,9 +528,10 @@ int fusezip_symlink(const char *dest, const char *path) {
         return -EEXIST;
     }
     node = FileNode::createSymlink (get_data(), path + 1);
-    if (!node) {
+    if (node == NULL) {
         return -ENOMEM;
     }
+    get_data()->insertNode (node);
 
     int res;
     if ((res = node->open()) != 0) {

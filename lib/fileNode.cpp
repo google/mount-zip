@@ -61,8 +61,6 @@ FileNode *FileNode::createFile (FuseZipData *data, const char *fname,
     n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
 
     n->parse_name();
-    n->attach();
-    n->parent->setCTime(n->m_mtime);
     n->m_mode = mode;
     n->m_uid = owner;
     n->m_gid = group;
@@ -86,8 +84,6 @@ FileNode *FileNode::createSymlink(FuseZipData *data, const char *fname) {
     n->m_mtime = n->m_atime = n->m_ctime = n->cretime = time(NULL);
 
     n->parse_name();
-    n->attach();
-    n->parent->setCTime(n->m_mtime);
     n->m_mode = S_IFLNK | 0777;
 
     return n;
@@ -110,7 +106,6 @@ FileNode *FileNode::createIntermediateDir(FuseZipData *data,
     n->m_mode = S_IFDIR | 0775;
 
     n->parse_name();
-    n->attach();
 
     return n;
 }
@@ -123,7 +118,7 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
     }
     n->state = CLOSED;
     n->has_cretime = true;
-    n->parent->setCTime (n->cretime = n->m_mtime);
+    n->cretime = n->m_mtime;
     // FUSE does not pass S_IFDIR bit here
     n->m_mode = S_IFDIR | mode;
     n->m_uid = owner;
@@ -143,9 +138,7 @@ FileNode *FileNode::createRootNode(FuseZipData *data) {
     n->has_cretime = true;
     n->m_size = 0;
     n->name = n->full_name.c_str();
-    n->parent = NULL;
     n->m_mode = S_IFDIR | 0775;
-    data->files[n->full_name.c_str()] = n;
     return n;
 }
 
@@ -172,14 +165,6 @@ FileNode *FileNode::createNodeForZipEntry(FuseZipData *data,
     n->m_size = stat.size;
 
     n->parse_name();
-    //TODO: remove after existing node search redesign
-    try {
-        n->attach();
-    }
-    catch (...) {
-        delete n;
-        throw;
-    }
 
     n->processExternalAttributes();
     n->processExtraFields();
@@ -221,82 +206,17 @@ void FileNode::parse_name() {
     this->name = lsl;
 }
 
-/**
- * Attach to parent node. Parent nodes are created if not yet exist.
- */
-void FileNode::attach() {
-    assert(id != ROOT_NODE_INDEX);
-    filemap_t::const_iterator other_iter =
-        this->data->files.find(full_name.c_str());
-    // If Node with the same name already exists...
-    if (other_iter != this->data->files.end()) {
-        FileNode *other = other_iter->second;
-        if (other->id != FileNode::NEW_NODE_INDEX) {
-            syslog(LOG_ERR, "duplicated file name: %s",
-                    full_name.c_str());
-            throw std::runtime_error("duplicate file names");
-        }
-        // ... update existing node information
-        other->id = this->id;
-        other->m_size = this->m_size;
-        other->m_mtime = this->m_mtime;
-        other->m_atime = this->m_atime;
-        other->state = this->state;
-        throw AlreadyExists();
-    }
-
-    assert(!full_name.empty());
-    // Adding new child to parent node. For items without '/' in fname it will be root_node.
-    const char *lsl = this->name;
-    if (lsl > full_name.c_str()) {
-        lsl--;
-    }
-    char c = *lsl;
-    *(const_cast <char*> (lsl)) = '\0';
-    // Searching for parent node...
-    filemap_t::const_iterator parent_iter = data->files.find(
-            full_name.c_str());
-    if (parent_iter == data->files.end()) {
-        //TODO: search for existing node by name
-        FileNode *p = createIntermediateDir(data, full_name.c_str());
-        p->is_dir = true;
-        this->parent = p;
-    } else {
-        this->parent = parent_iter->second;
-    }
-    this->parent->childs.push_back(this);
-    *(const_cast <char*> (lsl)) = c;
-
-    this->data->files[full_name.c_str()] = this;
+void FileNode::appendChild (FileNode *child) {
+    childs.push_back (child);
 }
 
-void FileNode::detach() {
-    data->files.erase(full_name.c_str());
-    parent->childs.remove(this);
+void FileNode::detachChild (FileNode *child) {
+    childs.remove (child);
 }
 
-void FileNode::rename(const char *fname) {
-    FileNode *oldParent = parent;
-    detach();
-    full_name = fname;
-    parse_name();
-    attach();
-    if (parent != oldParent) {
-        time_t now = time(NULL);
-        if (oldParent != NULL) {
-            oldParent->setCTime (now);
-        }
-        if (parent != NULL) {
-            parent->setCTime (now);
-        }
-    }
-}
-
-void FileNode::rename_wo_reparenting(const char *new_name) {
-    data->files.erase(full_name.c_str());
+void FileNode::rename(const char *new_name) {
     full_name = new_name;
     parse_name();
-    data->files[full_name.c_str()] = this;
 }
 
 int FileNode::open() {

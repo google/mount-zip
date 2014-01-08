@@ -52,6 +52,8 @@ void FuseZipData::build_tree(bool readonly) {
     if (m_root == NULL) {
         throw std::bad_alloc();
     }
+    m_root->parent = NULL;
+    files[m_root->full_name.c_str()] = m_root;
     zip_int64_t n = zip_get_num_entries(m_zip, 0);
     // search for absolute or parent-relative paths
     bool needPrefix = false;
@@ -68,22 +70,52 @@ void FuseZipData::build_tree(bool readonly) {
         const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
         std::string converted;
         convertFileName(name, readonly, needPrefix, converted);
-        try {
-            FileNode *node = FileNode::createNodeForZipEntry(this,
-                    converted.c_str(), i);
-            (void) node;
+        const char *cname = converted.c_str();
+        if (files.find(cname) != files.end()) {
+            syslog(LOG_ERR, "duplicated file name: %s", cname);
+            throw std::runtime_error("duplicate file names");
         }
-        catch (const FileNode::AlreadyExists &e) {
-            // Only need to skip node creation
+        FileNode *node = FileNode::createNodeForZipEntry(this, cname, i);
+        if (node == NULL) {
+            throw std::bad_alloc();
+        }
+        files[node->full_name.c_str()] = node;
+    }
+    // Connect nodes to tree. Missing intermediate nodes created on demand.
+    for (filemap_t::const_iterator i = files.begin(); i != files.end(); ++i)
+    {
+        FileNode *node = i->second;
+        if (node != m_root) {
+            connectNodeToTree (node);
         }
     }
 }
 
-int FuseZipData::removeNode(FileNode *node) const {
-    node->detach();
-    if (node->parent != NULL) {
-        node->parent->setCTime (time(NULL));
+void FuseZipData::connectNodeToTree (FileNode *node) {
+    FileNode *parent = findParent(node);
+    if (parent == NULL) {
+        parent = FileNode::createIntermediateDir (this,
+                node->getParentName().c_str());
+        if (parent == NULL) {
+            throw std::bad_alloc();
+        }
+        files[parent->full_name.c_str()] = parent;
+        connectNodeToTree (parent);
+    } else if (!parent->is_dir) {
+        throw std::runtime_error ("bad archive structure");
     }
+    // connecting to parent
+    node->parent = parent;
+    parent->appendChild (node);
+}
+
+int FuseZipData::removeNode(FileNode *node) {
+    assert(node != NULL);
+    assert(node->parent != NULL);
+    node->parent->detachChild (node);
+    node->parent->setCTime (time(NULL));
+    files.erase(node->full_name.c_str());
+
     zip_int64_t id = node->id;
     delete node;
     if (id >= 0) {
@@ -160,5 +192,95 @@ void FuseZipData::convertFileName(const char *fname, bool readonly,
         throw std::runtime_error(std::string("bad file name: ") + orig);
     }
     converted.append(start);
+}
+
+FileNode *FuseZipData::findParent (const FileNode *node) const {
+    std::string name = node->getParentName();
+    return find(name.c_str());
+}
+
+void FuseZipData::insertNode (FileNode *node) {
+    FileNode *parent = findParent (node);
+    assert (parent != NULL);
+    parent->appendChild (node);
+    node->parent = parent;
+    parent->setCTime (node->ctime());
+    assert (files.find(node->full_name.c_str()) == files.end());
+    files[node->full_name.c_str()] = node;
+}
+
+void FuseZipData::renameNode (FileNode *node, const char *newName, bool
+        reparent) {
+    assert(node != NULL);
+    assert(newName != NULL);
+    FileNode *parent1 = node->parent, *parent2;
+    assert (parent1 != NULL);
+    if (reparent) {
+        parent1->detachChild (node);
+    }
+
+    files.erase(node->full_name.c_str());
+    node->rename(newName);
+    files[node->full_name.c_str()] = node;
+
+    if (reparent) {
+        parent2 = findParent(node);
+        assert (parent2 != NULL);
+        parent2->appendChild (node);
+        node->parent = parent2;
+    }
+
+    if (reparent && parent1 != parent2) {
+        time_t now = time (NULL);
+        parent1->setCTime (now);
+        parent2->setCTime (now);
+    }
+}
+
+FileNode *FuseZipData::find (const char *fname) const {
+    filemap_t::const_iterator i = files.find(fname);
+    if (i == files.end()) {
+        return NULL;
+    } else {
+        return i->second;
+    }
+}
+
+void FuseZipData::save () {
+    for (filemap_t::const_iterator i = files.begin(); i != files.end(); ++i) {
+        FileNode *node = i->second;
+        if (node == m_root) {
+            continue;
+        }
+        assert(node != NULL);
+        bool saveMetadata = node->isMetadataChanged();
+        if (node->isChanged() && !node->is_dir) {
+            saveMetadata = true;
+            int res = node->save();
+            if (res != 0) {
+                saveMetadata = false;
+                syslog(LOG_ERR, "Error while saving file %s in ZIP archive: %d",
+                        node->full_name.c_str(), res);
+            }
+        }
+        if (saveMetadata) {
+            if (node->isTemporaryDir()) {
+                // persist temporary directory
+                zip_int64_t idx = zip_dir_add(m_zip,
+                        node->full_name.c_str(), ZIP_FL_ENC_UTF_8);
+                if (idx < 0) {
+                    syslog(LOG_ERR, "Unable to save directory %s in ZIP archive",
+                        node->full_name.c_str());
+                    continue;
+                }
+                node->id = idx;
+            }
+            int res = node->saveMetadata();
+            if (res != 0) {
+                syslog(LOG_ERR, "Error while saving metadata for file %s in ZIP archive: %d",
+                        node->full_name.c_str(), res);
+            }
+        }
+    }
 }
 

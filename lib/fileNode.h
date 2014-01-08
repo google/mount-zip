@@ -30,6 +30,7 @@
 #include "bigBuffer.h"
 
 class FileNode {
+friend class FuseZipData;
 private:
     // must not be defined
     FileNode (const FileNode &);
@@ -56,7 +57,6 @@ private:
     gid_t m_gid;
 
     void parse_name();
-    void attach();
     void processExtraFields();
     void processExternalAttributes();
     int updateExtraFields() const;
@@ -65,7 +65,9 @@ private:
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
     FileNode(FuseZipData *_data, const char *fname, zip_int64_t id);
 
+protected:
     static FileNode *createIntermediateDir(FuseZipData *data, const char *fname);
+
 public:
     /**
      * Create new regular file
@@ -91,18 +93,21 @@ public:
     static FileNode *createNodeForZipEntry(FuseZipData *data,
             const char *fname, zip_int64_t id);
     ~FileNode();
-
-    void detach();
-    void rename(const char *fname);
+    
+    /**
+     * add child node to list
+     */
+    void appendChild (FileNode *child);
 
     /**
-     * Rename file without reparenting.
-     *
-     * 1. Remove file item from tree
-     * 2. Parse new name
-     * 3. Create link to new name in tree
+     * remove child node from list
      */
-    void rename_wo_reparenting(const char *new_name);
+    void detachChild (FileNode *child);
+
+    /**
+     * Rename file without reparenting
+     */
+    void rename (const char *new_name);
 
     int open();
     int read(char *buf, size_t size, zip_uint64_t offset);
@@ -171,6 +176,17 @@ public:
         return m_mtime;
     }
 
+    /**
+     * Get parent name
+     */
+    //TODO: rewrite without memory allocation
+    inline std::string getParentName () const {
+        if (name > full_name.c_str()) {
+            return std::string (full_name, 0, name - full_name.c_str() - 1);
+        } else {
+            return "";
+        }
+    }
 
     /**
      * owner and group
@@ -192,9 +208,6 @@ public:
     zip_int64_t id;
     nodelist_t childs;
     FileNode *parent;
-
-    class AlreadyExists {
-    };
 };
 #endif
 
