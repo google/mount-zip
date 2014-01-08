@@ -121,6 +121,7 @@ FileNode *FileNode::createDir(FuseZipData *data, const char *fname,
     if (n == NULL) {
         return NULL;
     }
+    n->state = CLOSED;
     n->has_cretime = true;
     n->parent->setCTime (n->cretime = n->m_mtime);
     // FUSE does not pass S_IFDIR bit here
@@ -349,6 +350,7 @@ int FileNode::close() {
 }
 
 int FileNode::save() {
+    assert (!is_dir);
     // index is modified if state == NEW
     return buffer->saveToZip(m_mtime, data->m_zip, full_name.c_str(),
             state == NEW, id);
