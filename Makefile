@@ -1,4 +1,12 @@
 DEST=fuse-zip
+prefix=/usr/local
+exec_prefix=$(prefix)
+bindir=$(exec_prefix)/bin
+datarootdir=$(prefix)/share
+docdir=$(datarootdir)/doc/$(DEST)
+mandir=$(datarootdir)/man
+man1dir=$(mandir)/man1
+manext=.1
 LIBS=-Llib -lfusezip $(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
 LIB=lib/libfusezip.a
 CXXFLAGS=-g -O0 -Wall -Wextra
@@ -8,10 +16,12 @@ ZIPFLAGS=$(shell pkg-config libzip --cflags)
 SOURCES=main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 MANSRC=fuse-zip.1
-MAN=fuse-zip.1.gz
+MAN=fuse-zip$(manext).gz
 CLEANFILES=$(OBJECTS) $(MAN)
 DOCFILES=README changelog
-INSTALLPREFIX=/usr
+INSTALL=install
+INSTALL_PROGRAM=$(INSTALL)
+INSTALL_DATA=$(INSTALL) -m 644
 
 all: $(DEST)
 
@@ -38,7 +48,7 @@ lib-clean:
 distclean: clean doc-clean
 	rm -f $(DEST)
 
-clean: lib-clean all-clean test-clean tarball-clean
+clean: lib-clean all-clean check-clean tarball-clean
 
 all-clean:
 	rm -f $(CLEANFILES)
@@ -50,19 +60,20 @@ man-clean:
 	rm -f $(MANSRC).gz
 
 install: all doc
-	mkdir -p "$(INSTALLPREFIX)/bin"
-	install -m 755 -s "$(DEST)" "$(INSTALLPREFIX)/bin"
-	mkdir -p "$(INSTALLPREFIX)/share/doc/$(DEST)"
-	cp $(DOCFILES) "$(INSTALLPREFIX)/share/doc/$(DEST)"
-	mkdir -p "$(INSTALLPREFIX)/share/man/man1"
-	cp $(MAN) "$(INSTALLPREFIX)/share/man/man1"
+	$(INSTALL_PROGRAM) "$(DEST)" "$(DESTDIR)$(bindir)/"
+	mkdir -p "$(DESTDIR)$(docdir)/"
+	$(INSTALL_DATA) $(DOCFILES) "$(DESTDIR)$(docdir)/"
+	$(INSTALL_DATA) $(MAN) "$(DESTDIR)$(man1dir)/"
+
+install-strip:
+	$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install
 
 uninstall:
-	rm "$(INSTALLPREFIX)/bin/$(DEST)"
-	rm -r "$(INSTALLPREFIX)/share/doc/$(DEST)"
-	rm "$(INSTALLPREFIX)/share/man/man1/$(MAN)"
+	rm "$(DESTDIR)$(bindir)/$(DEST)"
+	rm -r "$(DESTDIR)$(docdir)"
+	rm "$(DESTDIR)$(man1dir)/$(MAN)"
 
-tarball:
+dist:
 	./makeArchives.sh
 
 tarball-clean:
@@ -71,14 +82,14 @@ tarball-clean:
 release:
 	make CXXFLAGS="$(RELEASE_CXXFLAGS)" all doc
 
-test: $(DEST)
+check: $(DEST)
 	make -C tests
 
-test-clean:
+check-clean:
 	make -C tests clean
 
 valgrind:
 	make -C tests valgrind
 
-.PHONY: all release doc clean all-clean lib-clean doc-clean test-clean tarball-clean distclean install uninstall tarball test valgrind $(LIB)
+.PHONY: all release doc clean all-clean lib-clean doc-clean check-clean tarball-clean distclean install uninstall dist check valgrind $(LIB)
 
