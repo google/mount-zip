@@ -19,10 +19,13 @@
 //  51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA               //
 ////////////////////////////////////////////////////////////////////////////
 
+#define __STDC_LIMIT_MACROS
+
 #include <cerrno>
 #include <climits>
 #include <ctime>
 #include <cstdlib>
+#include <stdint.h>
 #include <cstring>
 #include <stdexcept>
 #include <syslog.h>
