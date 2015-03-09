@@ -1445,6 +1445,16 @@ namespace eval ::fusezip::test {
         exec diff $fname data/not-full-path.zip
     }
 
+    fstest dir-stub-read-only-deep {Check that archive is not modified after mount/unmount in case of stub directories is created while loading file tree (deep path, issue #43)} {
+        file copy data/issue-43.zip $tmpdir/issue-43.zip
+        set fname $tmpdir/issue-43.zip
+        mount -r
+        exec cat $mountdir/a/b/c/d/e/f/g
+        exec cat $mountdir/a/b/c/d/e/f/g2
+        umount
+        exec diff $fname data/issue-43.zip
+    }
+
     fstest dir-stub-rename {Check stub dirs rename} {
         file copy data/not-full-path.zip $tmpdir/not-full-path.zip
         set fname $tmpdir/not-full-path.zip
