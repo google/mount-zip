@@ -504,7 +504,7 @@ namespace eval ::fusezip::test {
         close $r
         if {![ regexp {^(.*?version.*?\d+\.\d+\n)+$} \
                 "[ stripValgrindOutput $data ]\n" ]} {
-            error "Version info expected"
+            error "Version info expected, but '$data' returned"
         }
     }
 
