@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2013 by Alexander Galanin                          //
+//  Copyright (C) 2008-2015 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -33,8 +33,21 @@ class FileNode;
 class FuseZipData;
 
 struct ltstr {
+    // This function compares two strings until last non-slash and non-zero
+    // character.
+    // This is a workaround for FUSE subdir module that appends '/' to the end
+    // of new root path.
     bool operator() (const char* s1, const char* s2) const {
-        return strcmp(s1, s2) < 0;
+        const char *e1, *e2;
+        char cmp1, cmp2;
+        // set e1 and e2 to the last character in the string that is not a slash
+        for (e1 = s1 + strlen(s1) - 1; e1 > s1 && *e1 == '/'; --e1);
+        for (e2 = s2 + strlen(s2) - 1; e2 > s2 && *e2 == '/'; --e2);
+        // compare strings until e1 and e2
+        for (;s1 <= e1 && s2 <= e2 && *s1 == *s2; s1++, s2++);
+        cmp1 = (s1 <= e1) ? *s1 : '\0';
+        cmp2 = (s2 <= e2) ? *s2 : '\0';
+        return cmp1 < cmp2;
     }
 };
 
