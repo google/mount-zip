@@ -1,3 +1,8 @@
+2014-07-04 Alexander Galanin <al@galanin.nnov.ru>
+	* Released 0.4.1:
+	- Fixed problem with subdir module support.
+	- Applied makefile conventions from GNU Coding Standards.
+
 2014-01-14 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.4.0:
