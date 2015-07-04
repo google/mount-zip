@@ -1946,6 +1946,19 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest subdir-module {check for subdir module support} {
+        create {
+            dir/
+            dir/file content
+        }
+        mount -r -o modules=subdir,subdir=/dir/
+        set f [open $mountdir/file r]
+        set data [read $f]
+        close $f
+        assert {$data eq "content"}
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test
