@@ -52,7 +52,7 @@ void *fusezip_init(struct fuse_conn_info *conn);
  *
  * Save all modified data back to ZIP archive and report to syslog about completion.
  * Note that filesystem unmounted before this method finishes
- * (see http://code.google.com/p/fuse-zip/issues/detail?id=7).
+ * (see https://bitbucket.org/agalanin/fuse-zip/issues/7).
  */
 void fusezip_destroy(void *data);
 

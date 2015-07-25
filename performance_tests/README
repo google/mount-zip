@@ -7,7 +7,7 @@ You need Tcl 8.4 or later to run it.
 The following virtual file systems can be tested:
 
 fuse-zip    >=0.2.0         FUSE filesystem to mount, extract and modify ZIP
-                            archives (http://fuse-zip.googlecode.com)
+                            archives (https://bitbucket.org/agalanin/fuse-zip)
 kio-zip     part of KDE3    KDE virtual filesystem zip://
 kio-krarc   part of KDE3    KDE virtual filesystem krarc://
 mc-uzip     part of mc      Midnight Commander VFS module
