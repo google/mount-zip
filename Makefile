@@ -40,10 +40,10 @@ main.o: main.cpp
 	    -o $@
 
 $(LIB):
-	make -C lib
+	$(MAKE) -C lib
 
 lib-clean:
-	make -C lib clean
+	$(MAKE) -C lib clean
 
 distclean: clean doc-clean
 	rm -f $(DEST)
@@ -80,16 +80,16 @@ tarball-clean:
 	rm -f fuse-zip-*.tar.gz fuse-zip-tests-*.tar.gz
 
 release:
-	make CXXFLAGS="$(RELEASE_CXXFLAGS)" all doc
+	$(MAKE) CXXFLAGS="$(RELEASE_CXXFLAGS)" all doc
 
 check: $(DEST)
-	make -C tests
+	$(MAKE) -C tests
 
 check-clean:
-	make -C tests clean
+	$(MAKE) -C tests clean
 
 valgrind:
-	make -C tests valgrind
+	$(MAKE) -C tests valgrind
 
 .PHONY: all release doc clean all-clean lib-clean doc-clean check-clean tarball-clean distclean install uninstall dist check valgrind $(LIB)
 
