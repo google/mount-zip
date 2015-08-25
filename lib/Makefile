@@ -11,7 +11,7 @@ CLEANFILES=$(OBJECTS) $(DEST)
 all: $(DEST)
 
 release:
-	make CXXFLAGS="$(RELEASE_CXXFLAGS)" all
+	$(MAKE) CXXFLAGS="$(RELEASE_CXXFLAGS)" all
 
 $(DEST): $(OBJECTS)
 	$(AR) -cr $@ $(OBJECTS)
