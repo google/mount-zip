@@ -60,9 +60,11 @@ man-clean:
 	rm -f $(MANSRC).gz
 
 install: all doc
+	mkdir -p "$(DESTDIR)$(bindir)/"
 	$(INSTALL_PROGRAM) "$(DEST)" "$(DESTDIR)$(bindir)/"
 	mkdir -p "$(DESTDIR)$(docdir)/"
 	$(INSTALL_DATA) $(DOCFILES) "$(DESTDIR)$(docdir)/"
+	mkdir -p "$(DESTDIR)$(man1dir)/"
 	$(INSTALL_DATA) $(MAN) "$(DESTDIR)$(man1dir)/"
 
 install-strip:
