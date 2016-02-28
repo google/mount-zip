@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2015 by Alexander Galanin                          //
+//  Copyright (C) 2008-2016 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -24,7 +24,7 @@
 
 #define FUSE_USE_VERSION 27
 #define PROGRAM "fuse-zip"
-#define VERSION "0.4.1"
+#define VERSION "0.4.2"
 
 #endif
 
