@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2014 by Alexander Galanin                          //
+//  Copyright (C) 2008-2016 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -282,9 +282,27 @@ zip_int64_t BigBuffer::zipUserFunctionCallback(void *state, void *data,
             delete b;
             return 0;
         }
-        default: {
+        case ZIP_SOURCE_CLOSE:
             return 0;
+        case ZIP_SOURCE_ERROR: {
+            // This code should not be called in normal case because none of
+            // implemented functions raises error flag.
+            int *errs = static_cast<int *>(data);
+#if LIBZIP_VERSION_MAJOR >= 1
+            errs[0] = ZIP_ER_OPNOTSUPP;
+#else
+            errs[0] = ZIP_ER_INVAL;
+#endif
+            errs[1] = EINVAL;
+            return 2 * sizeof(int);
         }
+#if LIBZIP_VERSION_MAJOR >= 1
+        case ZIP_SOURCE_SUPPORTS:
+            return ZIP_SOURCE_SUPPORTS_READABLE;
+#endif
+        default:
+            // indicate unsupported operation
+            return -1;
     }
 }
 

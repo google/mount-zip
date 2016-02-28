@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2014 by Alexander Galanin                          //
+//  Copyright (C) 2008-2016 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -48,8 +48,6 @@ private:
 
     /**
      * Callback for zip_source_function.
-     * ZIP_SOURCE_CLOSE is not needed to be handled, ZIP_SOURCE_ERROR is
-     * never called because read() always successfull.
      * See zip_source_function(3) for details.
      */
     static zip_int64_t zipUserFunctionCallback(void *state, void *data,
