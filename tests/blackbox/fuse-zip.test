@@ -502,7 +502,7 @@ namespace eval ::fusezip::test {
         close $w
         set data [ string trim [ read $r ] ]
         close $r
-        if {![ regexp {^(.*?version.*?\d+\.\d+\n)+$} \
+        if {![ regexp {^(.*?version.*?\d+\.\d+\n)+} \
                 "[ stripValgrindOutput $data ]\n" ]} {
             error "Version info expected, but '$data' returned"
         }
@@ -1796,7 +1796,7 @@ namespace eval ::fusezip::test {
         umount
     }
 
-    fstest chmod-file {Check chmod() for not modified file} {
+    fstest chmod-file-not-modified {Check chmod() for not modified file} {
         create {
             cat meow
         }
