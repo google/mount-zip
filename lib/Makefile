@@ -4,7 +4,7 @@ CXXFLAGS=-g -O0 -Wall -Wextra -Werror
 RELEASE_CXXFLAGS=-O2 -Wall -Wextra -Werror
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 ZIPFLAGS=$(shell pkg-config libzip --cflags)
-SOURCES=$(wildcard *.cpp)
+SOURCES=$(sort $(wildcard *.cpp))
 OBJECTS=$(SOURCES:.cpp=.o)
 CLEANFILES=$(OBJECTS) $(DEST)
 
