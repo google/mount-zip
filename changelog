@@ -1,3 +1,7 @@
+2017-11-xx Alexander Galanin <al@galanin.nnov.ru>
+	* Released 0.4.3:
+	- Support mknod() system call.
+
 2016-02-28 Alexander Galanin <al@galanin.nnov.ru>
 	* Released 0.4.2:
 	- Properly handle ZIP_SOURCE_SUPPORTS call introduced in libzip 1.0 (fixes #46)

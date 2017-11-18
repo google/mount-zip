@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2014 by Alexander Galanin                          //
+//  Copyright (C) 2008-2017 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -65,6 +65,8 @@ int fusezip_statfs(const char *path, struct statvfs *buf);
 int fusezip_open(const char *path, struct fuse_file_info *fi);
 
 int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi);
+
+int fusezip_mknod(const char *path, mode_t mode, dev_t dev);
 
 int fusezip_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
 

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2014 by Alexander Galanin                          //
+//  Copyright (C) 2008-2017 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -203,6 +203,7 @@ int main(int argc, char *argv[]) {
     fusezip_oper.mkdir      =   fusezip_mkdir;
     fusezip_oper.rename     =   fusezip_rename;
     fusezip_oper.create     =   fusezip_create;
+    fusezip_oper.mknod      =   fusezip_mknod;
     fusezip_oper.chmod      =   fusezip_chmod;
     fusezip_oper.chown      =   fusezip_chown;
     fusezip_oper.flush      =   fusezip_flush;
