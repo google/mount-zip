@@ -968,6 +968,36 @@ namespace eval ::fusezip::test {
         ]
     }
 
+    # Issue #50: Out of bounds write on sparse file
+    fstest sparse-file-chunk-boundary {Sparse files expand on a chunk boundary} {
+        set count 4096
+
+        create [list \
+            filename.ext [string repeat a $count] \
+        ]
+        mount
+
+        set f [open $mountdir/filename.ext r+]
+        seek $f [expr {$count + 1}] start
+        puts -nonewline $f end
+        close $f
+
+        set content "[ string repeat a $count ]\x00end"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $content $data ] != 0} {
+            error "Invalid file content: $data"
+        }
+
+        umount
+        check [ list \
+            filename.ext $content \
+        ]
+    }
+
     fstest sparse-truncate {Truncate sparse file} {
         create {
             filename.ext {}
@@ -984,6 +1014,35 @@ namespace eval ::fusezip::test {
         close $f
 
         set content "[ string repeat "\x00" $count ]"
+
+        set f [ open $mountdir/filename.ext r ]
+        set data [ read $f ]
+        close $f
+
+        if {[ string compare $content $data ] != 0} {
+            error "Invalid file content: $data"
+        }
+
+        umount
+        check [ list \
+            filename.ext $content \
+        ]
+    }
+
+    # Issue #50: Out of bounds write on sparse file
+    fstest sparse-expand-chunk-boundary {Expand sparse file at chunk boundary} {
+        set count 4096
+
+        create [list \
+            filename.ext [string repeat a $count] \
+        ]
+        mount
+
+        set f [ open $mountdir/filename.ext r+ ]
+        ftruncate -fileid $f [expr {$count + 1}]
+        close $f
+
+        set content "[ string repeat a $count ]\x00"
 
         set f [ open $mountdir/filename.ext r ]
         set data [ read $f ]
