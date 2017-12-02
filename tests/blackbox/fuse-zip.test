@@ -1728,6 +1728,9 @@ namespace eval ::fusezip::test {
     }
 
     fstest time-preserve {Check that time is preserved across remounts} {
+        set new_mtime 1511111111
+        set new_atime 1522222222
+
         create {
             foo.bar foobar
         }
@@ -1735,8 +1738,8 @@ namespace eval ::fusezip::test {
         set f [open $mountdir/foo.bar w]
         puts $f "meow"
         close $f
-        file mtime $mountdir/foo.bar 123
-        file atime $mountdir/foo.bar 456
+        file mtime $mountdir/foo.bar $new_mtime
+        file atime $mountdir/foo.bar $new_atime
         umount
 
         mount
@@ -1744,8 +1747,8 @@ namespace eval ::fusezip::test {
         set atime [file atime $mountdir/foo.bar]
         umount
 
-        assert {$mtime == 123} "mtime changed to $mtime"
-        assert {$atime == 456} "mtime changed to $atime"
+        assert {$mtime == $new_mtime} "mtime changed to $mtime ([clock format $mtime])"
+        assert {$atime == $new_atime} "atime changed to $atime ([clock format $atime])"
     }
 
     fstest atime-mtime-modification {Check atime and mtime modification cases} {

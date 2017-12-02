@@ -441,7 +441,7 @@ int FileNode::updateExtraFields () const {
 
     assert (id >= 0);
     assert (zip != NULL);
-    for (unsigned int loc = 0; loc < sizeof(locations); ++loc) {
+    for (unsigned int loc = 0; loc < sizeof(locations) / sizeof(locations[0]); ++loc) {
         // remove old extra fields
         zip_int16_t count = zip_file_extra_fields_count (zip, id,
                 locations[loc]);

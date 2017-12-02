@@ -21,6 +21,8 @@
 
 #include "extraField.h"
 
+#include <cassert>
+
 unsigned long
 ExtraField::getLong (const zip_uint8_t *&data) {
     unsigned long t = *data++;
@@ -78,6 +80,8 @@ const zip_uint8_t *
 ExtraField::createExtTimeStamp (zip_flags_t location,
         time_t mtime, time_t atime, bool set_cretime, time_t cretime,
         zip_uint16_t &len) {
+    assert(location == ZIP_FL_LOCAL || location == ZIP_FL_CENTRAL);
+
     // one byte for flags and three 4-byte ints for mtime, atime and cretime
     static zip_uint8_t data [1 + 4 * 3];
     len = 0;
