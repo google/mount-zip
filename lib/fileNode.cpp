@@ -282,7 +282,10 @@ int FileNode::save() {
 
 int FileNode::saveMetadata() const {
     assert(id >= 0);
-    return updateExtraFields() && updateExternalAttributes();
+    int res = updateExtraFields();
+    if (res != 0)
+        return res;
+    return updateExternalAttributes();
 }
 
 int FileNode::truncate(zip_uint64_t offset) {
@@ -500,7 +503,7 @@ void FileNode::setGid (gid_t gid) {
 
 /**
  * Save OS type and permissions into external attributes
- * @return libzip error code (ZIP_ER_MEMORY or ZIP_ER_RDONLY)
+ * @return 0 on success or libzip error code (ZIP_ER_MEMORY or ZIP_ER_RDONLY)
  */
 int FileNode::updateExternalAttributes() const {
     assert(id >= 0);
