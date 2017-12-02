@@ -85,7 +85,7 @@ const char *zip_strerror(struct zip *) {
  * Test parse_name()
  */
 void parseNameTest () {
-    auto_ptr<FileNode> n (FileNode::createRootNode());
+    unique_ptr<FileNode> n (FileNode::createRootNode());
 
     n->full_name = "test";
     n->parse_name ();
@@ -118,20 +118,20 @@ void parseNameTest () {
 void parentNameTest () {
     // files
     {
-        auto_ptr<FileNode> n (FileNode::createFile(NULL, "test", 0, 0, 0666));
+        unique_ptr<FileNode> n (FileNode::createFile(NULL, "test", 0, 0, 0666));
         assert (n->getParentName() == "");
     }
     {
-        auto_ptr<FileNode> n (FileNode::createFile(NULL, "dir/file", 0, 0, 0666));
+        unique_ptr<FileNode> n (FileNode::createFile(NULL, "dir/file", 0, 0, 0666));
         assert (n->getParentName() == "dir");
     }
     {
-        auto_ptr<FileNode> n (FileNode::createFile(NULL, "dir/dir2/file", 0, 0, 0666));
+        unique_ptr<FileNode> n (FileNode::createFile(NULL, "dir/dir2/file", 0, 0, 0666));
         assert (n->getParentName() == "dir/dir2");
     }
     // directories
     {
-        auto_ptr<FileNode> n (FileNode::createIntermediateDir(NULL, "dir/subdir/"));
+        unique_ptr<FileNode> n (FileNode::createIntermediateDir(NULL, "dir/subdir/"));
         assert (n->getParentName() == "dir");
     }
 }
