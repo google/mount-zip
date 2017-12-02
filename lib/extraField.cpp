@@ -46,13 +46,13 @@ ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
     if (len < 1) {
         return false;
     }
+    const zip_uint8_t *end = data + len;
     unsigned char flags = *data++;
     
     hasMTime = flags & 1;
     hasATime = flags & 2;
     hasCreTime = flags & 4;
 
-    const zip_uint8_t *end = data + len;
     if (hasMTime) {
         if (data + 4 > end) {
             return false;
