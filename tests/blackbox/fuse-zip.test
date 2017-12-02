@@ -1959,6 +1959,33 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest special-files {Chech that special files creation is forbidden} {
+        mount
+
+        catch {
+            exec mknod $mountdir/dev c 1 1
+        } err opts
+        lassign [dict get $opts -errorcode] type pid err
+        assert {$type eq "CHILDSTATUS"}
+        assert {$err == 1}
+
+        catch {
+            exec mknod $mountdir/dev b 1 1
+        } err opts
+        lassign [dict get $opts -errorcode] type pid err
+        assert {$type eq "CHILDSTATUS"}
+        assert {$err == 1}
+
+        catch {
+            exec mknod $mountdir/pipe p
+        } err opts
+        lassign [dict get $opts -errorcode] type pid err
+        assert {$type eq "CHILDSTATUS"}
+        assert {$err == 1}
+
+        umount
+    }
+
     finalize
 }
 namespace delete ::util::test
