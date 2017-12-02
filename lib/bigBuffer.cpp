@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2016 by Alexander Galanin                          //
+//  Copyright (C) 2008-2017 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -227,7 +227,7 @@ int BigBuffer::write(const char *buf, size_t size, zip_uint64_t offset) {
     int nwritten = size;
 
     if (offset > len) {
-        if (len > 0) {
+        if (chunkNumber(len) < chunksCount(len)) {
             chunks[chunkNumber(len)].clearTail(chunkOffset(len));
         }
         len = size + offset;
@@ -249,7 +249,7 @@ int BigBuffer::write(const char *buf, size_t size, zip_uint64_t offset) {
 void BigBuffer::truncate(zip_uint64_t offset) {
     chunks.resize(chunksCount(offset));
 
-    if (offset > len && len > 0) {
+    if (offset > len && chunkNumber(len) < chunksCount(len)) {
         // Fill end of last non-empty chunk with zeroes
         chunks[chunkNumber(len)].clearTail(chunkOffset(len));
     }
