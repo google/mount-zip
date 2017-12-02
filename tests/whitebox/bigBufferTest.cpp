@@ -334,6 +334,30 @@ void readExpanded() {
     assert(memcmp(buf, expected, nr) == 0);
 }
 
+// read data from file expanded by write (at buffer boundary)
+// Issue #50: Out of bounds write on sparse file
+void readExpandedBufferBoundary() {
+    int n = BigBuffer::chunkSize * 3;
+    char buf[n];
+    char expected[n];
+    memset(expected, 0, n);
+    BigBuffer b;
+
+    memset(buf, 'a', BigBuffer::chunkSize);
+    memset(expected, 'a', BigBuffer::chunkSize);
+    b.write(buf, BigBuffer::chunkSize, 0);
+    assert(b.len == BigBuffer::chunkSize);
+
+    memset(buf, 'z', BigBuffer::chunkSize);
+    memset(expected + BigBuffer::chunkSize * 2, 'z', BigBuffer::chunkSize);
+    b.write(buf, BigBuffer::chunkSize, BigBuffer::chunkSize * 2);
+    assert(b.len == BigBuffer::chunkSize * 3);
+
+    int nr = b.read(buf, n, 0);
+    assert((unsigned)nr == BigBuffer::chunkSize * 3);
+    assert(memcmp(buf, expected, nr) == 0);
+}
+
 // Test zip user function callback with empty file
 void zipUserFunctionCallBackEmpty() {
     BigBuffer bb;
@@ -541,6 +565,7 @@ int main(int, char **) {
     truncateRead();
     writeFile();
     readExpanded();
+    readExpandedBufferBoundary();
     zipUserFunctionCallBackEmpty();
     zipUserFunctionCallBackNonEmpty();
 
