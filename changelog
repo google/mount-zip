@@ -1,5 +1,6 @@
 2017-11-xx Alexander Galanin <al@galanin.nnov.ru>
 	* Released 0.4.3:
+	- License changed to GPLv3 or later because LGPLv3 is too confusing.
 	- Support mknod() system call.
 
 2016-02-28 Alexander Galanin <al@galanin.nnov.ru>

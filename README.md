@@ -31,8 +31,7 @@ Alexander Galanin
 
 # LICENSE #
 
-fuse-zip are licensed under GNU LGPL v3.
-
+fuse-zip are licensed under GNU GPL v3 or later.
 
 # USAGE #
 
