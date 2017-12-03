@@ -1,4 +1,4 @@
-= ABOUT =
+# ABOUT #
 
 fuse-zip is a FUSE file system to navigate, extract, create and modify ZIP and
 ZIP64 archives based on libzip implemented in C++.
@@ -20,28 +20,28 @@ You can download fuse-zip at https://bitbucket.org/agalanin/fuse-zip
 
 
 
-= AUTHOR =
+# AUTHOR #
 
 Alexander Galanin
+
   * E-mail:     al@galanin.nnov.ru
   * Homepage:   http://galanin.nnov.ru/~al/
 
 
 
-= LICENSE =
+# LICENSE #
 
 fuse-zip are licensed under GNU LGPL v3.
 
 
+# USAGE #
 
-= USAGE =
-
-{{{
+```shell
 $ mkdir /tmp/zipArchive
 $ fuse-zip foobar.zip /tmp/zipArchive
 (do something with the mounted file system)
 $ fusermount -u /tmp/zipArchive
-}}}
+```
 
 If ZIP file does not exists, it will be created after filesystem unmounting.
 
@@ -51,7 +51,7 @@ a big archives.
 If you want to specify character set conversion for file names in archive,
 use the following fusermount options:
 
-  -omodules=iconv,from_code=$charset1,to_code=$charset2
+    -omodules=iconv,from_code=$charset1,to_code=$charset2
 
 Those Russian who uses archives from the "other OS" should use CP866 as
 'charset1' and locale charset as 'charset2'.
@@ -62,30 +62,30 @@ Look at /var/log/user.log in case of any errors.
 
 
 
-= PERFORMANCE =
+# PERFORMANCE #
 
 On a small archives fuse-zip have the same performance with commonly used
 virtual filesystems like KIO, Gnome GVFS, mc vfs, unpackfs, avfs, fuse-j-zip.
 But on large archives with many file (like zipped Linux kernel sources)
 fuse-zip have the greatest speed.
 You can download test suite from the web-site and make sure that it is true.
-See PerformancePage for details.
+See [[PerformancePage]] for details.
 
-== PERMISSIONS ==
+
+# PERMISSIONS #
 
 Support for UNIX file permissions and owner information has been added in
 version 0.4. Note that access check will not be performed unless
 '-o default_permissions' mount option is given.
 
-= HINTS =
+# HINTS #
 
-# Added/changed files resides into memory until you unmount file system.
-# Adding/unpacking very big files(more than one half of available memory) may
+* Added/changed files resides into memory until you unmount file system.
+* Adding/unpacking very big files(more than one half of available memory) may
   cause your system swapping. It is a good idea to use zip/unzip in that case
   :)
-# After adding/modifying files in archive it will be repacked at filesystem
+* After adding/modifying files in archive it will be repacked at filesystem
   unmount. Hence, your file system must have enough space to keep temporary
   files.
-# Wait until fuse-zip process is finished after unmount before using archive
+* Wait until fuse-zip process is finished after unmount before using archive
   file.
-
