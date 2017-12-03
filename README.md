@@ -18,16 +18,14 @@ archives with many files.
 
 You can download fuse-zip at https://bitbucket.org/agalanin/fuse-zip
 
-
+Repository mirror: http://galanin.nnov.ru/hg/fuse-zip
 
 # AUTHOR #
 
 Alexander Galanin
 
   * E-mail:     al@galanin.nnov.ru
-  * Homepage:   http://galanin.nnov.ru/~al/
-
-
+  * Home page:  http://galanin.nnov.ru/~al/
 
 # LICENSE #
 
@@ -35,7 +33,7 @@ fuse-zip are licensed under GNU GPL v3 or later.
 
 # USAGE #
 
-```shell
+```
 $ mkdir /tmp/zipArchive
 $ fuse-zip foobar.zip /tmp/zipArchive
 (do something with the mounted file system)
@@ -59,8 +57,6 @@ See FUSE documentation for details.
 
 Look at /var/log/user.log in case of any errors.
 
-
-
 # PERFORMANCE #
 
 On a small archives fuse-zip have the same performance with commonly used
@@ -68,8 +64,6 @@ virtual filesystems like KIO, Gnome GVFS, mc vfs, unpackfs, avfs, fuse-j-zip.
 But on large archives with many file (like zipped Linux kernel sources)
 fuse-zip have the greatest speed.
 You can download test suite from the web-site and make sure that it is true.
-See [[PerformancePage]] for details.
-
 
 # PERMISSIONS #
 

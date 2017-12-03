@@ -1,7 +1,9 @@
-2017-11-xx Alexander Galanin <al@galanin.nnov.ru>
+2017-12-03 Alexander Galanin <al@galanin.nnov.ru>
 	* Released 0.4.3:
 	- License changed to GPLv3 or later because LGPLv3 is too confusing.
 	- Support mknod() system call.
+	- Fixed out of bounds write on sparse file (issue #50).
+	- Fixed timestamp and file attribute fields saving into archive.
 
 2016-02-28 Alexander Galanin <al@galanin.nnov.ru>
 	* Released 0.4.2:
