@@ -18,7 +18,7 @@ OBJECTS=$(SOURCES:.cpp=.o)
 MANSRC=fuse-zip.1
 MAN=fuse-zip$(manext).gz
 CLEANFILES=$(OBJECTS) $(MAN)
-DOCFILES=README changelog
+DOCFILES=README.md changelog
 INSTALL=install
 INSTALL_PROGRAM=$(INSTALL)
 INSTALL_DATA=$(INSTALL) -m 644
