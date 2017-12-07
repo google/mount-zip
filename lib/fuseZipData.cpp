@@ -19,8 +19,9 @@
 
 #include <zip.h>
 #include <syslog.h>
-#include <cerrno>
 #include <cassert>
+#include <cerrno>
+#include <cstring>
 #include <stdexcept>
 
 #include "fuseZipData.h"
@@ -30,10 +31,16 @@ FuseZipData::FuseZipData(const char *archiveName, struct zip *z, const char *cwd
 
 FuseZipData::~FuseZipData() {
     if (chdir(m_cwd.c_str()) != 0) {
-        syslog(LOG_ERR, "Unable to chdir() to archive directory %s. Trying to save file into /tmp",
-                m_cwd.c_str());
-        if (chdir(getenv("TMP")) != 0) {
-            chdir("/tmp");
+        syslog(LOG_ERR, "Unable to chdir() to archive directory %s: %s. Trying to save file into $TMP or /tmp...",
+                m_cwd.c_str(), strerror(errno));
+        const char *tmpDir = getenv("TMP");
+        if (tmpDir == NULL || chdir(tmpDir) != 0) {
+            if (tmpDir != NULL) {
+                syslog(LOG_WARNING, "Unable to chdir() to %s: %s.", tmpDir, strerror(errno));
+            }
+            if (chdir("/tmp") != 0) {
+                syslog(LOG_ERR, "Unable to chdir() to /tmp: %s!", strerror(errno));
+            }
         }
     }
     int res = zip_close(m_zip);
