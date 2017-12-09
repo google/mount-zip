@@ -64,6 +64,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName,
         }
         if (getcwd(cwd, PATH_MAX) == NULL) {
             perror(NULL);
+            free(cwd);
             return data;
         }
 
