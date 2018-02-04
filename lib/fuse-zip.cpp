@@ -48,11 +48,12 @@ FuseZipData *initFuseZip(const char *program, const char *fileName,
     FuseZipData *data = NULL;
     int err;
     struct zip *zip_file;
-
-    if ((zip_file = zip_open(fileName, ZIP_CREATE, &err)) == NULL) {
+    
+    int flags = (readonly) ? ZIP_RDONLY : ZIP_CREATE;
+    if ((zip_file = zip_open(fileName, flags, &err)) == NULL) {
         char err_str[ERROR_STR_BUF_LEN];
         zip_error_to_str(err_str, ERROR_STR_BUF_LEN, err, errno);
-        fprintf(stderr, "%s: cannot open zip archive %s: %s\n", program, fileName, err_str);
+        fprintf(stderr, "%s: cannot open ZIP archive %s: %s\n", program, fileName, err_str);
         return data;
     }
 

@@ -542,6 +542,23 @@ namespace eval ::fusezip::test {
         }
     }
 
+    fstest nonexistent-readonly {Trying to open nonexistent file in read-only mode (#52)} {
+        set fname $tmpdir/nonexistent.zip
+        if {![catch {mount -r} err opts] ||
+                [dict get $opts -errorcode] ne "NOTMOUNTED"} {
+            error "Mount error is expected"
+        } else {
+            set msg [stripValgrindOutput [join $error \n]]
+            if {![regexp {^fuse-zip: cannot open ZIP archive} $msg]} {
+                error "Invalid error message: $msg"
+            }
+        }
+        umount
+        if {[file exist $fname]} {
+            error "Archive should not exist!"
+        }
+    }
+
     fstest 65536-files {Check that file system correctly handle more than 65535 files (issue #34)} {
         set content {}
         set count 65536
