@@ -1,3 +1,10 @@
+2018-02-04 Alexander Galanin <al@galanin.nnov.ru>
+	* Released 0.4.5:
+	- #52: Print error message and exit on nonexistent file in read-only mode.
+	- #51: Check return value of chdir().
+	- Add Reiner Herrmann's patch to make the build reproducible.
+	- Fixed errors found by static code analysis.
+
 2017-12-04 Alexander Galanin <al@galanin.nnov.ru>
 	* Released 0.4.4:
 	- Fixed problem with README installation.
