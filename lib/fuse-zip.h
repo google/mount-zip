@@ -31,6 +31,7 @@ extern "C" {
  *
  * @param program   Program name
  * @param fileName  ZIP file name
+ * @param readonly  Open in read-only mode
  * @return NULL if an error occured, otherwise pointer to FuseZipData structure.
  */
 class FuseZipData *initFuseZip(const char *program, const char *fileName,

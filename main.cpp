@@ -25,9 +25,11 @@
 
 #include <fuse.h>
 #include <fuse_opt.h>
+#include <libgen.h>
 #include <limits.h>
 #include <syslog.h>
 
+#include <cassert>
 #include <cerrno>
 
 #include "fuse-zip.h"
@@ -134,6 +136,25 @@ static int process_arg(void *data, const char *arg, int key, struct fuse_args *o
     }
 }
 
+bool isFileWritable(const char *fileName) {
+    bool writable = true;
+    if (access(fileName, F_OK) == 0 && access(fileName, W_OK) != 0) {
+        // file exists but not writable
+        writable = false;
+    } else {
+        char *fileNameDup = strdup(fileName);
+        if (fileNameDup == NULL)
+            throw std::bad_alloc();
+        const char *dirName = dirname(fileNameDup);
+        if (access(dirName, F_OK) == 0 && access(dirName, W_OK) != 0) {
+            // parent directory is not writable
+            writable = false;
+        }
+        free(fileNameDup);
+    }
+    return writable;
+}
+
 static const struct fuse_opt fusezip_opts[] = {
     FUSE_OPT_KEY("-h",          KEY_HELP),
     FUSE_OPT_KEY("--help",      KEY_HELP),
@@ -176,6 +197,16 @@ int main(int argc, char *argv[]) {
             print_usage();
             fuse_opt_free_args(&args);
             return EXIT_FAILURE;
+        }
+
+        if (!param.readonly && !isFileWritable(param.fileName)) {
+            assert(args.allocated && "FUSE args must be reallocated because at least one argument (archive file name) is discarded in [process_arg]");
+            // add -r flag to make file system read-only
+            if (fuse_opt_add_arg(&args, "-r") != 0) {
+                fuse_opt_free_args(&args);
+                return EXIT_FAILURE;
+            }
+            param.readonly = true;
         }
 
         openlog(PROGRAM, LOG_PID, LOG_USER);
