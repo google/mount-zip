@@ -2,7 +2,7 @@
 # \
 exec tclsh "$0" "$@"
 
-package require Tcl 8.5
+package require Tcl 8.6
 package require BLT
 package require Tclx
 package require cmdline
@@ -354,7 +354,10 @@ namespace eval ::fusezip::test {
         variable tmpdir
         upvar fname fname
 
-        set fname $tmpdir/test.zip
+        set container [file join $tmpdir container]
+        file delete -force $container
+        file mkdir $container
+        set fname $container/test.zip
 
         createContent archiveSource $files
         set pwd [ pwd ]
@@ -437,6 +440,7 @@ namespace eval ::fusezip::test {
         variable failed
 
         forceumount
+        catch {exec chmod -R a+w $tmpdir}
         file delete -force $tmpdir
 
         if {!$listTests} {
@@ -1510,6 +1514,50 @@ namespace eval ::fusezip::test {
         umount
 
         exec diff $fname $fname-copy
+    }
+
+    fstest implicit-read-only-file {Check that read-only file is mounted read-only} {
+        create {
+            foo.bar foobar
+        }
+        exec chmod a-w $fname
+        mount
+        try {
+            set f [open $mountdir/newfile w]
+        } trap {POSIX EROFS} {} {
+            # as expected
+        } on error {err opts} {
+            return -options $opts "read-only filesystem error is expected!"
+        } finally {
+            catch {close $f}
+        }
+        umount
+
+        check {
+            foo.bar foobar
+        }
+    }
+
+    fstest implicit-read-only-dir {Check that file in read-only directory is mounted read-only} {
+        create {
+            foo.bar foobar
+        }
+        exec chmod a-w [file dirname $fname]
+        mount
+        try {
+            set f [open $mountdir/newfile w]
+        } trap {POSIX EROFS} {} {
+            # as expected
+        } on error {err opts} {
+            return -options $opts "read-only filesystem error is expected!"
+        } finally {
+            catch {close $f}
+        }
+        umount
+
+        check {
+            foo.bar foobar
+        }
     }
 
     fstest dir-stub-read-only {Check that archive is not modified after mount/unmount in case of stub directories is created while loading file tree} {
