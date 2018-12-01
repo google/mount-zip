@@ -141,15 +141,14 @@ void FuseZipData::validateFileName(const char *fname) {
 
 void FuseZipData::convertFileName(const char *fname, bool readonly,
         bool needPrefix, std::string &converted) {
-    const char *UP_PREFIX = "UP";
-    const char *CUR_PREFIX = "CUR";
-    const char *ROOT_PREFIX = "ROOT";
+    static const char *UP_PREFIX = "UP";
+    static const char *CUR_PREFIX = "CUR";
+    static const char *ROOT_PREFIX = "ROOT";
 
     validateFileName(fname);
 
     assert(fname[0] != 0);
     const char *orig = fname;
-    bool parentRelative = false;
     converted.reserve(strlen(fname) + strlen(ROOT_PREFIX) + 1);
     converted = "";
     // add prefix
@@ -162,6 +161,7 @@ void FuseZipData::convertFileName(const char *fname, bool readonly,
             ++fname;
         }
     } else {
+        bool parentRelative = false;
         while (strncmp(fname, "../", 3) == 0) {
             if (!readonly) {
                 throw std::runtime_error("paths relative to parent directory are not supported in read-write mode");

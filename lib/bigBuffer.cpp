@@ -165,13 +165,12 @@ BigBuffer::BigBuffer(struct zip *z, zip_uint64_t nodeId, zip_uint64_t length):
     unsigned int ccount = chunksCount(length);
     chunks.resize(ccount, ChunkWrapper());
     unsigned int chunk = 0;
-    int nr;
     while (length > 0) {
         zip_uint64_t readSize = chunkSize;
         if (readSize > length) {
             readSize = length;
         }
-        nr = zip_fread(zf, chunks[chunk].ptr(true), readSize);
+        zip_int64_t nr = zip_fread(zf, chunks[chunk].ptr(true), readSize);
         if (nr < 0) {
             std::string err = zip_file_strerror(zf);
             syslog(LOG_WARNING, "%s", err.c_str());
