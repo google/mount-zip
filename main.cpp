@@ -136,6 +136,12 @@ static int process_arg(void *data, const char *arg, int key, struct fuse_args *o
     }
 }
 
+/**
+ * Check that we can write results to an archive file:
+ * * file must be writable;
+ * * parent directory must be writable (because the last step of archive saving
+ *   is rename-and-replace).
+ */
 bool isFileWritable(const char *fileName) {
     bool writable = true;
     if (access(fileName, F_OK) == 0 && access(fileName, W_OK) != 0) {
