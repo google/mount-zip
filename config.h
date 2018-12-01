@@ -22,7 +22,7 @@
 
 #define FUSE_USE_VERSION 27
 #define PROGRAM "fuse-zip"
-#define VERSION "0.4.5"
+#define VERSION "0.5.0"
 
 #endif
 

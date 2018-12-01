@@ -1,4 +1,9 @@
 2018-02-04 Alexander Galanin <al@galanin.nnov.ru>
+	* Released 0.5.0:
+	- #54: Force open in read-only mode if archive file or its parent
+	directory is not writable.
+
+2018-02-04 Alexander Galanin <al@galanin.nnov.ru>
 	* Released 0.4.5:
 	- #52: Print error message and exit on nonexistent file in read-only mode.
 	- #51: Check return value of chdir().
