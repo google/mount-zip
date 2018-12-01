@@ -1,3 +1,5 @@
+all:
+	./fuse-zip.test
 rebuild:
 	make -C ../../lib all
 	make -C ../.. all
@@ -5,10 +7,7 @@ rebuild:
 force-rebuild:
 	make -C ../.. clean all
 
-all:
-	./fuse-zip.test
-
 valgrind:
 	./fuse-zip.test -valgrind
 
-.PHONY: all rebuild force-rebuild
+.PHONY: all valgrind rebuild force-rebuild
