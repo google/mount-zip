@@ -13,7 +13,7 @@ paths are displayed under "ROOT" directory, every ".." in path replaced by "UP"
 in directory name and "normal" files are placed under "CUR" directory.
 
 Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
-archives. Also, fuse-zip is faster that all known implementations on large
+archives. Also, fuse-zip is faster than all known implementations on large
 archives with many files.
 
 You can download fuse-zip at https://bitbucket.org/agalanin/fuse-zip
