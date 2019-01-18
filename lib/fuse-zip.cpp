@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2017 by Alexander Galanin                          //
+//  Copyright (C) 2008-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -22,7 +22,13 @@
 
 #include "../config.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 #include <fuse.h>
+
+#pragma GCC diagnostic pop
+
 #include <zip.h>
 #include <unistd.h>
 #include <limits.h>
