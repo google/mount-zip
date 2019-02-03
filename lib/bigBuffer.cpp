@@ -314,8 +314,8 @@ int BigBuffer::saveToZip(time_t mtime, struct zip *z, const char *fname,
         return -ENOMEM;
     }
     zip_int64_t nid;
-    if ((newFile && (nid = zip_file_add(z, fname, s, ZIP_FL_ENC_UTF_8)) < 0)
-            || (!newFile && zip_file_replace(z, index, s, ZIP_FL_ENC_UTF_8) < 0)) {
+    if ((newFile && (nid = zip_file_add(z, fname, s, ZIP_FL_ENC_GUESS)) < 0)
+            || (!newFile && zip_file_replace(z, index, s, ZIP_FL_ENC_GUESS) < 0)) {
         delete cbs;
         zip_source_free(s);
         return -ENOMEM;

@@ -344,7 +344,7 @@ int fusezip_mkdir(const char *path, mode_t mode) {
     if (*path == '\0') {
         return -ENOENT;
     }
-    zip_int64_t idx = zip_dir_add(get_zip(), path + 1, ZIP_FL_ENC_UTF_8);
+    zip_int64_t idx = zip_dir_add(get_zip(), path + 1, ZIP_FL_ENC_GUESS);
     if (idx < 0) {
         return -ENOMEM;
     }
@@ -412,7 +412,7 @@ int fusezip_rename(const char *path, const char *new_path) {
                         strcat(name, "/");
                     }
                     if (nn->id >= 0) {
-                        zip_file_rename(z, nn->id, name, ZIP_FL_ENC_UTF_8);
+                        zip_file_rename(z, nn->id, name, ZIP_FL_ENC_GUESS);
                     }
                     // changing child list may cause loop iterator corruption
                     get_data()->renameNode (nn, name, false);
@@ -422,7 +422,7 @@ int fusezip_rename(const char *path, const char *new_path) {
             }
         }
         if (node->id >= 0) {
-            zip_file_rename(z, node->id, new_name.c_str(), ZIP_FL_ENC_UTF_8);
+            zip_file_rename(z, node->id, new_name.c_str(), ZIP_FL_ENC_GUESS);
         }
         get_data()->renameNode (node, new_name.c_str(), true);
 

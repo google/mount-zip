@@ -1344,6 +1344,25 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest iconv-create {Archive creation with iconv module} {
+        set natName "\u041B\u0435\u043D\u0438\u043D/\u041F\u0430\u0440\u0442\u0438\u044F/\u041A\u043E\u043C\u0441\u043E\u043C\u043E\u043B"
+        mount -o modules=iconv,from_code=cp866
+        makeFile "111" $natName $mountdir
+        umount
+
+        mount -o modules=iconv,from_code=cp866
+        try {
+            set f [open "$mountdir/$natName" r]
+            try {
+                assert {[read $f] eq "111"} "bad file content"
+            } finally {
+                close $f
+            }
+        } finally {
+            umount
+        }
+    }
+
     fstest rename-file {Rename file} {
         create {
             foo.bar foobar

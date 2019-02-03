@@ -272,7 +272,7 @@ void FuseZipData::save () {
             if (node->isTemporaryDir()) {
                 // persist temporary directory
                 zip_int64_t idx = zip_dir_add(m_zip,
-                        node->full_name.c_str(), ZIP_FL_ENC_UTF_8);
+                        node->full_name.c_str(), ZIP_FL_ENC_GUESS);
                 if (idx < 0) {
                     syslog(LOG_ERR, "Unable to save directory %s in ZIP archive",
                         node->full_name.c_str());
