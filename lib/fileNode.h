@@ -113,7 +113,7 @@ public:
     int close();
 
     /**
-     * Invoke zip_add() or zip_replace() for file to save it.
+     * Invoke zip_file_add() or zip_file_replace() for file to save it.
      * Should be called only if item is needed to ba saved into zip file.
      *
      * @return 0 if success, != 0 on error
