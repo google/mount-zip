@@ -32,9 +32,17 @@ struct zip *zip_open(const char *, int, int *) {
     return NULL;
 }
 
-int zip_error_to_str(char *, zip_uint64_t, int, int) {
+void zip_error_init_with_code(zip_error_t *, int) {
     assert(false);
-    return 0;
+}
+
+const char *zip_error_strerror(zip_error_t *) {
+    assert(false);
+    return NULL;
+}
+
+void zip_error_fini(zip_error_t *) {
+    assert(false);
 }
 
 const char *zip_get_name(struct zip *, zip_uint64_t, zip_flags_t) {

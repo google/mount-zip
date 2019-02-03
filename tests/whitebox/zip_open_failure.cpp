@@ -27,8 +27,14 @@ struct zip *zip_open(const char *, int, int *errorp) {
     return NULL;
 }
 
-int zip_error_to_str(char *buf, zip_uint64_t len, int, int) {
-    return strncpy(buf, "Expected error", len) - buf;
+void zip_error_init_with_code(zip_error_t *, int) {
+}
+
+const char *zip_error_strerror(zip_error_t *) {
+    return "Expected error";
+}
+
+void zip_error_fini(zip_error_t *) {
 }
 
 // only stubs

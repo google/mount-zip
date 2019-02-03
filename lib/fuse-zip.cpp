@@ -57,9 +57,10 @@ FuseZipData *initFuseZip(const char *program, const char *fileName,
     
     int flags = (readonly) ? ZIP_RDONLY : ZIP_CREATE;
     if ((zip_file = zip_open(fileName, flags, &err)) == NULL) {
-        char err_str[ERROR_STR_BUF_LEN];
-        zip_error_to_str(err_str, ERROR_STR_BUF_LEN, err, errno);
-        fprintf(stderr, "%s: cannot open ZIP archive %s: %s\n", program, fileName, err_str);
+        zip_error_t error;
+        zip_error_init_with_code(&error, err);
+        fprintf(stderr, "%s: cannot open ZIP archive %s: %s\n", program, fileName, zip_error_strerror(&error));
+        zip_error_fini(&error);
         return data;
     }
 

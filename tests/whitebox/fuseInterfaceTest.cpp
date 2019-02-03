@@ -110,7 +110,16 @@ zip_int64_t zip_get_num_entries(zip_t *, zip_flags_t) {
     return 0;
 }
 
-int zip_error_to_str(char *, zip_uint64_t, int, int) {
+void zip_error_init_with_code(zip_error_t *, int) {
+    assert(false);
+}
+
+const char *zip_error_strerror(zip_error_t *) {
+    assert(false);
+    return NULL;
+}
+
+void zip_error_fini(zip_error_t *) {
     assert(false);
 }
 
