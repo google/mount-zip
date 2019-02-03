@@ -62,6 +62,7 @@ void print_usage() {
  */
 void print_version() {
     fprintf(stderr, "%s version: %s\n", PROGRAM, VERSION);
+    fprintf(stderr, "libzip version: %s\n", LIBZIP_VERSION);
 }
 
 /**
