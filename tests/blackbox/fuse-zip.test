@@ -193,11 +193,16 @@ namespace eval ::fusezip::test {
         upvar fname fname
         variable binary
         variable mountdir
+        variable tmpdir
         variable stopped
         variable output
         variable error
         variable mounted
         variable initializationState
+
+        if {$fname eq ""} {
+            set fname "$tmpdir/test.zip"
+        }
 
         set ns [ namespace current ]
         set ${ns}::status {STARTED}
