@@ -16,12 +16,8 @@ release:
 $(DEST): $(OBJECTS)
 	$(AR) -cr $@ $(OBJECTS)
 
-# fuse-zip.cpp must be compiled separately with FUSEFLAGS
-fuse-zip.o: fuse-zip.cpp
-	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $(ZIPFLAGS) $< -o $@
-
 .cpp.o:
-	$(CXX) -c $(CXXFLAGS) $(ZIPFLAGS) $< -o $@
+	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $(ZIPFLAGS) $< -o $@
 
 clean:
 	rm -f $(DEST) $(OBJECTS)

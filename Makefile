@@ -33,7 +33,6 @@ $(DEST): $(OBJECTS) $(LIB)
 	$(CXX) $(OBJECTS) $(LDFLAGS) $(LIBS) \
 	    -o $@
 
-# main.cpp must be compiled separately with FUSEFLAGS
 main.o: main.cpp
 	$(CXX) -c $(CXXFLAGS) $(FUSEFLAGS) $(ZIPFLAGS) $< \
 	    -Ilib \
