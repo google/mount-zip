@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2017 by Alexander Galanin                          //
+//  Copyright (C) 2008-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -19,15 +19,16 @@
 
 #define __STDC_LIMIT_MACROS
 
+#include <cassert>
 #include <cerrno>
 #include <climits>
-#include <ctime>
 #include <cstdlib>
-#include <stdint.h>
 #include <cstring>
+#include <ctime>
+#include <limits>
 #include <stdexcept>
+#include <stdint.h>
 #include <syslog.h>
-#include <cassert>
 
 #include "fileNode.h"
 #include "extraField.h"
@@ -35,11 +36,11 @@
 const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 
-FileNode::FileNode(struct zip *zip, const char *fname, zip_int64_t _id) {
+FileNode::FileNode(struct zip *zip, const char *fname, zip_int64_t id_) {
     this->zip = zip;
     metadataChanged = false;
     full_name = fname;
-    id = _id;
+    _id = id_;
     m_uid = 0;
     m_gid = 0;
 }
@@ -112,6 +113,7 @@ FileNode *FileNode::createIntermediateDir(struct zip *zip,
 
 FileNode *FileNode::createDir(struct zip *zip, const char *fname,
         zip_int64_t id, uid_t owner, gid_t group, mode_t mode) {
+    assert(id >= 0);
     FileNode *n = createNodeForZipEntry(zip, fname, id);
     if (n == NULL) {
         return NULL;
@@ -144,6 +146,7 @@ FileNode *FileNode::createRootNode() {
 
 FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
         const char *fname, zip_int64_t id) {
+    assert(id >= 0);
     FileNode *n = new FileNode(zip, fname, id);
     if (n == NULL) {
         return NULL;
@@ -153,7 +156,7 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
     n->state = CLOSED;
 
     struct zip_stat stat;
-    zip_stat_index(zip, id, 0, &stat);
+    zip_stat_index(zip, n->id(), 0, &stat);
     // check that all used fields are valid
     zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
         ZIP_STAT_SIZE | ZIP_STAT_MTIME;
@@ -234,7 +237,11 @@ int FileNode::open() {
         open_count = 1;
         try {
             assert (zip != NULL);
-            buffer = new BigBuffer(zip, id, m_size);
+            if (m_size > std::numeric_limits<size_t>::max()) {
+                syslog(LOG_WARNING, "file %s is too big for your system :)", full_name.c_str());
+                return -ENOMEM;
+            }
+            buffer = new BigBuffer(zip, id(), static_cast<size_t>(m_size));
             state = OPENED;
         }
         catch (std::bad_alloc) {
@@ -247,12 +254,12 @@ int FileNode::open() {
     return 0;
 }
 
-int FileNode::read(char *buf, size_t sz, zip_uint64_t offset) {
+int FileNode::read(char *buf, size_t sz, size_t offset) {
     m_atime = time(NULL);
     return buffer->read(buf, sz, offset);
 }
 
-int FileNode::write(const char *buf, size_t sz, zip_uint64_t offset) {
+int FileNode::write(const char *buf, size_t sz, size_t offset) {
     if (state == OPENED) {
         state = CHANGED;
     }
@@ -275,18 +282,18 @@ int FileNode::save() {
     // index is modified if state == NEW
     assert (zip != NULL);
     return buffer->saveToZip(m_mtime, zip, full_name.c_str(),
-            state == NEW, id);
+            state == NEW, _id);
 }
 
 int FileNode::saveMetadata() const {
-    assert(id >= 0);
+    assert(_id >= 0);
     int res = updateExtraFields();
     if (res != 0)
         return res;
     return updateExternalAttributes();
 }
 
-int FileNode::truncate(zip_uint64_t offset) {
+int FileNode::truncate(size_t offset) {
     if (state != CLOSED) {
         if (state != NEW) {
             state = CHANGED;
@@ -319,17 +326,17 @@ zip_uint64_t FileNode::size() const {
 void FileNode::processExternalAttributes () {
     zip_uint8_t opsys;
     zip_uint32_t attr;
-    assert(id >= 0);
+    assert(_id >= 0);
     assert (zip != NULL);
-    zip_file_get_external_attributes(zip, id, 0, &opsys, &attr);
+    zip_file_get_external_attributes(zip, id(), 0, &opsys, &attr);
     switch (opsys) {
         case ZIP_OPSYS_UNIX: {
             m_mode = attr >> 16;
             // force is_dir value
             if (is_dir) {
-                m_mode = (m_mode & ~S_IFMT) | S_IFDIR;
+                m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFDIR;
             } else {
-                m_mode = m_mode & ~S_IFDIR;
+                m_mode = m_mode & static_cast<unsigned>(~S_IFDIR);
             }
             break;
         }
@@ -378,15 +385,17 @@ void FileNode::processExtraFields () {
     // precedence
     int lastProcessedUnixField = 0;
 
-    assert (id >= 0);
+    assert(_id >= 0);
     assert (zip != NULL);
-    count = zip_file_extra_fields_count (zip, id, ZIP_FL_LOCAL);
-    for (zip_int16_t i = 0; i < count; ++i) {
+    count = zip_file_extra_fields_count (zip, id(), ZIP_FL_LOCAL);
+    if (count < 0)
+        return;
+    for (zip_uint16_t i = 0; i < static_cast<zip_uint16_t>(count); ++i) {
         bool has_mtime, has_atime, has_cretime;
         time_t mt, at, cret;
         zip_uint16_t type, len;
         const zip_uint8_t *field = zip_file_extra_field_get (zip,
-                id, i, &type, &len, ZIP_FL_LOCAL);
+                id(), i, &type, &len, ZIP_FL_LOCAL);
 
         switch (type) {
             case FZ_EF_TIMESTAMP: {
@@ -440,16 +449,16 @@ void FileNode::processExtraFields () {
 int FileNode::updateExtraFields () const {
     static zip_flags_t locations[] = {ZIP_FL_CENTRAL, ZIP_FL_LOCAL};
 
-    assert (id >= 0);
+    assert(_id >= 0);
     assert (zip != NULL);
     for (unsigned int loc = 0; loc < sizeof(locations) / sizeof(locations[0]); ++loc) {
         // remove old extra fields
-        zip_int16_t count = zip_file_extra_fields_count (zip, id,
+        zip_int16_t count = zip_file_extra_fields_count (zip, id(),
                 locations[loc]);
         const zip_uint8_t *field;
         for (zip_int16_t i = count; i >= 0; --i) {
             zip_uint16_t type;
-            field = zip_file_extra_field_get (zip, id, i, &type,
+            field = zip_file_extra_field_get (zip, id(), static_cast<zip_uint16_t>(i), &type,
                     NULL, locations[loc]);
             // FZ_EF_PKWARE_UNIX not removed because can contain extra data
             // that currently not handled by fuse-zip
@@ -457,7 +466,7 @@ int FileNode::updateExtraFields () const {
                         type == FZ_EF_INFOZIP_UNIX1 ||
                         type == FZ_EF_INFOZIP_UNIX2 ||
                         type == FZ_EF_INFOZIP_UNIXN)) {
-                zip_file_extra_field_delete (zip, id, i,
+                zip_file_extra_field_delete (zip, id(), static_cast<zip_uint16_t>(i),
                         locations[loc]);
             }
         }
@@ -467,14 +476,14 @@ int FileNode::updateExtraFields () const {
         // add timestamps
         field = ExtraField::createExtTimeStamp (locations[loc], m_mtime,
                 m_atime, has_cretime, cretime, len);
-        res = zip_file_extra_field_set (zip, id, FZ_EF_TIMESTAMP,
+        res = zip_file_extra_field_set (zip, id(), FZ_EF_TIMESTAMP,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
             return res;
         }
         // add UNIX owner info
         field = ExtraField::createInfoZipNewUnixField (m_uid, m_gid, len);
-        res = zip_file_extra_field_set (zip, id, FZ_EF_INFOZIP_UNIXN,
+        res = zip_file_extra_field_set (zip, id(), FZ_EF_INFOZIP_UNIXN,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
             return res;
@@ -504,7 +513,7 @@ void FileNode::setGid (gid_t gid) {
  * @return 0 on success or libzip error code (ZIP_ER_MEMORY or ZIP_ER_RDONLY)
  */
 int FileNode::updateExternalAttributes() const {
-    assert(id >= 0);
+    assert(_id >= 0);
     assert (zip != NULL);
     // save UNIX attributes in high word
     mode_t mode = m_mode << 16;
@@ -524,7 +533,7 @@ int FileNode::updateExternalAttributes() const {
         // FILE_ATTRIBUTE_READONLY
         mode |= 1;
     }
-    return zip_file_set_external_attributes (zip, id, 0,
+    return zip_file_set_external_attributes (zip, id(), 0,
             ZIP_OPSYS_UNIX, mode);
 }
 

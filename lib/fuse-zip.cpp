@@ -144,9 +144,9 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     }
     stbuf->st_mode = node->mode();
     stbuf->st_blksize = STANDARD_BLOCK_SIZE;
-    stbuf->st_ino = node->id;
-    stbuf->st_blocks = (node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE;
-    stbuf->st_size = node->size();
+    stbuf->st_ino = node->id();
+    stbuf->st_blocks = static_cast<blkcnt_t>((node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE);
+    stbuf->st_size = static_cast<off_t>(node->size());
     stbuf->st_atime = node->atime();
     stbuf->st_mtime = node->mtime();
     stbuf->st_ctime = node->ctime();
@@ -267,13 +267,17 @@ int fusezip_mknod(const char *path, mode_t mode, dev_t) {
 int fusezip_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     (void) path;
 
-    return ((FileNode*)fi->fh)->read(buf, size, offset);
+    if (offset < 0)
+        return -EINVAL;
+    return ((FileNode*)fi->fh)->read(buf, size, static_cast<size_t>(offset));
 }
 
 int fusezip_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     (void) path;
 
-    return ((FileNode*)fi->fh)->write(buf, size, offset);
+    if (offset < 0)
+        return -EINVAL;
+    return ((FileNode*)fi->fh)->write(buf, size, static_cast<size_t>(offset));
 }
 
 int fusezip_release (const char *path, struct fuse_file_info *fi) {
@@ -285,13 +289,17 @@ int fusezip_release (const char *path, struct fuse_file_info *fi) {
 int fusezip_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi) {
     (void) path;
 
-    return -((FileNode*)fi->fh)->truncate(offset);
+    if (offset < 0)
+        return -EINVAL;
+    return -((FileNode*)fi->fh)->truncate(static_cast<size_t>(offset));
 }
 
 int fusezip_truncate(const char *path, off_t offset) {
     if (*path == '\0') {
         return -EACCES;
     }
+    if (offset < 0)
+        return -EINVAL;
     FileNode *node = get_file_node(path + 1);
     if (node == NULL) {
         return -ENOENT;
@@ -303,7 +311,7 @@ int fusezip_truncate(const char *path, off_t offset) {
     if ((res = node->open()) != 0) {
         return res;
     }
-    if ((res = node->truncate(offset)) != 0) {
+    if ((res = node->truncate(static_cast<size_t>(offset))) != 0) {
         node->close();
         return -res;
     }
@@ -377,8 +385,8 @@ int fusezip_rename(const char *path, const char *new_path) {
         }
     }
 
-    int len = strlen(new_path);
-    int oldLen = strlen(path + 1) + 1;
+    size_t len = strlen(new_path);
+    size_t oldLen = strlen(path + 1) + 1;
     std::string new_name;
     if (!node->is_dir) {
         --len;
@@ -412,8 +420,8 @@ int fusezip_rename(const char *path, const char *new_path) {
                     if (nn->is_dir) {
                         strcat(name, "/");
                     }
-                    if (nn->id >= 0) {
-                        zip_file_rename(z, nn->id, name, ZIP_FL_ENC_GUESS);
+                    if (nn->present_in_zip()) {
+                        zip_file_rename(z, nn->id(), name, ZIP_FL_ENC_GUESS);
                     }
                     // changing child list may cause loop iterator corruption
                     get_data()->renameNode (nn, name, false);
@@ -422,8 +430,8 @@ int fusezip_rename(const char *path, const char *new_path) {
                 }
             }
         }
-        if (node->id >= 0) {
-            zip_file_rename(z, node->id, new_name.c_str(), ZIP_FL_ENC_GUESS);
+        if (node->present_in_zip()) {
+            zip_file_rename(z, node->id(), new_name.c_str(), ZIP_FL_ENC_GUESS);
         }
         get_data()->renameNode (node, new_name.c_str(), true);
 

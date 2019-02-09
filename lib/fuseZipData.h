@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2017 by Alexander Galanin                          //
+//  Copyright (C) 2008-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -114,7 +114,7 @@ public:
     /**
      * Return number of files in tree
      */
-    int numFiles () const {
+    size_t numFiles () const {
         return files.size() - 1;
     }
 

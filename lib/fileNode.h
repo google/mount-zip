@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2017 by Alexander Galanin                          //
+//  Copyright (C) 2008-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -42,6 +42,7 @@ private:
         NEW_DIR
     };
 
+    zip_int64_t _id;
     BigBuffer *buffer;
     struct zip *zip;
     int open_count;
@@ -108,8 +109,8 @@ public:
     void rename (const char *new_name);
 
     int open();
-    int read(char *buf, size_t size, zip_uint64_t offset);
-    int write(const char *buf, size_t size, zip_uint64_t offset);
+    int read(char *buf, size_t size, size_t offset);
+    int write(const char *buf, size_t size, size_t offset);
     int close();
 
     /**
@@ -135,7 +136,7 @@ public:
      *      EIO     If insufficient memory available (because ENOMEM not
      *              listed in truncate() error codes)
      */
-    int truncate(zip_uint64_t offset);
+    int truncate(size_t offset);
 
     inline bool isChanged() const {
         return state == CHANGED || state == NEW;
@@ -146,7 +147,7 @@ public:
     }
 
     inline bool isTemporaryDir() const {
-        return (state == NEW_DIR) && (id == NEW_NODE_INDEX);
+        return (state == NEW_DIR) && (_id == NEW_NODE_INDEX);
     }
 
     /**
@@ -180,7 +181,7 @@ public:
     //TODO: rewrite without memory allocation
     inline std::string getParentName () const {
         if (name > full_name.c_str()) {
-            return std::string (full_name, 0, name - full_name.c_str() - 1);
+            return std::string (full_name, 0, static_cast<size_t>(name - full_name.c_str() - 1));
         } else {
             return "";
         }
@@ -200,10 +201,17 @@ public:
 
     zip_uint64_t size() const;
 
+    bool present_in_zip() const { return _id >= 0; }
+    zip_uint64_t id() const { return static_cast<zip_uint64_t>(_id); }
+
+    void set_id(zip_int64_t id_) {
+        _id = id_;
+        // called only from FuseZipData::save, so we're don't worry about 'status' variable value
+    }
+
     const char *name;
     std::string full_name;
     bool is_dir;
-    zip_int64_t id;
     nodelist_t childs;
     FileNode *parent;
 };

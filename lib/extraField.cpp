@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2014-2017 by Alexander Galanin                          //
+//  Copyright (C) 2014-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -24,16 +24,16 @@
 unsigned long
 ExtraField::getLong (const zip_uint8_t *&data) {
     unsigned long t = *data++;
-    t += *data++ << 8;
-    t += *data++ << 16;
-    t += *data++ << 24;
+    t += (unsigned long)(*data++ << 8);
+    t += (unsigned long)(*data++ << 16);
+    t += (unsigned long)(*data++ << 24);
     return t;
 }
 
 unsigned short 
 ExtraField::getShort (const zip_uint8_t *&data) {
     unsigned short t = *data++;
-    t += *data++ << 8;
+    t = static_cast<unsigned short>(t + (*data++ << 8));
     return t;
 }
 
@@ -92,19 +92,19 @@ ExtraField::createExtTimeStamp (zip_flags_t location,
     data[len++] = flags;
 
     for (int i = 0; i < 4; ++i) {
-        data[len++] = mtime & 0xFF;
+        data[len++] = static_cast<unsigned char>(mtime);
         mtime >>= 8;
     }
     // The central-header extra field contains the modification time only,
     // or no timestamp at all.
     if (location == ZIP_FL_LOCAL) {
         for (int i = 0; i < 4; ++i) {
-            data[len++] = atime & 0xFF;
+            data[len++] = static_cast<unsigned char>(atime);
             atime >>= 8;
         }
         if (set_cretime) {
             for (int i = 0; i < 4; ++i) {
-                data[len++] = cretime & 0xFF;
+                data[len++] = static_cast<unsigned char>(cretime);
                 cretime >>= 8;
             }
         }
@@ -125,8 +125,8 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             if (data + 12 > end) {
                 return false;
             }
-            atime = getLong (data);
-            mtime = getLong (data);
+            atime = static_cast<time_t>(getLong(data));
+            mtime = static_cast<time_t>(getLong(data));
             uid = getShort (data);
             gid = getShort (data);
             break;
@@ -159,7 +159,7 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             }
             p = data + lenUid;
             uid = 0;
-            int overflowBytes = sizeof(uid_t) - lenUid;
+            int overflowBytes = static_cast<int>(sizeof(uid_t)) - lenUid;
             while (--p >= data) {
                 if (overflowBytes > 0 && *p != 0) {
                     // UID overflow
@@ -179,7 +179,7 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             }
             p = data + lenGid;
             gid = 0;
-            overflowBytes = sizeof(gid_t) - lenGid;
+            overflowBytes = static_cast<int>(sizeof(gid_t)) - lenGid;
             while (--p >= data) {
                 if (overflowBytes > 0 && *p != 0) {
                     // GID overflow

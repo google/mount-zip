@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2018 by Alexander Galanin                          //
+//  Copyright (C) 2008-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -64,7 +64,7 @@ void FuseZipData::build_tree(bool readonly) {
     bool needPrefix = false;
     if (readonly) {
         for (zip_int64_t i = 0; i < n; ++i) {
-            const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
+            const char *name = zip_get_name(m_zip, static_cast<zip_uint64_t>(i), ZIP_FL_ENC_RAW);
             if ((name[0] == '/') || (strncmp(name, "../", 3) == 0)) {
                 needPrefix = true;
             }
@@ -72,7 +72,7 @@ void FuseZipData::build_tree(bool readonly) {
     }
     // add zip entries into tree
     for (zip_int64_t i = 0; i < n; ++i) {
-        const char *name = zip_get_name(m_zip, i, ZIP_FL_ENC_RAW);
+        const char *name = zip_get_name(m_zip, static_cast<zip_uint64_t>(i), ZIP_FL_ENC_RAW);
         std::string converted;
         convertFileName(name, readonly, needPrefix, converted);
         const char *cname = converted.c_str();
@@ -121,9 +121,10 @@ int FuseZipData::removeNode(FileNode *node) {
     node->parent->setCTime (time(NULL));
     files.erase(node->full_name.c_str());
 
-    zip_int64_t id = node->id;
+    bool present = node->present_in_zip();
+    zip_uint64_t id = node->id();
     delete node;
-    if (id >= 0) {
+    if (present) {
         return (zip_delete (m_zip, id) == 0)? 0 : ENOENT;
     } else {
         return 0;
@@ -189,7 +190,7 @@ void FuseZipData::convertFileName(const char *fname, bool readonly,
             (cur - start == 2 && start[0] == '.' && start[1] == '.')) {
             throw std::runtime_error(std::string("bad file name: ") + orig);
         }
-        converted.append(start, cur - start + 1);
+        converted.append(start, static_cast<size_t>(cur - start + 1));
         start = cur + 1;
     }
     // end of string is reached
@@ -278,7 +279,7 @@ void FuseZipData::save () {
                         node->full_name.c_str());
                     continue;
                 }
-                node->id = idx;
+                node->set_id(idx);
             }
             int res = node->saveMetadata();
             if (res != 0) {

@@ -768,7 +768,6 @@ namespace eval ::fusezip::test {
         file delete $mountdir/filename.ext
         umount
         if {[ file exist $fname ]} {
-            puts [ exec cat $fname ]
             error "Archive should not exist!"
         }
     }
@@ -1336,7 +1335,7 @@ namespace eval ::fusezip::test {
 
         mount -o modules=iconv,from_code=cp866
 
-        if {[ lsort [ glob -directory $mountdir -tails * ] ] ne
+        if {[ lsort [ glob -directory $mountdir -nocomplain -tails * ] ] ne
                 [ lsort "{\u0422\u0435\u043a\u0441\u0442\u043e\u0432\u044b\u0439 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442.txt} \u0414\u0430\u0442\u0430" ]} {
             error "File names incorrectly decoded: [ glob -directory $mountdir * ]"
         }
