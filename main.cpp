@@ -91,7 +91,7 @@ struct fusezip_param {
  * @return -1 on error, 0 if arg is to be discarded, 1 if arg should be kept
  */
 static int process_arg(void *data, const char *arg, int key, struct fuse_args *outargs) {
-    struct fusezip_param *param = (fusezip_param*)data;
+    struct fusezip_param *param = static_cast<fusezip_param*>(data);
 
     (void)outargs;
 

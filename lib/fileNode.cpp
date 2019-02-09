@@ -36,8 +36,8 @@
 const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
 
-FileNode::FileNode(struct zip *zip, const char *fname, zip_int64_t id_) {
-    this->zip = zip;
+FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id_) {
+    zip = zip_;
     metadataChanged = false;
     full_name = fname;
     _id = id_;
@@ -391,7 +391,7 @@ void FileNode::processExtraFields () {
     if (count < 0)
         return;
     for (zip_uint16_t i = 0; i < static_cast<zip_uint16_t>(count); ++i) {
-        bool has_mtime, has_atime, has_cretime;
+        bool has_mt, has_at, has_cret;
         time_t mt, at, cret;
         zip_uint16_t type, len;
         const zip_uint8_t *field = zip_file_extra_field_get (zip,
@@ -399,19 +399,19 @@ void FileNode::processExtraFields () {
 
         switch (type) {
             case FZ_EF_TIMESTAMP: {
-                if (ExtraField::parseExtTimeStamp (len, field, has_mtime, mt,
-                            has_atime, at, has_cretime, cret)) {
-                    if (has_mtime) {
+                if (ExtraField::parseExtTimeStamp (len, field, has_mt, mt,
+                            has_at, at, has_cret, cret)) {
+                    if (has_mt) {
                         m_mtime = mt;
                         mtimeFromTimestamp = true;
                     }
-                    if (has_atime) {
+                    if (has_at) {
                         m_atime = at;
                         atimeFromTimestamp = true;
                     }
-                    if (has_cretime) {
+                    if (has_cret) {
                         cretime = cret;
-                        this->has_cretime = true;
+                        has_cretime = true;
                     }
                 }
                 break;
@@ -423,16 +423,16 @@ void FileNode::processExtraFields () {
                 uid_t uid;
                 gid_t gid;
                 if (ExtraField::parseSimpleUnixField (type, len, field,
-                            uid, gid, has_mtime, mt, has_atime, at)) {
+                            uid, gid, has_mt, mt, has_at, at)) {
                     if (type >= lastProcessedUnixField) {
                         m_uid = uid;
                         m_gid = gid;
                         lastProcessedUnixField = type;
                     }
-                    if (has_mtime && !mtimeFromTimestamp) {
+                    if (has_mt && !mtimeFromTimestamp) {
                         m_mtime = mt;
                     }
-                    if (has_atime && !atimeFromTimestamp) {
+                    if (has_at && !atimeFromTimestamp) {
                         m_atime = at;
                     }
                 }

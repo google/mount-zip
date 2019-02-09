@@ -1,7 +1,7 @@
 DEST=libfusezip.a
 LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
-CXXFLAGS=-g -O0 -Wall -Wextra -Wconversion -Wsign-conversion -pedantic -Werror
-RELEASE_CXXFLAGS=-O2 -Wall -Wextra -Wconversion -Wsign-conversion -pedantic -Werror
+CXXFLAGS=-g -O0 -Wall -Wextra -Wconversion -Wsign-conversion -Wlogical-op -Wshadow -pedantic -Werror
+RELEASE_CXXFLAGS=-O2 -Wall -Wextra -Wconversion -Wsign-conversion -Wlogical-op -Wshadow -pedantic -Werror
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 ZIPFLAGS=$(shell pkg-config libzip --cflags)
 SOURCES=$(sort $(wildcard *.cpp))

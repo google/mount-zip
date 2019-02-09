@@ -24,9 +24,9 @@
 unsigned long
 ExtraField::getLong (const zip_uint8_t *&data) {
     unsigned long t = *data++;
-    t += (unsigned long)(*data++ << 8);
-    t += (unsigned long)(*data++ << 16);
-    t += (unsigned long)(*data++ << 24);
+    t += static_cast<unsigned long>(*data++ << 8);
+    t += static_cast<unsigned long>(*data++ << 16);
+    t += static_cast<unsigned long>(*data++ << 24);
     return t;
 }
 
@@ -55,20 +55,20 @@ ExtraField::parseExtTimeStamp (zip_uint16_t len, const zip_uint8_t *data,
         if (data + 4 > end) {
             return false;
         }
-        mtime = (time_t)getLong(data);
+        mtime = static_cast<time_t>(getLong(data));
     }
     if (hasATime) {
         if (data + 4 > end) {
             return false;
         }
-        atime = (time_t)getLong(data);
+        atime = static_cast<time_t>(getLong(data));
     }
     // only check that data format is correct
     if (hasCreTime) {
         if (data + 4 > end) {
             return false;
         }
-        cretime = (time_t)getLong(data);
+        cretime = static_cast<time_t>(getLong(data));
     }
 
     return true;
