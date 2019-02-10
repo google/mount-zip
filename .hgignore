@@ -16,3 +16,4 @@ tests/whitebox/*.x
 # other related projects (needed for performance tests)
 others
 
+utils/dump-extrafld
