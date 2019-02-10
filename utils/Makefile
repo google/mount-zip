@@ -13,4 +13,8 @@ dump-extrafld: dump-extrafld.o $(LIB)
 	$(CXX) dump-extrafld.o $(LDFLAGS) $(LIBS) \
 	    -o $@
 
-.PHONY: all
+clean:
+	rm -f dump-extrafld
+	rm -f *.o
+
+.PHONY: all clean
