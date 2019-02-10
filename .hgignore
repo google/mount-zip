@@ -16,4 +16,6 @@ tests/whitebox/*.x
 # other related projects (needed for performance tests)
 others
 
+# utils
 utils/dump-extrafld
+utils/create-content-size
