@@ -41,6 +41,10 @@
 #include "fuse-zip.h"
 #include "fuseZipData.h"
 
+#if (LIBZIP_VERSION_MAJOR < 1)
+    #error "libzip >= 1.0 is required!"
+#endif
+
 /**
  * Print usage information
  */
