@@ -4,16 +4,13 @@ ZIPFLAGS=$(shell pkg-config libzip --cflags)
 
 all: dump-extrafld create-content-size
 
-dump-extrafld.o: dump-extrafld.c
-	$(CXX) -c $(CXXFLAGS) $(ZIPFLAGS) $< \
+dump-extrafld: dump-extrafld.cpp $(LIB)
+	$(CXX) $(CXXFLAGS) $(ZIPFLAGS) $< \
 	    -I.. \
+	    $(LDFLAGS) $(LIBS) \
 	    -o $@
 
-dump-extrafld: dump-extrafld.o $(LIB)
-	$(CXX) dump-extrafld.o $(LDFLAGS) $(LIBS) \
-	    -o $@
-
-create-content-size: create-content-size.c
+create-content-size: create-content-size.cpp
 	$(CXX) $(CXXFLAGS) $(ZIPFLAGS) $< \
 	    -I.. \
 	    $(LDFLAGS) $(LIBS) \
@@ -21,6 +18,5 @@ create-content-size: create-content-size.c
 
 clean:
 	rm -f dump-extrafld create-content-size
-	rm -f *.o
 
 .PHONY: all clean
