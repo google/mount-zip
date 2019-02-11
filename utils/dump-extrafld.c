@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
                 opsys_s = "unknown";
         }
         printf("%s\t(opsys %s (%d), mode1 0%06lo, mode2 0x%04X):\n",
-                zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, (long)attr >> 16, attr & 0xffff);
+                zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, (unsigned long)attr >> 16, attr & 0xffff);
         for (zip_int16_t j = 0; j < zip_file_extra_fields_count(z, i, ZIP_FL_CENTRAL); ++j) {
             zip_uint16_t id, len;
             const zip_uint8_t *field = zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
