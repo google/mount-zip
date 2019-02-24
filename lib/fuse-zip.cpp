@@ -144,7 +144,9 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     }
     stbuf->st_mode = node->mode();
     stbuf->st_blksize = STANDARD_BLOCK_SIZE;
-    stbuf->st_ino = node->id();
+    // Interpreting pointer as ulong without loss of data is valid for LP32, ILP32, LP64 and ILP64 data models.
+    // The only well-known data model that break this is LLP64 (Win64 API).
+    stbuf->st_ino = reinterpret_cast<unsigned long>(node);
     stbuf->st_blocks = static_cast<blkcnt_t>((node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE);
     stbuf->st_size = static_cast<off_t>(node->size());
     stbuf->st_atime = node->atime();
