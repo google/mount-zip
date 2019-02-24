@@ -2109,7 +2109,7 @@ namespace eval ::fusezip::test {
         umount
     }
 
-    fstest special-files {Chech that special files creation is forbidden} {
+    fstest special-files {check that special files creation is forbidden} {
         mount
 
         catch {
@@ -2134,6 +2134,31 @@ namespace eval ::fusezip::test {
         assert {$err == 1}
 
         umount
+    }
+
+    fstest inode {different files must have different inode numbers} {
+        create {
+            foo bar
+            moo woof
+        }
+        mount -o use_ino
+
+        makeFile deer bee $mountdir
+        makeFile elks see $mountdir
+
+        file stat $mountdir/foo stat1
+        file stat $mountdir/moo stat2
+        file stat $mountdir/bee stat3
+        file stat $mountdir/see stat4
+
+        umount
+
+        assert {$stat1(ino) != $stat2(ino)} "existing file inodes must be different"
+        assert {$stat3(ino) != $stat4(ino)} "new file inodes must be different"
+        assert {$stat1(ino) != $stat3(ino)} "all inodes must be different, 1"
+        assert {$stat1(ino) != $stat4(ino)} "all inodes must be different, 2"
+        assert {$stat2(ino) != $stat3(ino)} "all inodes must be different, 3"
+        assert {$stat2(ino) != $stat4(ino)} "all inodes must be different, 4"
     }
 
     finalize
