@@ -174,7 +174,8 @@ namespace eval ::fusezip::test {
                 incr numSkipped
             }
         }
-        catch {file delete -force $tmpdir}
+        exec chmod -R u+w $tmpdir
+        exec rm -rf $tmpdir
     }
 
     # mount --
@@ -2163,6 +2164,6 @@ namespace eval ::fusezip::test {
 
     finalize
 }
-namespace delete ::util::test
+namespace delete ::fusezip::test
 
 # vim: set ft=tcl:
