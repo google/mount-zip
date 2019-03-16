@@ -89,7 +89,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName,
             throw;
         }
     }
-    catch (std::bad_alloc) {
+    catch (std::bad_alloc&) {
         syslog(LOG_ERR, "no enough memory");
         fprintf(stderr, "%s: no enough memory\n", program);
         return NULL;
@@ -218,10 +218,10 @@ int fusezip_open(const char *path, struct fuse_file_info *fi) {
     try {
         return node->open();
     }
-    catch (std::bad_alloc) {
+    catch (std::bad_alloc&) {
         return -ENOMEM;
     }
-    catch (std::exception) {
+    catch (std::exception&) {
         return -EIO;
     }
 }

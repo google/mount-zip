@@ -244,10 +244,10 @@ int FileNode::open() {
             buffer = new BigBuffer(zip, id(), static_cast<size_t>(m_size));
             state = OPENED;
         }
-        catch (std::bad_alloc) {
+        catch (std::bad_alloc&) {
             return -ENOMEM;
         }
-        catch (std::exception) {
+        catch (std::exception&) {
             return -EIO;
         }
     }
