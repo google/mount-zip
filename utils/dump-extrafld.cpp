@@ -153,6 +153,144 @@ int main(int argc, char **argv) {
         }
         printf("%s\t(opsys %s (%d), mode1 0%06lo, mode2 0x%04X):\n",
                 zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, (unsigned long)attr >> 16, attr & 0xffff);
+
+
+        zip_stat_t stat;
+        if (zip_stat_index(z, i, 0, &stat) != 0)
+        {
+            fprintf(stderr, "zip_stat_index failed\n");
+            return EXIT_FAILURE;
+        }
+        printf("  zip_stat:\n");
+        if (stat.valid & ZIP_STAT_SIZE)
+            printf("      orig.size:  %llu\n", (long long unsigned int)stat.size);
+        if (stat.valid & ZIP_STAT_COMP_SIZE)
+            printf("      comp.size:  %llu\n", (long long unsigned int)stat.comp_size);
+        if (stat.valid & ZIP_STAT_MTIME)
+            print_time("stat.mtime", stat.mtime);
+        if (stat.valid & ZIP_STAT_CRC)
+            printf("      CRC:        0x%08lX\n", (long unsigned int)stat.crc);
+        if (stat.valid & ZIP_STAT_COMP_METHOD)
+        {
+            const char *method;
+            switch (stat.comp_method)
+            {
+                case ZIP_CM_STORE:
+                    method = "stored (uncompressed)";
+                    break;
+                case ZIP_CM_SHRINK:
+                    method = "shrunk";
+                    break;
+                case ZIP_CM_REDUCE_1:
+                    method = "reduced with factor 1";
+                    break;
+                case ZIP_CM_REDUCE_2:
+                    method = "reduced with factor 2";
+                    break;
+                case ZIP_CM_REDUCE_3:
+                    method = "reduced with factor 3";
+                    break;
+                case ZIP_CM_REDUCE_4:
+                    method = "reduced with factor 4";
+                    break;
+                case ZIP_CM_IMPLODE:
+                    method = "imploded";
+                    break;
+                case 7:
+                    method = "tokenizing compression";
+                    break;
+                case ZIP_CM_DEFLATE:
+                    method = "deflated";
+                    break;
+                case ZIP_CM_DEFLATE64:
+                    method = "deflate64";
+                    break;
+                case ZIP_CM_PKWARE_IMPLODE:
+                    method = "PKWARE imploding";
+                    break;
+                case ZIP_CM_BZIP2:
+                    method = "BZIP2";
+                    break;
+                case ZIP_CM_LZMA:
+                    method = "LZMA (EFS)";
+                    break;
+                case ZIP_CM_TERSE:
+                    method = "IBM TERSE (new)";
+                    break;
+                case ZIP_CM_LZ77:
+                    method = "IBM LZ77 z Architecture (PFS)";
+                    break;
+                case ZIP_CM_XZ:
+                    method = "XZ";
+                    break;
+                case ZIP_CM_JPEG:
+                    method = "JPEG";
+                    break;
+                case ZIP_CM_WAVPACK:
+                    method = "WavPack";
+                    break;
+                case ZIP_CM_PPMD:
+                    method = "PPMd version I, Rev 1";
+                    break;
+                case 11:
+                case 13:
+                case 15:
+                case 16:
+                case 17:
+                    method = "Reserved by PKWARE";
+                    break;
+                default:
+                    method = "UNKNOWN";
+            }
+            printf("      compressed: %s (%u)\n", method, stat.comp_method);
+        }
+        if (stat.valid & ZIP_STAT_ENCRYPTION_METHOD)
+        {
+            const char *method;
+            switch (stat.encryption_method)
+            {
+                case 0:
+                    method = "none";
+                    break;
+                case 0x6601: 
+                    method = "DES";
+                    break;
+                case 0x6602: 
+                    method = "RC2 (version needed to extract < 5.2)";
+                    break;
+                case 0x6603: 
+                    method = "3DES 168";
+                    break;
+                case 0x6609: 
+                    method = "3DES 112";
+                    break;
+                case 0x660E: 
+                    method = "AES 128 ";
+                    break;
+                case 0x660F: 
+                    method = "AES 192 ";
+                    break;
+                case 0x6610: 
+                    method = "AES 256 ";
+                    break;
+                case 0x6702: 
+                    method = "RC2 (version needed to extract >= 5.2)";
+                    break;
+                case 0x6720: 
+                    method = "Blowfish";
+                    break;
+                case 0x6721: 
+                    method = "Twofish";
+                    break;
+                case 0x6801: 
+                    method = "RC4";
+                    break;
+                default:
+                    method = "UNKNOWN";
+            }
+            printf("      encrypted:  %s (0x%04X)\n", method, stat.encryption_method);
+        }
+
         for (zip_int16_t j = 0; j < zip_file_extra_fields_count(z, i, ZIP_FL_CENTRAL); ++j) {
             zip_uint16_t id, len;
             const zip_uint8_t *field = zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
