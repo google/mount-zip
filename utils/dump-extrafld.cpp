@@ -113,6 +113,21 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
             printf("      GID %llu\n", gid);
             break;
         }
+
+        case FZ_EF_NTFS:
+        {
+            printf("    NTFS Extra Field\n");
+            time_t mtime, atime, cretime;
+            bool res = ExtraField::parseNtfsExtraField(len, field, mtime, atime, cretime);
+            if (!res) {
+                printf("      parse failed or no timestamp data\n");
+                break;
+            }
+            print_time("atime", atime);
+            print_time("mtime", mtime);
+            print_time("cretime", cretime);
+            break;
+        }
     }
 }
 

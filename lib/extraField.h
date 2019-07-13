@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2014-2017 by Alexander Galanin                          //
+//  Copyright (C) 2014-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -23,8 +23,9 @@
 #include <zip.h>
 
 // ZIP extra fields
-#define FZ_EF_TIMESTAMP (0x5455)
-#define FZ_EF_PKWARE_UNIX (0x000D)
+#define FZ_EF_TIMESTAMP     (0x5455)
+#define FZ_EF_NTFS          (0x000A)
+#define FZ_EF_PKWARE_UNIX   (0x000D)
 #define FZ_EF_INFOZIP_UNIX1 (0x5855)
 #define FZ_EF_INFOZIP_UNIX2 (0x7855)
 #define FZ_EF_INFOZIP_UNIXN (0x7875)
@@ -89,6 +90,19 @@ static bool parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
         bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime);
 
 /**
+ * Parse NTFS Extra FIeld
+ *
+ * @param len field length in bytes
+ * @param data field data
+ * @param mtime (OUT) file modification time if present
+ * @param atime (OUT) file access time if present
+ * @param cretime (OUT) file creation time if present
+ * @return successful completion flag
+ */
+static bool parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
+        time_t &mtime, time_t &atime, time_t &cretime);
+
+/**
  * Create Info-ZIP New Unix extra field (0x7875)
  * @param uid UID
  * @param gid GID
@@ -99,6 +113,12 @@ static const zip_uint8_t *createInfoZipNewUnixField (uid_t uid, gid_t gid,
         zip_uint16_t &len);
 
 private:
+/**
+ * Get Intel low-byte/high-byte order 64-bit number from data.
+ * Pointer is moved to next byte after parsed data.
+ */
+static uint64_t getLong64 (const zip_uint8_t *&data);
+
 /**
  * Get Intel low-byte/high-byte order 32-bit number from data.
  * Pointer is moved to next byte after parsed data.

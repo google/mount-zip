@@ -21,6 +21,15 @@
 
 #include <cassert>
 
+static const uint64_t NTFS_TO_UNIX_OFFSET = ((uint64_t)(369 * 365 + 89) * 24 * 3600 * 10000000);
+
+uint64_t
+ExtraField::getLong64 (const zip_uint8_t *&data) {
+    uint64_t t = getLong(data);
+    t += getLong(data) << 32;
+    return t;
+}
+
 unsigned long
 ExtraField::getLong (const zip_uint8_t *&data) {
     unsigned long t = *data++;
@@ -195,6 +204,41 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             return false;
     }
     return true;
+}
+
+bool
+ExtraField::parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
+        time_t &mtime, time_t &atime, time_t &cretime)
+{
+    bool hasTimes = false;
+    const zip_uint8_t *end = data + len;
+    data += 4; // skip 'Reserved' field
+
+    while (data + 4 < end) {
+        uint16_t tag = getShort(data);
+        uint16_t size = getShort(data);
+        if (data + size > end)
+            return false;
+
+        if (tag == 0x0001) {
+            if (size < 24)
+                return false;
+
+            uint64_t at = getLong64(data) - NTFS_TO_UNIX_OFFSET;
+            uint64_t mt = getLong64(data) - NTFS_TO_UNIX_OFFSET;
+            uint64_t ct = getLong64(data) - NTFS_TO_UNIX_OFFSET;
+
+            atime   = static_cast<time_t>(at / 10000000);
+            mtime   = static_cast<time_t>(mt / 10000000);
+            cretime = static_cast<time_t>(ct / 10000000);
+
+            hasTimes = true;
+        } else {
+            data += size;
+        }
+    }
+
+    return hasTimes;
 }
 
 const zip_uint8_t *
