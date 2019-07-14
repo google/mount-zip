@@ -51,7 +51,7 @@ private:
     zip_uint64_t m_size;
     bool has_cretime, metadataChanged;
     mode_t m_mode;
-    time_t m_mtime, m_atime, m_ctime, cretime;
+    time_t m_mtime, m_atime, m_ctime, m_cretime;
     uid_t m_uid;
     gid_t m_gid;
 

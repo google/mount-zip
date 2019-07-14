@@ -1816,6 +1816,19 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest time-from-ntfs-extra-field {Check that time is correctly loaded from NTFS extra field} {
+        set fname data/ntfs-extrafld.zip
+        mount -r
+
+        set mtime [file mtime $mountdir/test.txt]
+        set atime [file atime $mountdir/test.txt]
+
+        assert {$mtime == 0x5D025C0B} "mtime must be Thu, 13 Jun 2019 17:22:03 +0300, but [clock format $mtime] read"
+        assert {$atime == 0x5D025C09} "atime must be Thu, 13 Jun 2019 17:22:01 +0300, but [clock format $atime] read"
+
+        umount
+    }
+
     fstest time-preserve {Check that time is preserved across remounts} {
         set new_mtime 1511111111
         set new_atime 1522222222
