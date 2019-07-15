@@ -1820,11 +1820,24 @@ namespace eval ::fusezip::test {
         set fname data/ntfs-extrafld.zip
         mount -r
 
-        set mtime [file mtime $mountdir/test.txt]
-        set atime [file atime $mountdir/test.txt]
+        foreach line [split [exec /usr/bin/env LC_ALL=C TZ=UTC stat $mountdir/test.txt] \n] {
+            if {[regexp -nocase {^([a-z]+): (.+)$} $line _ key value]} {
+                switch $key {
+                    Access {
+                        set atime $value
+                    }
+                    Modify {
+                        set mtime $value
+                    }
+                }
+            }
+        }
 
-        assert {$mtime == 0x5D025C0B} "mtime must be Thu, 13 Jun 2019 17:22:03 +0300, but [clock format $mtime] read"
-        assert {$atime == 0x5D025C09} "atime must be Thu, 13 Jun 2019 17:22:01 +0300, but [clock format $atime] read"
+        set exp_atime "2019-06-13 14:22:01.722114700 +0000"
+        set exp_mtime "2019-06-13 14:22:03.770100400 +0000"
+
+        assert {$mtime == $exp_mtime} "mtime must be $exp_mtime but $mtime read"
+        assert {$atime == $exp_atime} "atime must be $exp_atime but $atime read"
 
         umount
     }

@@ -59,7 +59,7 @@ FileNode *FileNode::createFile (struct zip *zip, const char *fname,
         return NULL;
     }
     n->has_cretime = true;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = time(NULL);
+    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
 
     n->parse_name();
     n->m_mode = mode;
@@ -82,7 +82,7 @@ FileNode *FileNode::createSymlink(struct zip *zip, const char *fname) {
         return NULL;
     }
     n->has_cretime = true;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = time(NULL);
+    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
 
     n->parse_name();
     n->m_mode = S_IFLNK | 0777;
@@ -102,7 +102,7 @@ FileNode *FileNode::createIntermediateDir(struct zip *zip,
     n->state = NEW_DIR;
     n->is_dir = true;
     n->has_cretime = true;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = time(NULL);
+    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
     n->m_size = 0;
     n->m_mode = S_IFDIR | 0775;
 
@@ -136,7 +136,7 @@ FileNode *FileNode::createRootNode() {
     }
     n->is_dir = true;
     n->state = NEW_DIR;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = time(NULL);
+    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
     n->has_cretime = true;
     n->m_size = 0;
     n->name = n->full_name.c_str();
@@ -163,7 +163,8 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
     // required fields are always valid for existing items or newly added
     // directories (see zip_stat_index.c from libzip)
     assert((stat.valid & needValid) == needValid);
-    n->m_mtime = n->m_atime = n->m_ctime = stat.mtime;
+    n->m_mtime.tv_sec = n->m_atime.tv_sec = n->m_ctime.tv_sec = stat.mtime;
+    n->m_mtime.tv_nsec = n->m_atime.tv_nsec = n->m_ctime.tv_nsec = 0;
     n->has_cretime = false;
     n->m_size = stat.size;
 
@@ -255,7 +256,7 @@ int FileNode::open() {
 }
 
 int FileNode::read(char *buf, size_t sz, size_t offset) {
-    m_atime = time(NULL);
+    m_atime = currentTime();
     return buffer->read(buf, sz, offset);
 }
 
@@ -263,7 +264,7 @@ int FileNode::write(const char *buf, size_t sz, size_t offset) {
     if (state == OPENED) {
         state = CHANGED;
     }
-    m_mtime = time(NULL);
+    m_mtime = currentTime();
     metadataChanged = true;
     return buffer->write(buf, sz, offset);
 }
@@ -281,7 +282,7 @@ int FileNode::save() {
     assert (!is_dir);
     // index is modified if state == NEW
     assert (zip != NULL);
-    return buffer->saveToZip(m_mtime, zip, full_name.c_str(),
+    return buffer->saveToZip(m_mtime.tv_sec, zip, full_name.c_str(),
             state == NEW, _id);
 }
 
@@ -305,7 +306,7 @@ int FileNode::truncate(size_t offset) {
         catch (const std::bad_alloc &) {
             return EIO;
         }
-        m_mtime = time(NULL);
+        m_mtime = currentTime();
         metadataChanged = true;
     } else {
         return EBADF;
@@ -394,7 +395,7 @@ void FileNode::processExtraFields () {
     count = zip_file_extra_fields_count (zip, id(), ZIP_FL_CENTRAL);
     if (count > 0) {
         for (zip_uint16_t i = 0; i < static_cast<zip_uint16_t>(count); ++i) {
-            time_t mt, at, cret;
+            struct timespec mt, at, cret;
             zip_uint16_t type, len;
             const zip_uint8_t *field = zip_file_extra_field_get (zip,
                     id(), i, &type, &len, ZIP_FL_CENTRAL);
@@ -404,6 +405,7 @@ void FileNode::processExtraFields () {
                     m_mtime = mt;
                     m_atime = at;
                     m_cretime = cret;
+                    has_cretime = true;
                     highPrecisionTime = true;
                 }
             }
@@ -426,15 +428,18 @@ void FileNode::processExtraFields () {
                 if (ExtraField::parseExtTimeStamp (len, field, has_mt, mt,
                             has_at, at, has_cret, cret)) {
                     if (has_mt && !highPrecisionTime) {
-                        m_mtime = mt;
+                        m_mtime.tv_sec = mt;
+                        m_mtime.tv_nsec = 0;
                         mtimeFromTimestamp = true;
                     }
                     if (has_at && !highPrecisionTime) {
-                        m_atime = at;
+                        m_atime.tv_sec = at;
+                        m_atime.tv_nsec = 0;
                         atimeFromTimestamp = true;
                     }
                     if (has_cret && !highPrecisionTime) {
-                        m_cretime = cret;
+                        m_cretime.tv_sec = cret;
+                        m_cretime.tv_nsec = 0;
                         has_cretime = true;
                     }
                 }
@@ -454,19 +459,23 @@ void FileNode::processExtraFields () {
                         lastProcessedUnixField = type;
                     }
                     if (has_mt && !mtimeFromTimestamp && !highPrecisionTime) {
-                        m_mtime = mt;
+                        m_mtime.tv_sec = mt;
+                        m_mtime.tv_nsec = 0;
                     }
                     if (has_at && !atimeFromTimestamp && !highPrecisionTime) {
-                        m_atime = at;
+                        m_atime.tv_sec = at;
+                        m_atime.tv_nsec = 0;
                     }
                 }
                 break;
             }
             case FZ_EF_NTFS: {
-                if (ExtraField::parseNtfsExtraField(len, field, mt, at, cret)) {
-                    m_mtime = mt;
-                    m_atime = at;
-                    m_cretime = cret;
+                struct timespec mts, ats, bts;
+                if (ExtraField::parseNtfsExtraField(len, field, mts, ats, bts)) {
+                    m_mtime = mts;
+                    m_atime = ats;
+                    m_cretime = bts;
+                    has_cretime = true;
                     highPrecisionTime = true;
                 }
                 break;
@@ -507,8 +516,8 @@ int FileNode::updateExtraFields () const {
         zip_uint16_t len;
         int res;
         // add timestamps
-        field = ExtraField::createExtTimeStamp (locations[loc], m_mtime,
-                m_atime, has_cretime, m_cretime, len);
+        field = ExtraField::createExtTimeStamp (locations[loc], m_mtime.tv_sec,
+                m_atime.tv_sec, has_cretime, m_cretime.tv_sec, len);
         res = zip_file_extra_field_set (zip, id(), FZ_EF_TIMESTAMP,
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
@@ -527,7 +536,7 @@ int FileNode::updateExtraFields () const {
 
 void FileNode::chmod (mode_t mode) {
     m_mode = (m_mode & S_IFMT) | mode;
-    m_ctime = time(NULL);
+    m_ctime = currentTime();
     metadataChanged = true;
 }
 
@@ -570,13 +579,22 @@ int FileNode::updateExternalAttributes() const {
             ZIP_OPSYS_UNIX, mode);
 }
 
-void FileNode::setTimes (time_t atime, time_t mtime) {
+void FileNode::setTimes (struct timespec atime, struct timespec mtime) {
     m_atime = atime;
     m_mtime = mtime;
     metadataChanged = true;
 }
 
-void FileNode::setCTime (time_t ctime) {
+void FileNode::setCTime (struct timespec ctime) {
     m_ctime = ctime;
     metadataChanged = true;
+}
+
+struct timespec FileNode::currentTime() {
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+        ts.tv_sec = time(NULL);
+        ts.tv_nsec = 0;
+    }
+    return ts;
 }

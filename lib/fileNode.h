@@ -51,7 +51,7 @@ private:
     zip_uint64_t m_size;
     bool has_cretime, metadataChanged;
     mode_t m_mode;
-    time_t m_mtime, m_atime, m_ctime, m_cretime;
+    struct timespec m_mtime, m_atime, m_ctime, m_cretime;
     uid_t m_uid;
     gid_t m_gid;
 
@@ -161,17 +161,17 @@ public:
     /**
      * set atime and mtime
      */
-    void setTimes (time_t atime, time_t mtime);
+    void setTimes (struct timespec atime, struct timespec mtime);
 
-    void setCTime (time_t ctime);
+    void setCTime (struct timespec ctime);
 
-    inline time_t atime() const {
+    inline struct timespec atime() const {
         return m_atime;
     }
-    inline time_t ctime() const {
+    inline struct timespec ctime() const {
         return m_ctime;
     }
-    inline time_t mtime() const {
+    inline struct timespec mtime() const {
         return m_mtime;
     }
 
@@ -208,6 +208,7 @@ public:
         _id = id_;
         // called only from FuseZipData::save, so we're don't worry about 'status' variable value
     }
+    static struct timespec currentTime();
 
     const char *name;
     std::string full_name;

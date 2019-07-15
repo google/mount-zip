@@ -208,7 +208,7 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
 
 bool
 ExtraField::parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
-        time_t &mtime, time_t &atime, time_t &cretime)
+        struct timespec &mtime, struct timespec &atime, struct timespec &cretime)
 {
     bool hasTimes = false;
     const zip_uint8_t *end = data + len;
@@ -226,11 +226,14 @@ ExtraField::parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
 
             uint64_t at = getLong64(data) - NTFS_TO_UNIX_OFFSET;
             uint64_t mt = getLong64(data) - NTFS_TO_UNIX_OFFSET;
-            uint64_t ct = getLong64(data) - NTFS_TO_UNIX_OFFSET;
+            uint64_t bt = getLong64(data) - NTFS_TO_UNIX_OFFSET;
 
-            atime   = static_cast<time_t>(at / 10000000);
-            mtime   = static_cast<time_t>(mt / 10000000);
-            cretime = static_cast<time_t>(ct / 10000000);
+            atime.tv_sec    = static_cast<time_t>(at / 10000000);
+            atime.tv_nsec   = static_cast<uint32_t>(at % 10000000) * 100;
+            mtime.tv_sec    = static_cast<time_t>(mt / 10000000);
+            mtime.tv_nsec   = static_cast<uint32_t>(mt % 10000000) * 100;
+            cretime.tv_sec  = static_cast<time_t>(bt / 10000000);
+            cretime.tv_nsec = static_cast<uint32_t>(bt % 10000000) * 100;
 
             hasTimes = true;
         } else {

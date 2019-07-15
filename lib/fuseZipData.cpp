@@ -118,7 +118,7 @@ int FuseZipData::removeNode(FileNode *node) {
     assert(node != NULL);
     assert(node->parent != NULL);
     node->parent->detachChild (node);
-    node->parent->setCTime (time(NULL));
+    node->parent->setCTime (FileNode::currentTime());
     files.erase(node->full_name.c_str());
 
     bool present = node->present_in_zip();
@@ -237,7 +237,7 @@ void FuseZipData::renameNode (FileNode *node, const char *newName, bool
     }
 
     if (reparent && parent1 != parent2) {
-        time_t now = time (NULL);
+        struct timespec now = FileNode::currentTime();
         parent1->setCTime (now);
         parent2->setCTime (now);
     }

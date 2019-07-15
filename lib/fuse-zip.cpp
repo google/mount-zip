@@ -149,9 +149,9 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     stbuf->st_ino = reinterpret_cast<unsigned long>(node);
     stbuf->st_blocks = static_cast<blkcnt_t>((node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE);
     stbuf->st_size = static_cast<off_t>(node->size());
-    stbuf->st_atime = node->atime();
-    stbuf->st_mtime = node->mtime();
-    stbuf->st_ctime = node->ctime();
+    stbuf->st_atim = node->atime();
+    stbuf->st_mtim = node->mtime();
+    stbuf->st_ctim = node->ctime();
     stbuf->st_uid = node->uid();
     stbuf->st_gid = node->gid();
 
@@ -452,7 +452,7 @@ int fusezip_utimens(const char *path, const struct timespec tv[2]) {
     if (node == NULL) {
         return -ENOENT;
     }
-    node->setTimes (tv[0].tv_sec, tv[1].tv_sec);
+    node->setTimes (tv[0], tv[1]);
     return 0;
 }
 

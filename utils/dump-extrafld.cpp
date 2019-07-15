@@ -5,21 +5,32 @@
 
 #include "lib/extraField.h"
 
-void print_time (const char *label, time_t time) {
-    char str[1024];
-    time_t t = (time_t)time;
+void print_time (const char *label, struct timespec &time) {
+    char str1[512], str2[16];
+    time_t t = (time_t)time.tv_sec;
     struct tm *tmp;
     tmp = localtime(&t);
     if (tmp == NULL) {
         perror("localtime");
         exit(EXIT_FAILURE);
     }
-    if (strftime(str, sizeof(str), "%a, %d %b %Y %T %z", tmp) == 0) {
+    if (strftime(str1, sizeof(str1), "%Y-%m-%d %H:%M:%S", tmp) == 0) {
+        fprintf(stderr, "strftime returned 0");
+        exit(EXIT_FAILURE);
+    }
+    if (strftime(str2, sizeof(str2), "%z", tmp) == 0) {
         fprintf(stderr, "strftime returned 0");
         exit(EXIT_FAILURE);
     }
 
-    printf("      %s: %s\n", label, str);
+    printf("      %s%s.%09lu %s\n", label, str1, static_cast<long unsigned>(time.tv_nsec), str2);
+}
+
+void print_time (const char *label, time_t time) {
+    struct timespec ts;
+    ts.tv_sec = time;
+    ts.tv_nsec = 0;
+    print_time(label, ts);
 }
 
 void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, bool central) {
@@ -37,14 +48,14 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
             unsigned char flags = *field;
             printf("      flags %d: mod %d acc %d cre %d\n", flags, has_mtime, has_atime, has_cretime);
             if (has_mtime) {
-                print_time("mtime", mtime);
+                print_time("mtime:   ", mtime);
             }
             if (!central) {
                 if (has_atime) {
-                    print_time("atime", atime);
+                    print_time("atime:   ", atime);
                 }
                 if (has_cretime) {
-                    print_time("cretime", cretime);
+                    print_time("cretime: ", cretime);
                 }
             }
             break;
@@ -80,10 +91,10 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
             printf("      UID %u\n", uid);
             printf("      GID %u\n", gid);
             if (has_atime) {
-                print_time("atime", atime);
+                print_time("atime:   ", atime);
             }
             if (has_mtime) {
-                print_time("mtime", mtime);
+                print_time("mtime:   ", mtime);
             }
             break;
         }
@@ -117,15 +128,15 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
         case FZ_EF_NTFS:
         {
             printf("    NTFS Extra Field\n");
-            time_t mtime, atime, cretime;
+            struct timespec mtime, atime, cretime;
             bool res = ExtraField::parseNtfsExtraField(len, field, mtime, atime, cretime);
             if (!res) {
                 printf("      parse failed or no timestamp data\n");
                 break;
             }
-            print_time("atime", atime);
-            print_time("mtime", mtime);
-            print_time("cretime", cretime);
+            print_time("atime:   ", atime);
+            print_time("mtime:   ", mtime);
+            print_time("cretime: ", cretime);
             break;
         }
     }
@@ -182,7 +193,7 @@ int main(int argc, char **argv) {
         if (stat.valid & ZIP_STAT_COMP_SIZE)
             printf("      comp.size:  %llu\n", (long long unsigned int)stat.comp_size);
         if (stat.valid & ZIP_STAT_MTIME)
-            print_time("stat.mtime", stat.mtime);
+            print_time("stat.mtime: ", stat.mtime);
         if (stat.valid & ZIP_STAT_CRC)
             printf("      CRC:        0x%08lX\n", (long unsigned int)stat.crc);
         if (stat.valid & ZIP_STAT_COMP_METHOD)

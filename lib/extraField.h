@@ -100,7 +100,7 @@ static bool parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
  * @return successful completion flag
  */
 static bool parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
-        time_t &mtime, time_t &atime, time_t &cretime);
+        struct timespec &mtime, struct timespec &atime, struct timespec &cretime);
 
 /**
  * Create Info-ZIP New Unix extra field (0x7875)
