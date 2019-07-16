@@ -505,6 +505,7 @@ int FileNode::updateExtraFields () const {
             // FZ_EF_PKWARE_UNIX not removed because can contain extra data
             // that currently not handled by fuse-zip
             if (field != NULL && (type == FZ_EF_TIMESTAMP ||
+                        type == FZ_EF_NTFS ||
                         type == FZ_EF_INFOZIP_UNIX1 ||
                         type == FZ_EF_INFOZIP_UNIX2 ||
                         type == FZ_EF_INFOZIP_UNIXN)) {
@@ -522,6 +523,17 @@ int FileNode::updateExtraFields () const {
                 ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
         if (res != 0) {
             return res;
+        }
+        // add high-precision timestamps
+        if (has_cretime) // creation time is required
+        {
+            field = ExtraField::createNtfsExtraField (locations[loc], m_mtime,
+                    m_atime, m_cretime, len);
+            res = zip_file_extra_field_set (zip, id(), FZ_EF_NTFS,
+                    ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
+            if (res != 0) {
+                return res;
+            }
         }
         // add UNIX owner info
         field = ExtraField::createInfoZipNewUnixField (m_uid, m_gid, len);

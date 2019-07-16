@@ -23,6 +23,22 @@
 
 static const uint64_t NTFS_TO_UNIX_OFFSET = ((uint64_t)(369 * 365 + 89) * 24 * 3600 * 10000000);
 
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+
+#define le_16(x) (x)
+#define le_32(x) (x)
+#define le_64(x) (x)
+
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+
+uint16_t le_16(uint16_t x) { return __builtin_bswap16(x); }
+uint32_t le_32(uint32_t x) { return __builtin_bswap32(x); }
+uint64_t le_64(uint64_t x) { return __builtin_bswap64(x); }
+
+#else
+#    error "bad byte order"
+#endif
+
 uint64_t
 ExtraField::getLong64 (const zip_uint8_t *&data) {
     uint64_t t = getLong(data);
@@ -269,3 +285,40 @@ ExtraField::createInfoZipNewUnixField (uid_t uid, gid_t gid,
     return data;
 }
 
+#pragma pack(push,1)
+struct NtfsExtraFieldFull
+{
+    uint32_t reserved;
+    uint16_t tag;
+    uint16_t size;
+    uint64_t mtime;
+    uint64_t atime;
+    uint64_t btime;
+};
+#pragma pack(pop)
+
+inline static uint64_t timespec2ntfs(const timespec &ts) {
+    return static_cast<uint64_t>(ts.tv_sec) * 10000000
+        + static_cast<uint64_t>(ts.tv_nsec) / 100
+        + NTFS_TO_UNIX_OFFSET;
+}
+
+const zip_uint8_t *
+ExtraField::createNtfsExtraField (zip_flags_t location,
+        const timespec &mtime, const timespec &atime, const timespec &btime,
+        zip_uint16_t &len) {
+    assert(location == ZIP_FL_LOCAL || location == ZIP_FL_CENTRAL);
+
+    len = sizeof(NtfsExtraFieldFull);
+    static NtfsExtraFieldFull data;
+
+    data.reserved = 0;
+    data.tag = le_16(0x0001);
+    data.size = le_16(24);
+
+    data.mtime = le_64(timespec2ntfs(mtime));
+    data.atime = le_64(timespec2ntfs(atime));
+    data.btime = le_64(timespec2ntfs(btime));
+
+    return reinterpret_cast<zip_uint8_t*>(&data);
+}

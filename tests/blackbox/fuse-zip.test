@@ -467,6 +467,31 @@ namespace eval ::fusezip::test {
         }
     }
 
+    # getPreciseTimes --
+    #
+    #   get high-precision time stamps of a file
+    #
+    # Arguments:
+    #   fname   file name
+    #
+    # Return value:
+    #   list of mtime and atime
+    proc getPreciseTimes {fname} {
+        foreach line [split [exec /usr/bin/env LC_ALL=C TZ=UTC stat $fname] \n] {
+            if {[regexp -nocase {^([a-z]+): (.+)$} $line _ key value]} {
+                switch $key {
+                    Access {
+                        set atime $value
+                    }
+                    Modify {
+                        set mtime $value
+                    }
+                }
+            }
+        }
+        return [list $mtime $atime]
+    }
+
     ############################################################
     # INITIALIZATION
     ############################################################
@@ -1820,18 +1845,7 @@ namespace eval ::fusezip::test {
         set fname data/ntfs-extrafld.zip
         mount -r
 
-        foreach line [split [exec /usr/bin/env LC_ALL=C TZ=UTC stat $mountdir/test.txt] \n] {
-            if {[regexp -nocase {^([a-z]+): (.+)$} $line _ key value]} {
-                switch $key {
-                    Access {
-                        set atime $value
-                    }
-                    Modify {
-                        set mtime $value
-                    }
-                }
-            }
-        }
+        lassign [getPreciseTimes $mountdir/test.txt] mtime atime
 
         set exp_mtime "2019-06-13 14:22:01.722114700 +0000"
         set exp_atime "2019-06-13 14:22:03.770100400 +0000"
@@ -1864,6 +1878,29 @@ namespace eval ::fusezip::test {
 
         assert {$mtime == $new_mtime} "mtime changed to $mtime ([clock format $mtime])"
         assert {$atime == $new_atime} "atime changed to $atime ([clock format $atime])"
+    }
+
+    fstest time-preserve-high-precision {Check that high-precision time is preserved across remounts} {
+        set new_atime "2018-07-16 01:23:45.123456700 +0000"
+        set new_mtime "2018-07-16 12:34:56.789012300 +0000"
+
+        create {
+            blah blah
+        }
+        mount
+        set f [open $mountdir/foo.bar w]
+        puts $f "meow"
+        close $f
+        exec touch -m -d $new_mtime $mountdir/foo.bar
+        exec touch -a -d $new_atime $mountdir/foo.bar
+        umount
+
+        mount
+        lassign [getPreciseTimes $mountdir/foo.bar] mtime atime
+        umount
+
+        assert {$mtime == $new_mtime} "mtime changed to $mtime"
+        assert {$atime == $new_atime} "atime changed to $atime"
     }
 
     fstest atime-mtime-modification {Check atime and mtime modification cases} {

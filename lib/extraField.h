@@ -112,6 +112,20 @@ static bool parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
 static const zip_uint8_t *createInfoZipNewUnixField (uid_t uid, gid_t gid,
         zip_uint16_t &len);
 
+/**
+ * Create NTFS Extra Field (0x000A)
+ * @param location location of timestamp field (ZIP_FL_CENTRAL or
+ * ZIP_FL_LOCAL for central directory and local extra field respectively)
+ * @param mtime modification time
+ * @param atime access time
+ * @param btime birth/creation time
+ * @param len (OUT) data length
+ * @return pointer to timestamp data (must not be free()-d)
+ */
+static const zip_uint8_t *createNtfsExtraField (zip_flags_t location,
+        const timespec &mtime, const timespec &atime, const timespec &btime,
+        zip_uint16_t &len);
+
 private:
 /**
  * Get Intel low-byte/high-byte order 64-bit number from data.
