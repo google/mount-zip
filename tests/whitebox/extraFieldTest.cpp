@@ -8,7 +8,25 @@
 
 #include "common.h"
 
+#define private public
+
 #include "extraField.h"
+
+void test_getShort() {
+    zip_uint8_t d[] = { 0x01, 0x02, 0xF1, 0xF2};
+    const zip_uint8_t *data = d;
+
+    assert(ExtraField::getShort(data) == 0x0201);
+    assert(ExtraField::getShort(data) == 0xF2F1);
+}
+
+void test_getLong() {
+    zip_uint8_t d[] = { 0x01, 0x02, 0x03, 0x04, 0xF1, 0xF2, 0xF3, 0xF4};
+    const zip_uint8_t *data = d;
+
+    assert(ExtraField::getLong(data) == 0x04030201);
+    assert(ExtraField::getLong(data) == 0xF4F3F2F1);
+}
 
 /**
  * LOCAL extra field with both mtime and atime present in flags
@@ -202,6 +220,9 @@ void infozip_unix_new_create () {
 }
 
 int main(int, char **) {
+    test_getShort();
+    test_getLong();
+
     timestamp_mtime_atime_present_local();
     timestamp_mtime_cretime_present_local();
 

@@ -24,9 +24,9 @@
 unsigned long
 ExtraField::getLong (const zip_uint8_t *&data) {
     unsigned long t = *data++;
-    t += static_cast<unsigned long>(*data++ << 8);
-    t += static_cast<unsigned long>(*data++ << 16);
-    t += static_cast<unsigned long>(*data++ << 24);
+    t += static_cast<unsigned long>(*data++) << 8;
+    t += static_cast<unsigned long>(*data++) << 16;
+    t += static_cast<unsigned long>(*data++) << 24;
     return t;
 }
 
