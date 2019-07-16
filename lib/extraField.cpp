@@ -41,25 +41,38 @@ uint64_t le_64(uint64_t x) { return __builtin_bswap64(x); }
 
 uint64_t
 ExtraField::getLong64 (const zip_uint8_t *&data) {
-    uint64_t t = getLong(data);
-    t += getLong(data) << 32;
-    return t;
+#pragma pack(push,1)
+    struct tmp {
+        uint64_t value;
+    };
+#pragma pack(pop)
+    uint64_t res = reinterpret_cast<const tmp*>(data)->value;
+    data += 8;
+    return le_64(res);
 }
 
 unsigned long
 ExtraField::getLong (const zip_uint8_t *&data) {
-    unsigned long t = *data++;
-    t += static_cast<unsigned long>(*data++) << 8;
-    t += static_cast<unsigned long>(*data++) << 16;
-    t += static_cast<unsigned long>(*data++) << 24;
-    return t;
+#pragma pack(push,1)
+    struct tmp {
+        uint32_t value;
+    };
+#pragma pack(pop)
+    uint32_t res = reinterpret_cast<const tmp*>(data)->value;
+    data += 4;
+    return le_32(res);
 }
 
 unsigned short 
 ExtraField::getShort (const zip_uint8_t *&data) {
-    unsigned short t = *data++;
-    t = static_cast<unsigned short>(t + (*data++ << 8));
-    return t;
+#pragma pack(push,1)
+    struct tmp {
+        uint16_t value;
+    };
+#pragma pack(pop)
+    uint16_t res = reinterpret_cast<const tmp*>(data)->value;
+    data += 2;
+    return le_16(res);
 }
 
 bool
@@ -222,6 +235,14 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
     return true;
 }
 
+inline static timespec ntfs2timespec(uint64_t t) {
+    timespec ts;
+    t -= NTFS_TO_UNIX_OFFSET;
+    ts.tv_sec  = static_cast<time_t>(t / 10000000);
+    ts.tv_nsec = static_cast<uint32_t>(t % 10000000) * 100;
+    return ts;
+}
+
 bool
 ExtraField::parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
         struct timespec &mtime, struct timespec &atime, struct timespec &cretime)
@@ -240,16 +261,9 @@ ExtraField::parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
             if (size < 24)
                 return false;
 
-            uint64_t mt = getLong64(data) - NTFS_TO_UNIX_OFFSET;
-            uint64_t at = getLong64(data) - NTFS_TO_UNIX_OFFSET;
-            uint64_t bt = getLong64(data) - NTFS_TO_UNIX_OFFSET;
-
-            mtime.tv_sec    = static_cast<time_t>(mt / 10000000);
-            mtime.tv_nsec   = static_cast<uint32_t>(mt % 10000000) * 100;
-            atime.tv_sec    = static_cast<time_t>(at / 10000000);
-            atime.tv_nsec   = static_cast<uint32_t>(at % 10000000) * 100;
-            cretime.tv_sec  = static_cast<time_t>(bt / 10000000);
-            cretime.tv_nsec = static_cast<uint32_t>(bt % 10000000) * 100;
+            mtime   = ntfs2timespec(getLong64(data));
+            atime   = ntfs2timespec(getLong64(data));
+            cretime = ntfs2timespec(getLong64(data));
 
             hasTimes = true;
         } else {
