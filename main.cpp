@@ -271,6 +271,9 @@ int main(int argc, char *argv[]) {
 #if FUSE_VERSION >= 28
     // don't allow NULL path
     fusezip_oper.flag_nullpath_ok = 0;
+#   if FUSE_VERSION == 29
+    fusezip_oper.flag_utime_omit_ok = 1;
+#   endif
 #endif
 
     struct fuse *fuse;

@@ -580,8 +580,17 @@ int FileNode::updateExternalAttributes() const {
 }
 
 void FileNode::setTimes (struct timespec atime, struct timespec mtime) {
-    m_atime = atime;
-    m_mtime = mtime;
+    struct timespec now;
+    if (atime.tv_nsec == UTIME_NOW || mtime.tv_nsec == UTIME_NOW)
+        now = currentTime();
+    if (atime.tv_nsec == UTIME_NOW)
+        m_atime = now;
+    else if (atime.tv_nsec != UTIME_OMIT)
+        m_atime = atime;
+    if (mtime.tv_nsec == UTIME_NOW)
+        m_mtime = now;
+    else if (mtime.tv_nsec != UTIME_OMIT)
+        m_mtime = mtime;
     metadataChanged = true;
 }
 
