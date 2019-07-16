@@ -134,8 +134,8 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
                 printf("      parse failed or no timestamp data\n");
                 break;
             }
-            print_time("atime:   ", atime);
             print_time("mtime:   ", mtime);
+            print_time("atime:   ", atime);
             print_time("cretime: ", cretime);
             break;
         }

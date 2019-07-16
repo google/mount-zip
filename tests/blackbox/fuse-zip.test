@@ -1833,8 +1833,8 @@ namespace eval ::fusezip::test {
             }
         }
 
-        set exp_atime "2019-06-13 14:22:01.722114700 +0000"
-        set exp_mtime "2019-06-13 14:22:03.770100400 +0000"
+        set exp_mtime "2019-06-13 14:22:01.722114700 +0000"
+        set exp_atime "2019-06-13 14:22:03.770100400 +0000"
 
         assert {$mtime == $exp_mtime} "mtime must be $exp_mtime but $mtime read"
         assert {$atime == $exp_atime} "atime must be $exp_atime but $atime read"
