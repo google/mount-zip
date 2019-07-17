@@ -1,3 +1,10 @@
+2019-07-17 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.6.1:
+	- Fixed extra field timestamps parsing on 64-bit systems.
+	- Fixed compilation with gcc 8.3.0 (patch from Michael Davis), closes
+	issue #55
+
 2019-03-12 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.6.0:
