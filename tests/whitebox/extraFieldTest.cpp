@@ -28,6 +28,14 @@ void test_getLong() {
     assert(ExtraField::getLong(data) == 0xF4F3F2F1);
 }
 
+void test_getLong64() {
+    zip_uint8_t d[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8};
+    const zip_uint8_t *data = d;
+
+    assert(ExtraField::getLong64(data) == 0x0807060504030201);
+    assert(ExtraField::getLong64(data) == 0xF8F7F6F5F4F3F2F1);
+}
+
 /**
  * LOCAL extra field with both mtime and atime present in flags
  */
@@ -219,9 +227,86 @@ void infozip_unix_new_create () {
     }
 }
 
+/**
+ * Parse NTFS Extra Field
+ */
+
+void ntfs_extra_field_parse() {
+    const zip_uint8_t data[] = {
+        0x00, 0x00, 0x00, 0x00, // reserved
+        0x01, 0x00, // tag 1
+        0x18, 0x00, // size
+        0x00, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01, // ctime
+        0x00, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01, // atime
+        0x00, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01, // btime
+        0xEF, 0xDC, // unknown tag
+        0x03, 0x00, // size
+        0x01, 0x02, 0x03, // unhandled data
+        0x01, 0x00, // tag 1 (again)
+        0x18, 0x00, // size
+        0x1B, 0xFA, 0x1F, 0x5E, 0xF3, 0x21, 0xD5, 0x01, // ctime
+        0x87, 0xCB, 0xA9, 0x32, 0x33, 0x8E, 0xC9, 0x01, // atime
+        0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01  // btime
+    };
+
+    struct timespec mtime, atime, btime;
+    assert(ExtraField::parseNtfsExtraField(sizeof(data), data,
+                mtime, atime, btime));
+
+    assert(mtime.tv_sec  == 1560435721);
+    assert(mtime.tv_nsec == 722114700);
+    assert(atime.tv_sec  == 1234567890);
+    assert(atime.tv_nsec == 123456700);
+    assert(btime.tv_sec  == 0);
+    assert(btime.tv_nsec == 0xFF * 100);
+}
+
+/**
+ * Create NTFS Extra Field
+ */
+void ntfs_extra_field_create() {
+    zip_uint16_t len = 0;
+    const zip_uint8_t *data;
+    struct timespec mtime, atime, btime;
+    zip_uint8_t expected[] = {
+        0x00, 0x00, 0x00, 0x00, // reserved
+        0x01, 0x00, // tag 1
+        0x18, 0x00, // size
+        0xFF, 0x60, 0x4A, 0x5E, 0xF3, 0x21, 0xD5, 0x01, // mtime
+        0x87, 0xCB, 0xA9, 0x32, 0x33, 0x8E, 0xC9, 0x01, // atime
+        0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01  // btime
+    };
+
+    mtime.tv_sec  = 1560435721;
+    mtime.tv_nsec = 999999900;
+    atime.tv_sec  = 1234567890;
+    atime.tv_nsec = 123456700;
+    btime.tv_sec  = 0;
+    btime.tv_nsec = 0xFF * 100;
+
+    data = ExtraField::createNtfsExtraField(ZIP_FL_LOCAL, mtime, atime, btime, len);
+    assert(data != NULL);
+    assert(len == sizeof(expected));
+    for (unsigned int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
+
+    struct timespec mtime2, atime2, btime2;
+    assert(ExtraField::parseNtfsExtraField(len, data,
+                mtime2, atime2, btime2));
+
+    assert(mtime.tv_sec  == mtime2.tv_sec);
+    assert(mtime.tv_nsec == mtime2.tv_nsec);
+    assert(atime.tv_sec  == atime2.tv_sec);
+    assert(atime.tv_nsec == atime2.tv_nsec);
+    assert(btime.tv_sec  == btime2.tv_sec);
+    assert(btime.tv_nsec == btime2.tv_nsec);
+}
+
 int main(int, char **) {
     test_getShort();
     test_getLong();
+    test_getLong64();
 
     timestamp_mtime_atime_present_local();
     timestamp_mtime_cretime_present_local();
@@ -237,6 +322,9 @@ int main(int, char **) {
     simple_unix_infozip_new();
 
     infozip_unix_new_create();
+
+    ntfs_extra_field_parse();
+    ntfs_extra_field_create();
 
     return EXIT_SUCCESS;
 }
