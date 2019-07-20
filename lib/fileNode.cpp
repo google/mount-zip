@@ -43,6 +43,9 @@ FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id_) {
     _id = id_;
     m_uid = 0;
     m_gid = 0;
+    m_comment = NULL;
+    m_commentLen = 0;
+    m_commentChanged = false;
 }
 
 FileNode *FileNode::createFile (struct zip *zip, const char *fname, 
@@ -129,7 +132,7 @@ FileNode *FileNode::createDir(struct zip *zip, const char *fname,
     return n;
 }
 
-FileNode *FileNode::createRootNode() {
+FileNode *FileNode::createRootNode(struct zip *zip) {
     FileNode *n = new FileNode(NULL, "", ROOT_NODE_INDEX);
     if (n == NULL) {
         return NULL;
@@ -141,6 +144,18 @@ FileNode *FileNode::createRootNode() {
     n->m_size = 0;
     n->name = n->full_name.c_str();
     n->m_mode = S_IFDIR | 0775;
+
+    int len = 0;
+    n->m_comment = zip_get_archive_comment(zip, &len, ZIP_FL_ENC_RAW);
+    if (len < 0)
+        n->m_comment = NULL;
+    else
+        n->m_commentLen = static_cast<uint32_t>(len);
+    if (n->m_comment != NULL && n->m_comment[0] == '\0')
+        n->m_comment = NULL;
+    if (n->m_comment == NULL)
+        n->m_commentLen = 0;
+
     return n;
 }
 
@@ -172,6 +187,13 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
 
     n->processExternalAttributes();
     n->processExtraFields();
+
+    n->m_comment = zip_file_get_comment(zip, n->id(), &n->m_commentLen, ZIP_FL_ENC_RAW);
+    if (n->m_comment != NULL && n->m_comment[0] == '\0')
+        n->m_comment = NULL;
+    if (n->m_comment == NULL)
+        n->m_commentLen = 0;
+
     return n;
 }
 
@@ -618,4 +640,10 @@ struct timespec FileNode::currentTime() {
         ts.tv_nsec = 0;
     }
     return ts;
+}
+
+bool FileNode::setComment(const char *value) {
+    //TODO
+    (void)value;
+    return false;
 }

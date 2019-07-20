@@ -39,12 +39,16 @@
 #include <cerrno>
 #include <cstring>
 #include <cstdlib>
+#include <limits>
 #include <queue>
 
 #include "fuse-zip.h"
 #include "types.h"
 #include "fileNode.h"
 #include "fuseZipData.h"
+
+static const char FILE_COMMENT_XATTR_NAME[] = "user.comment";
+static const size_t FILE_COMMENT_XATTR_NAME_LENZ = 13; // length including NULL-byte
 
 using namespace std;
 
@@ -465,15 +469,54 @@ int fusezip_setxattr(const char *, const char *, const char *, size_t, int) {
 }
 
 #if ( __APPLE__ )
-int fusezip_getxattr(const char *, const char *, char *, size_t, uint32_t) {
+int fusezip_getxattr(const char *path, const char *name, char *value, size_t size, uint32_t) {
 #else
-int fusezip_getxattr(const char *, const char *, char *, size_t) {
+int fusezip_getxattr(const char *path, const char *name, char *value, size_t size) {
 #endif
-    return -ENOTSUP;
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (strncmp(name, FILE_COMMENT_XATTR_NAME, FILE_COMMENT_XATTR_NAME_LENZ) != 0)
+        return -ENODATA;
+    if (!node->hasComment())
+        return -ENODATA;
+
+    if (node->getCommentLength() > std::numeric_limits<int>::max())
+        return -ERANGE;
+    if (size == 0)
+        return static_cast<int>(node->getCommentLength());
+    if (node->getCommentLength() > size)
+        return -ERANGE;
+
+    memcpy(value, node->getComment(), node->getCommentLength());
+
+    return static_cast<int>(node->getCommentLength());
 }
 
-int fusezip_listxattr(const char *, char *, size_t) {
-    return -ENOTSUP;
+int fusezip_listxattr(const char *path, char *list, size_t size) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (node->hasComment()) {
+        if (size == 0)
+            return FILE_COMMENT_XATTR_NAME_LENZ;
+        else if (size < FILE_COMMENT_XATTR_NAME_LENZ)
+            return -ERANGE;
+        else {
+            strncpy(list, FILE_COMMENT_XATTR_NAME, FILE_COMMENT_XATTR_NAME_LENZ);
+            return FILE_COMMENT_XATTR_NAME_LENZ;
+        }
+    } else {
+        return 0;
+    }
 }
 
 int fusezip_removexattr(const char *, const char *) {

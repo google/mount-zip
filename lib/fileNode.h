@@ -55,6 +55,10 @@ private:
     uid_t m_uid;
     gid_t m_gid;
 
+    const char *m_comment;
+    uint32_t m_commentLen;
+    bool m_commentChanged;
+
     void parse_name();
     void processExtraFields();
     void processExternalAttributes();
@@ -85,7 +89,7 @@ public:
     /**
      * Create root pseudo-node for file system
      */
-    static FileNode *createRootNode();
+    static FileNode *createRootNode(struct zip *zip);
     /**
      * Create node for existing ZIP file entry
      */
@@ -209,6 +213,11 @@ public:
         // called only from FuseZipData::save, so we're don't worry about 'status' variable value
     }
     static struct timespec currentTime();
+
+    bool hasComment() const { return m_comment != NULL; }
+    bool setComment(const char *value);
+    const char *getComment() const { return m_comment; }
+    uint32_t getCommentLength() const { return m_commentLen; }
 
     const char *name;
     std::string full_name;

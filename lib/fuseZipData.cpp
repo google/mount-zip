@@ -53,7 +53,7 @@ FuseZipData::~FuseZipData() {
 }
 
 void FuseZipData::build_tree(bool readonly) {
-    m_root = FileNode::createRootNode();
+    m_root = FileNode::createRootNode(m_zip);
     if (m_root == NULL) {
         throw std::bad_alloc();
     }
