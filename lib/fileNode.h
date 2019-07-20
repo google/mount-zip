@@ -161,9 +161,9 @@ public:
     /**
      * set atime and mtime
      */
-    void setTimes (struct timespec atime, struct timespec mtime);
+    void setTimes (const timespec &atime, const timespec &mtime);
 
-    void setCTime (struct timespec ctime);
+    void setCTime (const timespec &ctime);
 
     inline struct timespec atime() const {
         return m_atime;

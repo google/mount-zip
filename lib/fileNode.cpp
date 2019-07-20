@@ -591,7 +591,7 @@ int FileNode::updateExternalAttributes() const {
             ZIP_OPSYS_UNIX, mode);
 }
 
-void FileNode::setTimes (struct timespec atime, struct timespec mtime) {
+void FileNode::setTimes (const timespec &atime, const timespec &mtime) {
     struct timespec now;
     if (atime.tv_nsec == UTIME_NOW || mtime.tv_nsec == UTIME_NOW)
         now = currentTime();
@@ -606,7 +606,7 @@ void FileNode::setTimes (struct timespec atime, struct timespec mtime) {
     metadataChanged = true;
 }
 
-void FileNode::setCTime (struct timespec ctime) {
+void FileNode::setCTime (const timespec &ctime) {
     m_ctime = ctime;
     metadataChanged = true;
 }
