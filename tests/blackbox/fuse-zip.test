@@ -492,6 +492,23 @@ namespace eval ::fusezip::test {
         return [list $mtime $atime]
     }
 
+    # getExtendedAttributes --
+    #
+    #   get user.* extended attributes as dict
+    #
+    # Arguments:
+    #   fname   file name
+    proc getExtendedAttributes {fname} {
+        set res {}
+        foreach line [split [exec getfattr -d -e hex $fname 2> /dev/null] \n] {
+            if {[regexp {^(user\.[a-zA-Z0-9_]+)=0x(.*)} $line _ key value]} {
+                set value [encoding convertfrom utf-8 [binary decode hex $value]]
+                dict set res $key $value
+            }
+        }
+        return $res
+    }
+
     ############################################################
     # INITIALIZATION
     ############################################################
@@ -2223,6 +2240,56 @@ namespace eval ::fusezip::test {
         assert {$stat1(ino) != $stat4(ino)} "all inodes must be different, 2"
         assert {$stat2(ino) != $stat3(ino)} "all inodes must be different, 3"
         assert {$stat2(ino) != $stat4(ino)} "all inodes must be different, 4"
+    }
+
+    fstest comment-read-ascii {read archive and file ASCII comments} {
+        set fname data/comment.zip
+        mount -r
+
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "archive comment"}
+
+        set attr [getExtendedAttributes $mountdir/dir]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "directory comment"}
+
+        set attr [getExtendedAttributes $mountdir/dir/with_comment.txt]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "file comment"}
+
+        set attr [getExtendedAttributes $mountdir/dir/empty_comment.txt]
+        assert {[dict keys $attr] == ""}
+
+        set attr [getExtendedAttributes $mountdir/dir/without_comment.txt]
+        assert {[dict keys $attr] == ""}
+
+        umount
+    }
+
+    fstest comment-read-utf8 {read archive and file UTF-8 comments} {
+        set fname data/comment-utf8.zip
+        mount -r
+
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u043A \u0430\u0440\u0445\u0438\u0432\u0443"}
+
+        set attr [getExtendedAttributes $mountdir/dir]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u043A \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0443"}
+
+        set attr [getExtendedAttributes $mountdir/dir/with_comment.txt]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u043A \u0444\u0430\u0439\u043B\u0443"}
+
+        set attr [getExtendedAttributes $mountdir/dir/empty_comment.txt]
+        assert {[dict keys $attr] == ""}
+
+        set attr [getExtendedAttributes $mountdir/dir/without_comment.txt]
+        assert {[dict keys $attr] == ""}
+
+        umount
     }
 
     finalize

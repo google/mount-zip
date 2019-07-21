@@ -5,9 +5,10 @@ Tcl >= 8.5
 tcllib >= 1.10
 BLT
 Tclx
-zip
+attr
 diff
 valgrind
+zip
 
 To run testsuite invoke command
 $ ./fuse-zip.test
