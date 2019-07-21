@@ -155,6 +155,13 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    {
+        int len = 0;
+        const char *comment = zip_get_archive_comment(z, &len, ZIP_FL_ENC_RAW);
+        if (comment != NULL && len > 0)
+            printf("archive comment: %*s\n", len, comment);
+    }
+
     for (zip_int64_t i = 0; i < zip_get_num_entries(z, 0); ++i) {
         zip_uint8_t opsys;
         zip_uint32_t attr;
@@ -180,6 +187,14 @@ int main(int argc, char **argv) {
         printf("%s\t(opsys %s (%d), mode1 0%06lo, mode2 0x%04X):\n",
                 zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, (unsigned long)attr >> 16, attr & 0xffff);
 
+        {
+            uint32_t len = 0;
+            const char *comment = zip_file_get_comment(z, i, &len, ZIP_FL_ENC_RAW);
+            if (comment != NULL && len > 0) {
+                int len_int = static_cast<int>(len); // file comment length is actually 16-bit
+                printf("  comment: %*s\n", len_int, comment);
+            }
+        }
 
         zip_stat_t stat;
         if (zip_stat_index(z, i, 0, &stat) != 0)
