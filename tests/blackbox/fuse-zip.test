@@ -2292,6 +2292,78 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest comment-create-archive {create archive comment} {
+        create {
+            foo bar
+        }
+        mount
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == ""} "bad initial attributes"
+        exec setfattr -n user.comment -v "blah-blah" $mountdir
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"} "after set: bad attributes list"
+        assert {[dict get $attr "user.comment"] == "blah-blah"} "after set: bad comment content"
+        umount
+
+        mount
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"} "after remount: bad attributes list"
+        assert {[dict get $attr "user.comment"] == "blah-blah"} "after remount: bad comment content"
+        umount
+    }
+
+    fstest comment-create-file {create file/directory comment} {
+        create {
+            dir/foo bar
+        }
+
+        mount
+
+        set attr [getExtendedAttributes $mountdir/dir]
+        assert {[dict keys $attr] == ""}
+        exec setfattr -n user.comment -v "dir comment" $mountdir/dir
+        set attr [getExtendedAttributes $mountdir/dir]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "dir comment"}
+
+        set attr [getExtendedAttributes $mountdir/dir/foo]
+        assert {[dict keys $attr] == ""}
+        exec setfattr -n user.comment -v "file comment" $mountdir/dir/foo
+        set attr [getExtendedAttributes $mountdir/dir/foo]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "file comment"}
+        exec setfattr -n user.comment -v "file comment 2" $mountdir/dir/foo
+        set attr [getExtendedAttributes $mountdir/dir/foo]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "file comment 2"}
+
+        makeFile "meow" new $mountdir
+        set attr [getExtendedAttributes $mountdir/new]
+        assert {[dict keys $attr] == ""}
+        exec setfattr -n user.comment -v "new comment" $mountdir/new
+        set attr [getExtendedAttributes $mountdir/new]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "new comment"}
+
+        umount
+
+        mount
+
+        set attr [getExtendedAttributes $mountdir/dir]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "dir comment"}
+
+        set attr [getExtendedAttributes $mountdir/dir/foo]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "file comment 2"}
+
+        set attr [getExtendedAttributes $mountdir/new]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "new comment"}
+
+        umount
+    }
+
     finalize
 }
 namespace delete ::fusezip::test

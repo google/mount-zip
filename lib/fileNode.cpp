@@ -45,7 +45,7 @@ FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id_) {
     m_gid = 0;
     m_comment = NULL;
     m_commentLen = 0;
-    m_commentChanged = false;
+    m_commentChanged = true;
 }
 
 FileNode *FileNode::createFile (struct zip *zip, const char *fname, 
@@ -108,6 +108,7 @@ FileNode *FileNode::createIntermediateDir(struct zip *zip,
     n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
     n->m_size = 0;
     n->m_mode = S_IFDIR | 0775;
+    n->m_commentChanged = false;
 
     n->parse_name();
 
@@ -133,7 +134,7 @@ FileNode *FileNode::createDir(struct zip *zip, const char *fname,
 }
 
 FileNode *FileNode::createRootNode(struct zip *zip) {
-    FileNode *n = new FileNode(NULL, "", ROOT_NODE_INDEX);
+    FileNode *n = new FileNode(zip, "", ROOT_NODE_INDEX);
     if (n == NULL) {
         return NULL;
     }
@@ -147,10 +148,12 @@ FileNode *FileNode::createRootNode(struct zip *zip) {
 
     int len = 0;
     n->m_comment = zip_get_archive_comment(zip, &len, ZIP_FL_ENC_RAW);
+    n->m_commentChanged = false;
     if (len < 0)
         n->m_comment = NULL;
     else
-        n->m_commentLen = static_cast<uint32_t>(len);
+        // RAW comment length can't exceed 16 bits
+        n->m_commentLen = static_cast<uint16_t>(len);
     if (n->m_comment != NULL && n->m_comment[0] == '\0')
         n->m_comment = NULL;
     if (n->m_comment == NULL)
@@ -188,7 +191,11 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
     n->processExternalAttributes();
     n->processExtraFields();
 
-    n->m_comment = zip_file_get_comment(zip, n->id(), &n->m_commentLen, ZIP_FL_ENC_RAW);
+    uint32_t len = 0;
+    n->m_comment = zip_file_get_comment(zip, n->id(), &len, ZIP_FL_ENC_RAW);
+    n->m_commentChanged = false;
+    // RAW comment length can't exceed 16 bits
+    n->m_commentLen = static_cast<uint16_t>(len);
     if (n->m_comment != NULL && n->m_comment[0] == '\0')
         n->m_comment = NULL;
     if (n->m_comment == NULL)
@@ -201,6 +208,8 @@ FileNode::~FileNode() {
     if (state == OPENED || state == CHANGED || state == NEW) {
         delete buffer;
     }
+    if (m_commentChanged && m_comment != NULL)
+        delete [] m_comment;
 }
 
 /**
@@ -309,11 +318,20 @@ int FileNode::save() {
 }
 
 int FileNode::saveMetadata() const {
+    assert(zip != NULL);
     assert(_id >= 0);
+
     int res = updateExtraFields();
     if (res != 0)
         return res;
     return updateExternalAttributes();
+}
+
+int FileNode::saveComment() const {
+    if (_id == ROOT_NODE_INDEX)
+        return zip_set_archive_comment(zip, m_comment, m_commentLen);
+    else
+        return zip_file_set_comment(zip, id(), m_comment, m_commentLen, 0);
 }
 
 int FileNode::truncate(size_t offset) {
@@ -642,8 +660,17 @@ struct timespec FileNode::currentTime() {
     return ts;
 }
 
-bool FileNode::setComment(const char *value) {
-    //TODO
-    (void)value;
-    return false;
+bool FileNode::setComment(const char *value, uint16_t length) {
+    char *newComment = new char[length];
+    if (newComment == NULL)
+        return false;
+
+    memcpy(newComment, value, length);
+    if (m_commentChanged && m_comment != NULL)
+        delete [] m_comment;
+    m_comment = newComment;
+    m_commentLen = length;
+    m_commentChanged = true;
+
+    return true;
 }

@@ -56,7 +56,7 @@ private:
     gid_t m_gid;
 
     const char *m_comment;
-    uint32_t m_commentLen;
+    uint16_t m_commentLen;
     bool m_commentChanged;
 
     void parse_name();
@@ -130,6 +130,12 @@ public:
      * @return libzip error code or 0 on success
      */
     int saveMetadata () const;
+
+    /**
+     * Save file or archive comment into ZIP
+     * @return libzip error code or 0 on success
+     */
+    int saveComment() const;
 
     /**
      * Truncate file.
@@ -215,9 +221,10 @@ public:
     static struct timespec currentTime();
 
     bool hasComment() const { return m_comment != NULL; }
-    bool setComment(const char *value);
+    bool isCommentChanged() const { return m_commentChanged; }
+    bool setComment(const char *value, uint16_t length);
     const char *getComment() const { return m_comment; }
-    uint32_t getCommentLength() const { return m_commentLen; }
+    uint16_t getCommentLength() const { return m_commentLen; }
 
     const char *name;
     std::string full_name;

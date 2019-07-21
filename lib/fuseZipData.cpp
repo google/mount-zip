@@ -256,6 +256,12 @@ void FuseZipData::save () {
     for (filemap_t::const_iterator i = files.begin(); i != files.end(); ++i) {
         FileNode *node = i->second;
         if (node == m_root) {
+            if (node->isCommentChanged()) {
+                int res = node->saveComment();
+                if (res != 0) {
+                    syslog(LOG_ERR, "Error while saving archive comment: %d", res);
+                }
+            }
             continue;
         }
         assert(node != NULL);
@@ -284,6 +290,13 @@ void FuseZipData::save () {
             int res = node->saveMetadata();
             if (res != 0) {
                 syslog(LOG_ERR, "Error while saving metadata for file %s in ZIP archive: %d",
+                        node->full_name.c_str(), res);
+            }
+        }
+        if (node->isCommentChanged()) {
+            int res = node->saveComment();
+            if (res != 0) {
+                syslog(LOG_ERR, "Error while saving comment for file %s in ZIP archive: %d",
                         node->full_name.c_str(), res);
             }
         }

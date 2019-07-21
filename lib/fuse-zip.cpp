@@ -35,6 +35,7 @@
 #include <syslog.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
+#include <sys/xattr.h>
 
 #include <cerrno>
 #include <cstring>
@@ -461,11 +462,32 @@ int fusezip_utimens(const char *path, const struct timespec tv[2]) {
 }
 
 #if ( __APPLE__ )
-int fusezip_setxattr(const char *, const char *, const char *, size_t, int, uint32_t) {
+int fusezip_setxattr(const char *path, const char *name, const char *value, size_t size, int flags, uint32_t) {
 #else
-int fusezip_setxattr(const char *, const char *, const char *, size_t, int) {
+int fusezip_setxattr(const char *path, const char *name, const char *value, size_t size, int flags) {
 #endif
-    return -ENOTSUP;
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+
+    if (strncmp(name, FILE_COMMENT_XATTR_NAME, FILE_COMMENT_XATTR_NAME_LENZ) != 0)
+        return -ENOTSUP;
+    if (size > std::numeric_limits<uint16_t>::max())
+        return -ENOSPC;
+
+    if ((flags & XATTR_CREATE) && node->hasComment())
+        return -EEXIST;
+    if ((flags & XATTR_REPLACE) && !node->hasComment())
+        return -ENODATA;
+
+    if (node->setComment(value, static_cast<uint16_t>(size)))
+        return 0;
+    else
+        return -ENOSPC;
 }
 
 #if ( __APPLE__ )
