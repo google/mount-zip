@@ -509,6 +509,57 @@ namespace eval ::fusezip::test {
         return $res
     }
 
+    # getZipComments --
+    #
+    #   get archive and file comments uzing unzip
+    #
+    # Arguments:
+    #   fname   file name
+    proc getZipComments {fname} {
+        set res {}
+        set name ""
+        set comment {}
+        set header 0
+        foreach line [split [exec unzip -l $fname] \n] {
+            if {$header == 0} {
+                switch -regexp $line {
+                    {^Archive: } {}
+                    {^\s+Length\s+Date\s+Time\s+Name$} {
+                        set header 1
+                    }
+                    default {
+                        lappend comment $line
+                    }
+                }
+            } elseif {$header == 1} {
+                if {![regexp {^-+\s+-+\s+-+\s+-+$} $line]} {
+                    error "bad delimiter format: `$line'"
+                }
+                set header 2
+            } else {
+                switch -regexp -matchvar match $line {
+                    {^\s*[0-9]+\s+\d\d\d\d-\d\d-\d\d \d\d:\d\d\s+(.*)} {
+                        if {[llength $comment] || $name eq ""} {
+                            dict set res $name [join $comment \n]
+                        }
+                        lassign $match _ name
+                        set comment {}
+                    }
+                    {^-+\s+-+$} {
+                        if {[llength $comment] || $name eq ""} {
+                            dict set res $name [join $comment \n]
+                        }
+                        break
+                    }
+                    default {
+                        lappend comment $line
+                    }
+                }
+            }
+        }
+        return $res
+    }
+
     ############################################################
     # INITIALIZATION
     ############################################################
@@ -2292,6 +2343,20 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest comment-create-without-comment {create archive without comments} {
+        create {
+            foo bar
+        }
+
+        mount
+        makeFile meow cat $mountdir
+        umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq ""} "unzip: bad archive comment"
+        assert {[llength [dict keys $comm]] == 1} "unzip: bad file comment"
+    }
+
     fstest comment-create-archive {create archive comment} {
         create {
             foo bar
@@ -2304,6 +2369,9 @@ namespace eval ::fusezip::test {
         assert {[dict keys $attr] == "user.comment"} "after set: bad attributes list"
         assert {[dict get $attr "user.comment"] == "blah-blah"} "after set: bad comment content"
         umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq "blah-blah"} "unzip: bad comment"
 
         mount
         set attr [getExtendedAttributes $mountdir]
@@ -2347,6 +2415,11 @@ namespace eval ::fusezip::test {
 
         umount
 
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq ""} "unzip: bad archive comment"
+        assert {[dict get $comm "dir/"] eq "dir comment"} "unzip: bad dir comment"
+        assert {[dict get $comm "dir/foo"] eq "file comment 2"} "unzip: bad dir/foo comment"
+
         mount
 
         set attr [getExtendedAttributes $mountdir/dir]
@@ -2361,6 +2434,94 @@ namespace eval ::fusezip::test {
         assert {[dict keys $attr] == "user.comment"}
         assert {[dict get $attr "user.comment"] == "new comment"}
 
+        umount
+    }
+
+    fstest comment-create-archive-utf8 {create archive comment (UTF-8)} {
+        create {
+            foo bar
+        }
+        set comment "\u043A\u043E\u043B\u0431\u0430\u0441\u0430"
+
+        mount
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == ""} "bad initial attributes"
+        exec setfattr -n user.comment -v $comment $mountdir
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"} "after set: bad attributes list"
+        assert {[dict get $attr "user.comment"] == $comment} "after set: bad comment content"
+        umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq $comment} "unzip: bad comment"
+
+        mount
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"} "after remount: bad attributes list"
+        assert {[dict get $attr "user.comment"] == $comment} "after remount: bad comment content"
+        umount
+    }
+
+    fstest comment-create-file-utf8 {create file comment (UTF-8)} {
+        create {
+            foo bar
+        }
+        set comment "\u043A\u043E\u043B\u0431\u0430\u0441\u0430"
+
+        mount
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == ""} "bad initial attributes"
+        exec setfattr -n user.comment -v $comment $mountdir/foo
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == "user.comment"} "after set: bad attributes list"
+        assert {[dict get $attr "user.comment"] == $comment} "after set: bad comment content"
+        umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq ""} "unzip: bad archive comment"
+        assert {[dict get $comm "foo"] eq $comment} "unzip: bad file comment"
+
+        mount
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == "user.comment"} "after remount: bad attributes list"
+        assert {[dict get $attr "user.comment"] == $comment} "after remount: bad comment content"
+        umount
+    }
+
+    fstest comment-create-max-length {maximum-length comment} {
+        set comment [string repeat A 65535]
+        set dump "# file: $mountdir/foo\nuser.comment=\"$comment\""
+
+        create {
+            foo bar
+        }
+        mount
+        exec setfattr --restore - << $dump
+        umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq ""} "unzip: bad archive comment"
+        assert {[dict get $comm "foo"] eq $comment} "unzip: bad file comment"
+
+        mount
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == $comment}
+        umount
+    }
+
+    fstest comment-create-too-long {try to create too long comment} {
+        set dump "# file: $mountdir/foo\nuser.comment=\"[string repeat A 65536]\""
+
+        create {
+            foo bar
+        }
+        mount
+        if {[catch {exec /usr/bin/env LC_ALL=C setfattr --restore - << $dump} err]} {
+            assert {[regexp {^setfattr: .*: No space left on device$} $err]} "bad error text: $err"
+        } else {
+            error "'No space left on device' error is expected"
+        }
         umount
     }
 
