@@ -484,6 +484,8 @@ int fusezip_setxattr(const char *path, const char *name, const char *value, size
     if ((flags & XATTR_REPLACE) && !node->hasComment())
         return -ENODATA;
 
+    if (name == NULL && size != 0)
+        return -EINVAL;
     if (node->setComment(value, static_cast<uint16_t>(size)))
         return 0;
     else
