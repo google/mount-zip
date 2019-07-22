@@ -541,8 +541,21 @@ int fusezip_listxattr(const char *path, char *list, size_t size) {
     }
 }
 
-int fusezip_removexattr(const char *, const char *) {
-    return -ENOTSUP;
+int fusezip_removexattr(const char *path, const char *name) {
+    if (*path == '\0') {
+        return -ENOENT;
+    }
+    FileNode *node = get_file_node(path + 1);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+    if (strncmp(name, FILE_COMMENT_XATTR_NAME, FILE_COMMENT_XATTR_NAME_LENZ) != 0)
+        return -ENODATA;
+    if (!node->hasComment()) {
+        return -ENODATA;
+    }
+    node->setComment(NULL, 0);
+    return 0;
 }
 
 int fusezip_chmod(const char *path, mode_t mode) {

@@ -661,11 +661,14 @@ struct timespec FileNode::currentTime() {
 }
 
 bool FileNode::setComment(const char *value, uint16_t length) {
-    char *newComment = new char[length];
-    if (newComment == NULL)
-        return false;
+    char *newComment = NULL;
+    if (value != NULL) {
+        newComment = new char[length];
+        if (newComment == NULL)
+            return false;
+        memcpy(newComment, value, length);
+    }
 
-    memcpy(newComment, value, length);
     if (m_commentChanged && m_comment != NULL)
         delete [] m_comment;
     m_comment = newComment;

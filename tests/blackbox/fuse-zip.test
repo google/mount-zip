@@ -2545,6 +2545,90 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest comment-remove-archive {remove archive comment} {
+        create {
+            foo bar
+        }
+
+        mount
+
+        exec setfattr -n user.comment -v "archive comment" $mountdir
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"} "comment not listed"
+        assert {[dict get $attr "user.comment"] == "archive comment"} "invalid comment set"
+
+        exec setfattr -x user.comment $mountdir
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == ""} "comment not removed"
+
+        exec setfattr -n user.comment -v "archive comment 2" $mountdir
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"} "comment not listed after reset"
+        assert {[dict get $attr "user.comment"] == "archive comment 2"} "invalid comment re-set"
+
+        umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq "archive comment 2"} "unzip: comment not set"
+
+        mount
+
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == "user.comment"} "comment not listed after remount"
+        assert {[dict get $attr "user.comment"] == "archive comment 2"} "invalid comment re-read"
+
+        exec setfattr -x user.comment $mountdir
+        set attr [getExtendedAttributes $mountdir]
+        assert {[dict keys $attr] == ""} "comment not removed secondary"
+
+        umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm ""] eq ""} "unzip: comment not removed"
+    }
+
+    fstest comment-remove-file {remove file comment} {
+        create {
+            foo bar
+        }
+
+        mount
+
+        exec setfattr -n user.comment -v "file comment" $mountdir/foo
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == "user.comment"} "comment not listed"
+        assert {[dict get $attr "user.comment"] == "file comment"} "invalid comment set"
+
+        exec setfattr -x user.comment $mountdir/foo
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == ""} "comment not removed"
+
+        exec setfattr -n user.comment -v "file comment 2" $mountdir/foo
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == "user.comment"} "comment not listed after reset"
+        assert {[dict get $attr "user.comment"] == "file comment 2"} "invalid comment re-set"
+
+        umount
+
+        set comm [getZipComments $fname]
+        assert {[dict get $comm "foo"] eq "file comment 2"} "unzip: comment not set"
+
+        mount
+
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == "user.comment"} "comment not listed after remount"
+        assert {[dict get $attr "user.comment"] == "file comment 2"} "invalid comment re-read"
+
+        exec setfattr -x user.comment $mountdir/foo
+        set attr [getExtendedAttributes $mountdir/foo]
+        assert {[dict keys $attr] == ""} "comment not removed secondary"
+
+        umount
+
+        set comm [getZipComments $fname]
+        assert {![dict exists $comm "foo"]} "unzip: comment not removed"
+    }
+
     finalize
 }
 namespace delete ::fusezip::test
