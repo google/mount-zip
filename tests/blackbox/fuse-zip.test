@@ -2525,6 +2525,26 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest comment-create-remove-file {create comment and remove a file} {
+        create {
+            foo bar
+        }
+
+        mount
+
+        makeFile "meow" new $mountdir
+        set attr [getExtendedAttributes $mountdir/new]
+        assert {[dict keys $attr] == ""}
+        exec setfattr -n user.comment -v "new comment" $mountdir/new
+        set attr [getExtendedAttributes $mountdir/new]
+        assert {[dict keys $attr] == "user.comment"}
+        assert {[dict get $attr "user.comment"] == "new comment"}
+
+        file delete $mountdir/new
+
+        umount
+    }
+
     finalize
 }
 namespace delete ::fusezip::test
