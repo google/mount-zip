@@ -62,7 +62,7 @@ private:
     void parse_name();
     void processExtraFields();
     void processExternalAttributes();
-    int updateExtraFields() const;
+    int updateExtraFields(bool force_precise_time) const;
     int updateExternalAttributes() const;
 
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX;
@@ -127,9 +127,10 @@ public:
 
     /**
      * Save file metadata to ZIP
+     * @param force_precise_time force creation of NTFS extra field
      * @return libzip error code or 0 on success
      */
-    int saveMetadata () const;
+    int saveMetadata (bool force_precise_time) const;
 
     /**
      * Save file or archive comment into ZIP

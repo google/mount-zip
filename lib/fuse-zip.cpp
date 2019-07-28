@@ -55,7 +55,7 @@ using namespace std;
 
 //TODO: Move printf-s out this function
 FuseZipData *initFuseZip(const char *program, const char *fileName,
-        bool readonly) {
+        bool readonly, bool force_precise_time) {
     FuseZipData *data = NULL;
     int err;
     struct zip *zip_file;
@@ -81,7 +81,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName,
             return data;
         }
 
-        data = new FuseZipData(fileName, zip_file, cwd);
+        data = new FuseZipData(fileName, zip_file, cwd, force_precise_time);
         free(cwd);
         if (data == NULL) {
             throw std::bad_alloc();

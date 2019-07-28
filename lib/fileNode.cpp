@@ -181,8 +181,8 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
     // required fields are always valid for existing items or newly added
     // directories (see zip_stat_index.c from libzip)
     assert((stat.valid & needValid) == needValid);
-    n->m_mtime.tv_sec = n->m_atime.tv_sec = n->m_ctime.tv_sec = stat.mtime;
-    n->m_mtime.tv_nsec = n->m_atime.tv_nsec = n->m_ctime.tv_nsec = 0;
+    n->m_mtime.tv_sec = n->m_atime.tv_sec = n->m_ctime.tv_sec = n->m_cretime.tv_sec = stat.mtime;
+    n->m_mtime.tv_nsec = n->m_atime.tv_nsec = n->m_ctime.tv_nsec = n->m_cretime.tv_nsec = 0;
     n->has_cretime = false;
     n->m_size = stat.size;
 
@@ -317,11 +317,11 @@ int FileNode::save() {
             state == NEW, _id);
 }
 
-int FileNode::saveMetadata() const {
+int FileNode::saveMetadata(bool force_precise_time) const {
     assert(zip != NULL);
     assert(_id >= 0);
 
-    int res = updateExtraFields();
+    int res = updateExtraFields(force_precise_time);
     if (res != 0)
         return res;
     return updateExternalAttributes();
@@ -525,10 +525,10 @@ void FileNode::processExtraFields () {
 }
 
 /**
- * Save timestamp into extra fields
+ * Save timestamp, owner and group info into extra fields
  * @return 0 on success
  */
-int FileNode::updateExtraFields () const {
+int FileNode::updateExtraFields (bool force_precise_time) const {
     static zip_flags_t locations[] = {ZIP_FL_CENTRAL, ZIP_FL_LOCAL};
 
     assert(_id >= 0);
@@ -565,7 +565,7 @@ int FileNode::updateExtraFields () const {
             return res;
         }
         // add high-precision timestamps
-        if (has_cretime) // creation time is required
+        if (has_cretime || force_precise_time)
         {
             field = ExtraField::createNtfsExtraField (locations[loc], m_mtime,
                     m_atime, m_cretime, len);

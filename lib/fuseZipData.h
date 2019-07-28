@@ -67,6 +67,7 @@ public:
     struct zip *m_zip;
     const char *m_archiveName;
     std::string m_cwd;
+    const bool m_force_precise_time;
 
     /**
      * Keep archiveName and cwd in class fields and build file tree from z.
@@ -74,7 +75,7 @@ public:
      * 'cwd' and 'z' free()-ed in destructor.
      * 'archiveName' should be managed externally.
      */
-    FuseZipData(const char *archiveName, struct zip *z, const char *cwd);
+    FuseZipData(const char *archiveName, struct zip *z, const char *cwd, bool force_precise_time);
     ~FuseZipData();
 
     /**

@@ -16,6 +16,12 @@ File/archive comments are supported since version 0.7.0. To read/modify file
 comment use extended attribute "user.comment". Archive comment is accessible
 via mount point's extended attribute.
 
+High-precision time stamps (with 100 ns resolution) are supported since version
+0.7.0. By default high precision timestamp is saved to archive only for new
+files or files with known creation time. You can force high-precision time
+saving by specifying '-o force\_precise\_time' option. In this case creation time
+will be equal to a first known file modification time.
+
 Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
 archives. Also, fuse-zip is faster than all known implementations on large
 archives with many files.
@@ -73,7 +79,7 @@ You can download test suite from the web-site and make sure that it is true.
 
 Support for UNIX file permissions and owner information has been added in
 version 0.4. Note that access check will not be performed unless
-'-o default_permissions' mount option is given.
+'-o default\_permissions' mount option is given.
 
 # HINTS #
 

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2018 by Alexander Galanin                          //
+//  Copyright (C) 2008-2019 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -32,10 +32,12 @@ extern "C" {
  * @param program   Program name
  * @param fileName  ZIP file name
  * @param readonly  Open in read-only mode
+ * @param force_precise_time Force creation of precise time extended attributes
+ *                           even if btime is not known.
  * @return NULL if an error occured, otherwise pointer to FuseZipData structure.
  */
 class FuseZipData *initFuseZip(const char *program, const char *fileName,
-        bool readonly);
+        bool readonly, bool force_precise_time);
 
 /**
  * Initialize filesystem

@@ -377,6 +377,23 @@ namespace eval ::fusezip::test {
         cd $pwd
     }
 
+    # use --
+    #
+    #   Use specified file as input archive for test. Copy it into a temporary dir.
+    #
+    # Arguments:
+    #   path path to archive
+    proc use {path} {
+        variable tmpdir
+        upvar fname fname
+
+        set container [file join $tmpdir container]
+        file delete -force $container
+        file mkdir $container
+        set fname $container/test.zip
+        file copy $path $fname
+    }
+
     # check --
     #
     #   Check archive integrity by using 'unzip -t' command.
@@ -625,7 +642,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest bad-archive-crc {Bad archive} {
-        set fname data/bad-archive.zip
+        use data/bad-archive.zip
         mount
         if {![catch {open $mountdir/bash.txt r} err opts]} {
             error "File read error is expected"
@@ -1325,7 +1342,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest read-bad-crc {Read file from archive (bad CRC)} {
-        set fname data/bad-crc.zip
+        use data/bad-crc.zip
 
         mount
         set res [ catch {
@@ -1342,7 +1359,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest read-bad-crc-twice {Read file from archive (bad CRC, twice), changeset 80ad59679639} {
-        set fname data/bad-crc.zip
+        use data/bad-crc.zip
 
         mount
         foreach step {1st 2nd} {
@@ -1425,7 +1442,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest iconv-cp866 {Check that archive from 'other' OS correctly mounted} {
-        set fname data/cp866.zip
+        use data/cp866.zip
 
         mount -o modules=iconv,from_code=cp866
 
@@ -1793,7 +1810,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest parent-relative-paths-rw {Check for paths relative to parent directory in archive (read-write)} {
-        set fname data/parent-relative-paths.zip
+        use data/parent-relative-paths.zip
         if {![ catch {mount} err opts ] ||
                 [ dict get $opts -errorcode ] ne "NOTMOUNTED"} {
             error "Mount error is expected"
@@ -1806,7 +1823,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest absolute-path-rw {Check for absolute paths in archive (read-write)} {
-        set fname data/absolute-path.zip
+        use data/absolute-path.zip
         if {![catch {mount} err opts] || [dict get $opts -errorcode] ne "NOTMOUNTED"} {
             error "Mount error is expected"
         } else {
@@ -1818,7 +1835,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest parent-relative-paths-ro {Check for paths relative to parent directory in archive (read-only)} {
-        set fname data/parent-relative-paths.zip
+        use data/parent-relative-paths.zip
         mount -r
         set actual [split [string trim [exec sh -c "cd $mountdir; find . -printf '%p '"]]]
         set expected {. ./UPUP ./UPUP/INSTALL ./UP ./UP/other ./UP/other/LICENSE}
@@ -1834,7 +1851,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest absolute-path-ro {Check for absolute paths in archive (read-only)} {
-        set fname data/absolute-path.zip
+        use data/absolute-path.zip
         mount -r
         set actual [split [string trim [exec sh -c "cd $mountdir; find . -printf '%p '"]]]
         set expected {. ./ROOT ./ROOT/rootname.ext}
@@ -1850,7 +1867,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest mixed-paths-ro {Check mixed paths in archive (absolute, relative and "normal")} {
-        set fname data/mixed-paths.zip
+        use data/mixed-paths.zip
         mount -r
         set actual [split [string trim [exec sh -c "cd $mountdir; find . -printf '%p '"]]]
         set expected {. ./ROOT ./ROOT/root ./ROOT/root/name.ext ./CUR ./CUR/normal.file ./UP ./UP/parent ./UP/parent/relative}
@@ -1897,7 +1914,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest time-from-extra-field {Check that time correctly loaded from extra field} {
-        set fname data/extrafld.zip
+        use data/extrafld.zip
         mount -r
 
         set mtime [file mtime $mountdir/README]
@@ -1910,7 +1927,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest time-from-ntfs-extra-field {Check that time is correctly loaded from NTFS extra field} {
-        set fname data/ntfs-extrafld.zip
+        use data/ntfs-extrafld.zip
         mount -r
 
         lassign [getPreciseTimes $mountdir/test.txt] mtime atime
@@ -1969,6 +1986,49 @@ namespace eval ::fusezip::test {
 
         assert {$mtime == $new_mtime} "mtime changed to $mtime"
         assert {$atime == $new_atime} "atime changed to $atime"
+    }
+
+    fstest time-preserve-high-precision-no-force {Check that high-precision time is only updated, not created} {
+        set new_time_precise "2018-07-28 01:23:45.123456700 +0000"
+        set new_time         "2018-07-28 01:23:45.000000000 +0000"
+
+        use data/with-and-without-precise-time.zip
+
+        mount
+        exec touch -d $new_time_precise $mountdir/with-precise
+        exec touch -d $new_time_precise $mountdir/without-precise
+        umount
+
+        mount -r
+        lassign [getPreciseTimes $mountdir/with-precise] mtime1
+        lassign [getPreciseTimes $mountdir/without-precise] mtime2
+        umount
+
+        assert {$mtime1 == $new_time_precise} "precise time not updated (time is $mtime1)"
+        assert {$mtime2 == $new_time} "precise time unexpectedly created (time is $mtime2)"
+    }
+
+    fstest time-preserve-high-precision-force {Check that high-precision time is created if force flag is given} {
+        set new_time_precise "2018-07-28 01:23:45.123456700 +0000"
+        set new_time         "2018-07-28 01:23:45.000000000 +0000"
+        set unmodified_time  "2019-07-28 15:24:25.000000000 +0000"
+
+        use data/with-and-without-precise-time.zip
+
+        mount -o force_precise_time
+        exec touch -d $new_time_precise $mountdir/with-precise
+        exec touch -d $new_time_precise $mountdir/without-precise
+        umount
+
+        mount -r
+        lassign [getPreciseTimes $mountdir/with-precise] mtime1
+        lassign [getPreciseTimes $mountdir/without-precise] mtime2
+        lassign [getPreciseTimes $mountdir/unmodified] mtime3
+        umount
+
+        assert {$mtime1 == $new_time_precise} "precise time not updated (time is $mtime1)"
+        assert {$mtime2 == $new_time_precise} "precise time not created (time is $mtime2)"
+        assert {$mtime3 == $unmodified_time} "precise time id not created (time is $mtime3)"
     }
 
     fstest atime-mtime-modification {Check atime and mtime modification cases} {
@@ -2034,7 +2094,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest dos-permissions {Check DOS file permissions handling} {
-        set fname data/dos-perm.zip
+        use data/dos-perm.zip
         mount -r
         assert {[file isdirectory $mountdir/dir]} "not a directory"
         foreach name {hidden readonly normal} {
@@ -2049,7 +2109,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest unix-permissions {Check UNIX file permissions handling} {
-        set fname data/unix-perm.zip
+        use data/unix-perm.zip
         mount -r
         foreach name {640 642 666 6775 777} {
             assert {[file isfile $mountdir/$name]} "file 'dir/$name.txt' is not regular"
@@ -2113,7 +2173,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest readlink {Check readlink} {
-        set fname data/symlink.zip
+        use data/symlink.zip
         mount -r
         assert {[file readlink $mountdir/symlink] eq "../tmp/date"} "invalid link content"
         umount
@@ -2134,7 +2194,7 @@ namespace eval ::fusezip::test {
     }
     
     fstest no-owner-info {Check that default owner:group is root:root} {
-        set fname data/no-owner-info.zip
+        use data/no-owner-info.zip
         mount -r
         file stat $mountdir/README stat
         assert {$stat(uid) == 0} "owner is not root"
@@ -2185,7 +2245,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest file-dir-same-name {Check that archive that contain file and intermediate dir with the same name recognised as broken} {
-        set fname data/file-dir-same-name.zip
+        use data/file-dir-same-name.zip
         if {![catch {mount -r} err opts] ||
                 [ dict get $opts -errorcode ] ne "NOTMOUNTED"} {
             error "Mount error is expected"
@@ -2294,7 +2354,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest comment-read-ascii {read archive and file ASCII comments} {
-        set fname data/comment.zip
+        use data/comment.zip
         mount -r
 
         set attr [getExtendedAttributes $mountdir]
@@ -2319,7 +2379,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest comment-read-utf8 {read archive and file UTF-8 comments} {
-        set fname data/comment-utf8.zip
+        use data/comment-utf8.zip
         mount -r
 
         set attr [getExtendedAttributes $mountdir]

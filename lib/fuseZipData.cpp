@@ -26,7 +26,9 @@
 
 #include "fuseZipData.h"
 
-FuseZipData::FuseZipData(const char *archiveName, struct zip *z, const char *cwd): m_zip(z), m_archiveName(archiveName), m_cwd(cwd)  {
+FuseZipData::FuseZipData(const char *archiveName, struct zip *z, const char *cwd,
+        bool force_precise_time):
+    m_zip(z), m_archiveName(archiveName), m_cwd(cwd), m_force_precise_time(force_precise_time) {
 }
 
 FuseZipData::~FuseZipData() {
@@ -287,7 +289,7 @@ void FuseZipData::save () {
                 }
                 node->set_id(idx);
             }
-            int res = node->saveMetadata();
+            int res = node->saveMetadata(m_force_precise_time);
             if (res != 0) {
                 syslog(LOG_ERR, "Error while saving metadata for file %s in ZIP archive: %d",
                         node->full_name.c_str(), res);

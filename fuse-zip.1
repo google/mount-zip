@@ -1,7 +1,7 @@
 .\" '\" t
 .\" ** The above line should force tbl to be a preprocessor **
 .\" Man page for fuse-zip
-.TH "fuse-zip" "1" "December 2018" "FUSE filesystem to read and modify ZIP archives" "FUSE filesystem to read and modify ZIP archives"
+.TH "fuse-zip" "1" "July 2019" "FUSE filesystem to read and modify ZIP archives" "FUSE filesystem to read and modify ZIP archives"
 .SH "NAME"
 fuse\-zip \- a FUSE filesystem for zip archives with write support
 .SH "SYNOPSIS"
@@ -31,13 +31,13 @@ don't detach from terminal
 .TP
 \fB-d\fP
 turn on debugging, also implies \-f
-.PP
-If you want to specify character set conversion for file names in archive,
-use the following fusermount options:
-
-  \-omodules=iconv,from_code=$charset1,to_code=$charset2
-
-See FUSE documentation for details.
+.SS "Specific mount options:"
+.TP
+\fBforce_precise_time\fP
+By default high precision timestamp is saved to archive only for new
+files or files with known creation time. You can force high-precision time
+saving by specifying '-o force_precise_time' option. In this case creation time
+will be equal to a first known file modification time.
 .SH "DESCRIPTION"
 .B fuse\-zip
 is a FUSE filesystem, that enables any program to work with a ZIP archive as though it is a plain directory.
@@ -58,6 +58,17 @@ for details.
 
 Since version 0.5.0 fuse-zip forces open in read-only mode if archive file or
 its parent directory is not writable.
+
+File/archive comments are supported since version 0.7.0. To read/modify file
+comment use extended attribute "user.comment". Archive comment is accessible
+via mount point's extended attribute.
+
+If you want to specify character set conversion for file names in archive,
+use the following fusermount options:
+
+  \-omodules=iconv,from_code=$charset1,to_code=$charset2
+
+See FUSE documentation for details.
 
 .SH "USAGE"
 General usage would look like this
