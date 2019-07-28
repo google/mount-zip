@@ -12,6 +12,10 @@ in file names, but only in read-only mode (-r command line switch). Absolute
 paths are displayed under "ROOT" directory, every ".." in path replaced by "UP"
 in directory name and "normal" files are placed under "CUR" directory.
 
+File/archive comments are supported since version 0.7.0. To read/modify file
+comment use extended attribute "user.comment". Archive comment is accessible
+via mount point's extended attribute.
+
 Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
 archives. Also, fuse-zip is faster than all known implementations on large
 archives with many files.
