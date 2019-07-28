@@ -3,6 +3,8 @@
 #include <string.h>
 #include <zip.h>
 
+#include <sys/stat.h>
+
 #include "lib/extraField.h"
 
 void print_time (const char *label, struct timespec &time) {
@@ -186,6 +188,54 @@ int main(int argc, char **argv) {
         }
         printf("%s\t(opsys %s (%d), mode1 0%06lo, mode2 0x%04X):\n",
                 zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, (unsigned long)attr >> 16, attr & 0xffff);
+        switch (opsys)
+        {
+            case ZIP_OPSYS_UNIX:
+            {
+                int mode = attr >> 16;
+                printf("  type: ");
+                switch (mode & S_IFMT)
+                {
+                    case S_IFSOCK:
+                        printf("socket");
+                        break;
+                    case S_IFLNK:
+                        printf("symlink");
+                        break;
+                    case S_IFREG:
+                        printf("regular file");
+                        break;
+                    case S_IFBLK:
+                        printf("block device");
+                        break;
+                    case S_IFDIR:
+                        printf("directory");
+                        break;
+                    case S_IFCHR:
+                        printf("character device");
+                        break;
+                    case S_IFIFO:
+                        printf("FIFO");
+                        break;
+                }
+                printf("\n");
+                printf("  mode: %03o ", mode);
+                printf("%c%c%c ", (mode & S_IRUSR) ? 'r' : '-', (mode & S_IWUSR) ? 'w' : '-', (mode & S_IXUSR) ? 'x' : '-');
+                printf("%c%c%c ", (mode & S_IRGRP) ? 'r' : '-', (mode & S_IWGRP) ? 'w' : '-', (mode & S_IXGRP) ? 'x' : '-');
+                printf("%c%c%c ", (mode & S_IROTH) ? 'r' : '-', (mode & S_IWOTH) ? 'w' : '-', (mode & S_IXOTH) ? 'x' : '-');
+                printf("\n");
+                break;
+            }
+            case ZIP_OPSYS_DOS:
+            case ZIP_OPSYS_WINDOWS_NTFS:
+            case ZIP_OPSYS_MVS:
+            {
+                printf("  attributes: ");
+                printf("%c%c%c%c", (attr & 0x01) ? 'R' : '-', (attr & 0x20) ? 'A' : '-', (attr & 0x02) ? 'H' : '-', (attr & 0x04) ? 'S' : '-');
+                printf("\n");
+                break;
+            }
+        }
 
         {
             uint32_t len = 0;
