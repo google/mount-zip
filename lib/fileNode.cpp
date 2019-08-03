@@ -390,11 +390,13 @@ void FileNode::processExternalAttributes () {
             } else if ((m_mode & S_IFMT) == S_IFDIR) {
                 m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
             }
+            /*
             // treat FIFOs as regular files
             if (S_ISFIFO(m_mode)) {
                 m_mode &= static_cast<unsigned>(~S_IFIFO);
                 m_mode |= S_IFREG;
             }
+            */
             break;
         }
         case ZIP_OPSYS_DOS:

@@ -175,13 +175,13 @@ int main(int argc, char **argv) {
                 opsys_s = "UNIX";
                 break;
             case ZIP_OPSYS_DOS:
-                opsys_s = "DOS";
+                opsys_s = "DOS compatible";
                 break;
             case ZIP_OPSYS_WINDOWS_NTFS:
-                opsys_s = "WINDOWS NTFS";
+                opsys_s = "Windows NTFS";
                 break;
             case ZIP_OPSYS_MVS:
-                opsys_s = "MVS";
+                opsys_s = "MVS (PKWARE) or Windows NTFS (Info-Zip)";
                 break;
             default:
                 opsys_s = "unknown";
