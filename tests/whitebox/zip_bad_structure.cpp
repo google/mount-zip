@@ -127,12 +127,30 @@ const char *zip_file_strerror(struct zip_file *) {
     return NULL;
 }
 
+const char *zip_get_archive_comment(zip_t *, int *, zip_flags_t) {
+    return NULL;
+}
+
+int zip_set_archive_comment(zip_t *, const char *, zip_uint16_t) {
+    assert(false);
+    return 0;
+}
+
+const char *zip_file_get_comment(zip_t *, zip_uint64_t, zip_uint32_t *, zip_flags_t) {
+    return NULL;
+}
+
+int zip_file_set_comment(zip_t *, zip_uint64_t, const char *, zip_uint16_t, zip_flags_t) {
+    assert(false);
+    return 0;
+}
+
 // test functions
 void duplicateFileNames() {
     struct zip z;
     z.filename = "same_file.name";
     z.count = 2;
-    FuseZipData zd("test.zip", &z, "/tmp");
+    FuseZipData zd("test.zip", &z, "/tmp", false);
     bool thrown = false;
     try {
         zd.build_tree(false);
@@ -148,7 +166,7 @@ void relativePathsReadWrite() {
     struct zip z;
     z.filename = "../file.name";
     z.count = 1;
-    FuseZipData zd("test.zip", &z, "/tmp");
+    FuseZipData zd("test.zip", &z, "/tmp", false);
     bool thrown = false;
     try {
         zd.build_tree(false);
@@ -164,7 +182,7 @@ void absolutePathsReadWrite() {
     struct zip z;
     z.filename = "/file.name";
     z.count = 1;
-    FuseZipData zd("test.zip", &z, "/tmp");
+    FuseZipData zd("test.zip", &z, "/tmp", false);
     bool thrown = false;
     try {
         zd.build_tree(false);
@@ -180,7 +198,7 @@ void relativePathsReadOnly() {
     struct zip z;
     z.filename = "../file.name";
     z.count = 1;
-    FuseZipData zd("test.zip", &z, "/tmp");
+    FuseZipData zd("test.zip", &z, "/tmp", false);
     zd.build_tree(true);
 }
 
@@ -188,7 +206,7 @@ void absolutePathsReadOnly() {
     struct zip z;
     z.filename = "/file.name";
     z.count = 1;
-    FuseZipData zd("test.zip", &z, "/tmp");
+    FuseZipData zd("test.zip", &z, "/tmp", false);
     zd.build_tree(true);
 }
 

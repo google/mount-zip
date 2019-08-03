@@ -123,6 +123,24 @@ void zip_error_fini(zip_error_t *) {
     assert(false);
 }
 
+const char *zip_get_archive_comment(zip_t *, int *, zip_flags_t) {
+    return NULL;
+}
+
+int zip_set_archive_comment(zip_t *, const char *, zip_uint16_t) {
+    assert(false);
+    return 0;
+}
+
+const char *zip_file_get_comment(zip_t *, zip_uint64_t, zip_uint32_t *, zip_flags_t) {
+    return NULL;
+}
+
+int zip_file_set_comment(zip_t *, zip_uint64_t, const char *, zip_uint16_t, zip_flags_t) {
+    assert(false);
+    return 0;
+}
+
 // FUSE stubs
 
 fuse_context context;
@@ -137,7 +155,7 @@ struct fuse_context *fuse_get_context(void) {
  * Test fisezip_create()
  */
 void test_create () {
-    FuseZipData *data = initFuseZip("testprogram", "test.zip", false);
+    FuseZipData *data = initFuseZip("testprogram", "test.zip", false, false);
     context.private_data = data;
     fuse_conn_info conn;
     void *initResult = fusezip_init(&conn);
@@ -164,7 +182,7 @@ void test_create () {
  * Test fisezip_mknod()
  */
 void test_mknod () {
-    FuseZipData *data = initFuseZip("testprogram", "test.zip", false);
+    FuseZipData *data = initFuseZip("testprogram", "test.zip", false, false);
     context.private_data = data;
     fuse_conn_info conn;
     void *initResult = fusezip_init(&conn);

@@ -79,13 +79,32 @@ const char *zip_strerror(struct zip *) {
     return NULL;
 }
 
+const char *zip_get_archive_comment(zip_t *, int *, zip_flags_t) {
+    return NULL;
+}
+
+int zip_set_archive_comment(zip_t *, const char *, zip_uint16_t) {
+    assert(false);
+    return 0;
+}
+
+const char *zip_file_get_comment(zip_t *, zip_uint64_t, zip_uint32_t *, zip_flags_t) {
+    return NULL;
+}
+
+int zip_file_set_comment(zip_t *, zip_uint64_t, const char *, zip_uint16_t, zip_flags_t) {
+    assert(false);
+    return 0;
+}
+
 // tests
 
 /**
  * Test parse_name()
  */
 void parseNameTest () {
-    unique_ptr<FileNode> n (FileNode::createRootNode());
+    struct zip zip;
+    unique_ptr<FileNode> n (FileNode::createRootNode(&zip));
 
     n->full_name = "test";
     n->parse_name ();
