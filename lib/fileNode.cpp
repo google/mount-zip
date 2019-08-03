@@ -376,8 +376,8 @@ void FileNode::processExternalAttributes () {
             // force is_dir value
             if (is_dir) {
                 m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFDIR;
-            } else {
-                m_mode = m_mode & static_cast<unsigned>(~S_IFDIR);
+            } else if ((m_mode & S_IFMT) == S_IFDIR) {
+                m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
             }
             // treat FIFOs as regular files
             if (S_ISFIFO(m_mode)) {
