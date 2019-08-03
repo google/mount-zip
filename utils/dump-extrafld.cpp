@@ -217,6 +217,8 @@ int main(int argc, char **argv) {
                     case S_IFIFO:
                         printf("FIFO");
                         break;
+                    default:
+                        printf("unknown (0x%0X)", mode & S_IFMT);
                 }
                 printf("\n");
                 printf("  mode: %03o ", mode);
