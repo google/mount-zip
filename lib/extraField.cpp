@@ -159,7 +159,7 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             }
             p = data + lenUid;
             uid = 0;
-            int overflowBytes = static_cast<int>(sizeof(uid_t)) - lenUid;
+            int overflowBytes = lenUid - static_cast<int>(sizeof(uid_t));
             while (--p >= data) {
                 if (overflowBytes > 0 && *p != 0) {
                     // UID overflow
@@ -179,7 +179,7 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             }
             p = data + lenGid;
             gid = 0;
-            overflowBytes = static_cast<int>(sizeof(gid_t)) - lenGid;
+            overflowBytes = lenGid - static_cast<int>(sizeof(gid_t));
             while (--p >= data) {
                 if (overflowBytes > 0 && *p != 0) {
                     // GID overflow
