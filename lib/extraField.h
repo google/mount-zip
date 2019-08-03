@@ -70,24 +70,37 @@ static const zip_uint8_t *createExtTimeStamp (zip_flags_t location,
  * timestamps:
  *  000D    PKWARE Unix Extra Field
  *  5855    Info-ZIP Unix Extra Field (type 1)
+ * Variable part of 000D are currently ignored
+ *
+ * @param type extended field type ID
+ * @param len field length in bytes
+ * @param data field data
+ * @param hasUidGid (OUT) UID and GID are present
+ * @param uid (OUT) UID
+ * @param gid (OUT) GID
+ * @param mtime (OUT) file modification time if present
+ * @param atime (OUT) file access time if present
+ * @return successful completion flag
+ */
+static bool parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
+        const zip_uint8_t *data,
+        bool &hasUid, uid_t &uid, gid_t &gid,
+        time_t &mtime, time_t &atime);
+
+/**
+ * Parse UNIX extra field to extract UID/GID:
  *  7855    Info-ZIP Unix Extra Field (type 2)
  *  7875    Info-ZIP New Unix Extra Field
- * Variable part of 000D are currently ignored
  *
  * @param type extended field type ID
  * @param len field length in bytes
  * @param data field data
  * @param uid (OUT) UID
  * @param gid (OUT) GID
- * @param hasMTime (OUT) mtime presence
- * @param mtime (OUT) file modification time if present
- * @param hasATime (OUT) atime presence
- * @param atime (OUT) file access time if present
  * @return successful completion flag
  */
-static bool parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
-        const zip_uint8_t *data, uid_t &uid, gid_t &gid,
-        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime);
+static bool parseUnixUidGidField (zip_uint16_t type, zip_uint16_t len,
+        const zip_uint8_t *data, uid_t &uid, gid_t &gid);
 
 /**
  * Parse NTFS Extra FIeld

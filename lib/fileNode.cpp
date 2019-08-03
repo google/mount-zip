@@ -503,24 +503,37 @@ void FileNode::processExtraFields () {
             }
             case FZ_EF_PKWARE_UNIX:
             case FZ_EF_INFOZIP_UNIX1:
-            case FZ_EF_INFOZIP_UNIX2:
-            case FZ_EF_INFOZIP_UNIXN: {
+            {
+                bool has_uid_gid;
                 uid_t uid;
                 gid_t gid;
                 if (ExtraField::parseSimpleUnixField (type, len, field,
-                            uid, gid, has_mt, mt, has_at, at)) {
-                    if (type >= lastProcessedUnixField) {
+                            has_uid_gid, uid, gid, mt, at)) {
+                    if (has_uid_gid && type >= lastProcessedUnixField) {
                         m_uid = uid;
                         m_gid = gid;
                         lastProcessedUnixField = type;
                     }
-                    if (has_mt && !mtimeFromTimestamp && !highPrecisionTime) {
+                    if (!mtimeFromTimestamp && !highPrecisionTime) {
                         m_mtime.tv_sec = mt;
                         m_mtime.tv_nsec = 0;
                     }
-                    if (has_at && !atimeFromTimestamp && !highPrecisionTime) {
+                    if (!atimeFromTimestamp && !highPrecisionTime) {
                         m_atime.tv_sec = at;
                         m_atime.tv_nsec = 0;
+                    }
+                }
+                break;
+            }
+            case FZ_EF_INFOZIP_UNIX2:
+            case FZ_EF_INFOZIP_UNIXN: {
+                uid_t uid;
+                gid_t gid;
+                if (ExtraField::parseUnixUidGidField (type, len, field, uid, gid)) {
+                    if (type >= lastProcessedUnixField) {
+                        m_uid = uid;
+                        m_gid = gid;
+                        lastProcessedUnixField = type;
                     }
                 }
                 break;

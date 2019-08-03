@@ -141,14 +141,13 @@ void simple_unix_pkware() {
         0x04, 0x03
     };
 
-    bool has_atime, has_mtime;
+    bool has_uid_gid;
     time_t atime, mtime;
     uid_t uid;
     gid_t gid;
     assert(ExtraField::parseSimpleUnixField(0x000D, sizeof(data), data,
-                uid, gid, has_mtime, mtime, has_atime, atime));
-    assert(has_atime);
-    assert(has_mtime);
+                has_uid_gid, uid, gid, mtime, atime));
+    assert(has_uid_gid);
     assert(atime == 0x51CE6FD4);
     assert(mtime == 0x52C7E372);
     assert(uid == 0x0102);
@@ -156,46 +155,122 @@ void simple_unix_pkware() {
 }
 
 /**
- * Parse Info-ZIP Unix Extra Field (type2)
+ * Parse Info-ZIP Unix Extra Field (type1)
  */
-void simple_unix_infozip2() {
-    const zip_uint8_t data[] = {
+void simple_unix_infozip1() {
+    const zip_uint8_t data_local[] = {
+        0xD4, 0x6F, 0xCE, 0x51,
+        0x72, 0xE3, 0xC7, 0x52,
         0x02, 0x01,
         0x04, 0x03
     };
+    const zip_uint8_t data_central[] = {
+        0x72, 0xE3, 0xC7, 0x52,
+        0xD4, 0x6F, 0xCE, 0x51
+    };
 
-    bool has_atime, has_mtime;
+    bool has_uid_gid;
     time_t atime, mtime;
     uid_t uid;
     gid_t gid;
-    assert(ExtraField::parseSimpleUnixField(0x7855, sizeof(data), data,
-                uid, gid, has_mtime, mtime, has_atime, atime));
-    assert(!has_atime);
-    assert(!has_mtime);
+    // local header
+    assert(ExtraField::parseSimpleUnixField(0x5855, sizeof(data_local), data_local,
+                has_uid_gid, uid, gid, mtime, atime));
+    assert(has_uid_gid);
+    assert(atime == 0x51CE6FD4);
+    assert(mtime == 0x52C7E372);
     assert(uid == 0x0102);
     assert(gid == 0x0304);
+    // central header
+    assert(ExtraField::parseSimpleUnixField(0x5855, sizeof(data_central), data_central,
+                has_uid_gid, uid, gid, mtime, atime));
+    assert(!has_uid_gid);
+    assert(atime == 0x52C7E372);
+    assert(mtime == 0x51CE6FD4);
+}
+
+/**
+ * Parse Info-ZIP Unix Extra Field (type2)
+ */
+void simple_unix_infozip2() {
+    const zip_uint8_t data_local[] = {
+        0x02, 0x01,
+        0x04, 0x03
+    };
+    const zip_uint8_t data_central[] = {
+    };
+
+    uid_t uid;
+    gid_t gid;
+    // local header
+    assert(ExtraField::parseUnixUidGidField(0x7855, sizeof(data_local), data_local,
+                uid, gid));
+    assert(uid == 0x0102);
+    assert(gid == 0x0304);
+    // central header
+    assert(!ExtraField::parseUnixUidGidField(0x7855, sizeof(data_central), data_central,
+                uid, gid));
 }
 
 /**
  * Parse Info-ZIP New Unix Extra Field
  */
 void simple_unix_infozip_new() {
-    const zip_uint8_t data[] = {
+    const zip_uint8_t data1[] = {
+        1,
+        1, 0x01,
+        1, 0xF1
+    };
+    const zip_uint8_t data4[] = {
         1,
         4, 0x04, 0x03, 0x02, 0x01,
-        4, 0x08, 0x07, 0x06, 0x05
+        4, 0xF8, 0xF7, 0xF6, 0xF5
+    };
+    const zip_uint8_t data16_fit[] = {
+        1,
+        16, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        16, 0xF2, 0xF1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    const zip_uint8_t data16_uid_overflow[] = {
+        1,
+        16, 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08,
+            0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00,
+        16, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8,
+            0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0
+    };
+    const zip_uint8_t data16_gid_overflow[] = {
+        1,
+        16, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        16, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8,
+            0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0
     };
 
-    bool has_atime, has_mtime;
-    time_t atime, mtime;
     uid_t uid;
     gid_t gid;
-    assert(ExtraField::parseSimpleUnixField(0x7875, sizeof(data), data,
-                uid, gid, has_mtime, mtime, has_atime, atime));
-    assert(!has_atime);
-    assert(!has_mtime);
+    // 8-bit
+    assert(ExtraField::parseUnixUidGidField(0x7875, sizeof(data1), data1,
+                uid, gid));
+    assert(uid == 0x01);
+    assert(gid == 0xF1);
+    // 32-bit
+    assert(ExtraField::parseUnixUidGidField(0x7875, sizeof(data4), data4,
+                uid, gid));
     assert(uid == 0x01020304);
-    assert(gid == 0x05060708);
+    assert(gid == 0xF5F6F7F8);
+    // 128-bit fit into uid_t and gid_t
+    assert(ExtraField::parseUnixUidGidField(0x7875, sizeof(data16_fit), data16_fit,
+                uid, gid));
+    assert(uid == 0x0102);
+    assert(gid == 0xF1F2);
+    // 128-bit, UID doesn't fit into uid_t
+    assert(!ExtraField::parseUnixUidGidField(0x7875, sizeof(data16_uid_overflow), data16_uid_overflow,
+                uid, gid));
+    // 128-bit, GID doesn't fit into gid_t
+    assert(!ExtraField::parseUnixUidGidField(0x7875, sizeof(data16_gid_overflow), data16_gid_overflow,
+                uid, gid));
 }
 
 /**
@@ -318,6 +393,7 @@ int main(int, char **) {
     timestamp_create_local_cretime();
 
     simple_unix_pkware();
+    simple_unix_infozip1();
     simple_unix_infozip2();
     simple_unix_infozip_new();
 

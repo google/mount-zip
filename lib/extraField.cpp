@@ -153,23 +153,37 @@ ExtraField::createExtTimeStamp (zip_flags_t location,
 
 bool
 ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
-        const zip_uint8_t *data, uid_t &uid, gid_t &gid,
-        bool &hasMTime, time_t &mtime, bool &hasATime, time_t &atime) {
+        const zip_uint8_t *data,
+        bool &hasUidGid, uid_t &uid, gid_t &gid,
+        time_t &mtime, time_t &atime) {
     const zip_uint8_t *end = data + len;
     switch (type) {
         case FZ_EF_PKWARE_UNIX:
         case FZ_EF_INFOZIP_UNIX1:
-            hasMTime = hasATime = true; 
-            if (data + 12 > end) {
+            hasUidGid = false; 
+            if (data + 8 > end) {
                 return false;
             }
             atime = static_cast<time_t>(getLong(data));
             mtime = static_cast<time_t>(getLong(data));
+            if (data + 4 > end)
+                return true;
+            hasUidGid = true;
             uid = getShort (data);
             gid = getShort (data);
             break;
+        default:
+            return false;
+    }
+    return true;
+}
+
+bool
+ExtraField::parseUnixUidGidField (zip_uint16_t type, zip_uint16_t len,
+        const zip_uint8_t *data, uid_t &uid, gid_t &gid) {
+    const zip_uint8_t *end = data + len;
+    switch (type) {
         case FZ_EF_INFOZIP_UNIX2:
-            hasMTime = hasATime = false; 
             if (data + 4 > end) {
                 return false;
             }
@@ -178,7 +192,6 @@ ExtraField::parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
             break;
         case FZ_EF_INFOZIP_UNIXN: {
             const zip_uint8_t *p;
-            hasMTime = hasATime = false; 
             // version
             if (len < 1) {
                 return false;

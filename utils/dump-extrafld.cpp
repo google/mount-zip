@@ -65,7 +65,6 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
 
         case FZ_EF_PKWARE_UNIX:
         case FZ_EF_INFOZIP_UNIX1:
-        case FZ_EF_INFOZIP_UNIX2:
         {
             switch (id)
             {
@@ -75,28 +74,33 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
                 case FZ_EF_INFOZIP_UNIX1:
                     printf("    Info-ZIP Unix v1\n");
                     break;
-                case FZ_EF_INFOZIP_UNIX2:
-                    printf("    Info-ZIP Unix v2\n");
-                    break;
             }
-            if (central)
-                break;
-            bool has_mtime, has_atime;
+            bool has_uid_gid;
             time_t mtime, atime;
             uid_t uid;
             gid_t gid;
-            bool res = ExtraField::parseSimpleUnixField(id, len, field, uid, gid, has_mtime, mtime, has_atime, atime);
+            bool res = ExtraField::parseSimpleUnixField(id, len, field, has_uid_gid, uid, gid, mtime, atime);
             if (!res) {
                 printf("      parse failed\n");
                 break;
             }
+            if (has_uid_gid) {
             printf("      UID %u\n", uid);
             printf("      GID %u\n", gid);
-            if (has_atime) {
-                print_time("atime:   ", atime);
             }
-            if (has_mtime) {
-                print_time("mtime:   ", mtime);
+                print_time("atime:   ", atime);
+            print_time("mtime:   ", mtime);
+            break;
+            }
+
+        case FZ_EF_INFOZIP_UNIX2:
+        {
+            printf("    Info-ZIP Unix v2\n");
+            uid_t uid;
+            gid_t gid;
+            if (ExtraField::parseUnixUidGidField(id, len, field, uid, gid)) {
+                printf("      UID %u\n", uid);
+                printf("      GID %u\n", gid);
             }
             break;
         }
