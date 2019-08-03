@@ -370,9 +370,20 @@ void FileNode::processExternalAttributes () {
     assert(_id >= 0);
     assert (zip != NULL);
     zip_file_get_external_attributes(zip, id(), 0, &opsys, &attr);
+
+    mode_t unix_mode = attr >> 16;
+    /*
+     * PKWARE describes "OS made by" now (since 1998) as follows:
+     * The upper byte indicates the compatibility of the file attribute
+     * information.  If the external file attributes are compatible with MS-DOS
+     * and can be read by PKZIP for DOS version 2.04g then this value will be
+     * zero.
+     */
+    if (opsys == ZIP_OPSYS_DOS && (unix_mode & S_IFMT) != 0)
+        opsys = ZIP_OPSYS_UNIX;
     switch (opsys) {
         case ZIP_OPSYS_UNIX: {
-            m_mode = attr >> 16;
+            m_mode = unix_mode;
             // force is_dir value
             if (is_dir) {
                 m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFDIR;

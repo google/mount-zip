@@ -186,13 +186,24 @@ int main(int argc, char **argv) {
             default:
                 opsys_s = "unknown";
         }
-        printf("%s\t(opsys %s (%d), mode1 0%06lo, mode2 0x%04X):\n",
-                zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, (unsigned long)attr >> 16, attr & 0xffff);
+        unsigned int unix_mode = attr >> 16;
+        printf("%s\t(opsys: %s (%d), mode1: 0%06o, mode2: 0x%04X):\n",
+                zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, unix_mode, attr & 0xffff);
+
+        /*
+         * PKWARE describes "OS made by" now (since 1998) as follows:
+         * The upper byte indicates the compatibility of the file attribute
+         * information.  If the external file attributes are compatible with
+         * MS-DOS and can be read by PKZIP for DOS version 2.04g then this
+         * value will be zero.
+         */
+        if (opsys == ZIP_OPSYS_DOS && (unix_mode & S_IFMT) != 0)
+            opsys = ZIP_OPSYS_UNIX;
         switch (opsys)
         {
             case ZIP_OPSYS_UNIX:
             {
-                int mode = attr >> 16;
+                unsigned int mode = unix_mode;
                 printf("  type: ");
                 switch (mode & S_IFMT)
                 {
