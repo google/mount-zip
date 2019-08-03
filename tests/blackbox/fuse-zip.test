@@ -2693,10 +2693,12 @@ namespace eval ::fusezip::test {
         use data/fifo.zip
         mount -r
 
+        assert {[file type $mountdir/fifo] eq "file"}
         set f [open $mountdir/fifo r]
         set content1 [read $f]
         close $f
 
+        assert {[file type $mountdir/-] eq "file"}
         set f [open $mountdir/- r]
         set content2 [read $f]
         close $f
