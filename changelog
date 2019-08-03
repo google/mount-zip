@@ -1,3 +1,9 @@
+2019-08-03 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.6.2:
+	- Fixed parsing of Info-Zip New Unix extra field if size of UID or GID
+	is less than size of uid_t or gid_t.
+
 2019-07-17 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.6.1:
