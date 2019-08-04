@@ -22,12 +22,14 @@
 #include <cassert>
 #include <cerrno>
 #include <climits>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <limits>
+#include <memory>
 #include <stdexcept>
-#include <stdint.h>
+
 #include <syslog.h>
 
 #include "fileNode.h"
@@ -563,21 +565,35 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
     assert(_id >= 0);
     assert (zip != NULL);
     for (unsigned int loc = 0; loc < sizeof(locations) / sizeof(locations[0]); ++loc) {
+        std::unique_ptr<zip_uint8_t[]> ntfs_field;
+        zip_uint16_t ntfs_field_len;
+
         // remove old extra fields
         zip_int16_t count = zip_file_extra_fields_count (zip, id(),
                 locations[loc]);
         const zip_uint8_t *field;
         for (zip_int16_t i = count; i >= 0; --i) {
             zip_uint16_t type;
+            zip_uint16_t len;
             field = zip_file_extra_field_get (zip, id(), static_cast<zip_uint16_t>(i), &type,
-                    NULL, locations[loc]);
+                    &len, locations[loc]);
+            if (field == NULL)
+                continue;
             // FZ_EF_PKWARE_UNIX not removed because can contain extra data
             // that currently not handled by fuse-zip
-            if (field != NULL && (type == FZ_EF_TIMESTAMP ||
-                        type == FZ_EF_NTFS ||
+            if (type == FZ_EF_TIMESTAMP ||
                         type == FZ_EF_INFOZIP_UNIX1 ||
                         type == FZ_EF_INFOZIP_UNIX2 ||
-                        type == FZ_EF_INFOZIP_UNIXN)) {
+                        type == FZ_EF_INFOZIP_UNIXN) {
+                zip_file_extra_field_delete (zip, id(), static_cast<zip_uint16_t>(i),
+                        locations[loc]);
+            }
+            if (type == FZ_EF_NTFS) {
+                // back up previous field content
+                ntfs_field_len = len;
+                ntfs_field.reset(new zip_uint8_t[len + FZ_EF_NTFS_TIMESTAMP_LENGTH]);
+                memcpy(ntfs_field.get(), field, len);
+
                 zip_file_extra_field_delete (zip, id(), static_cast<zip_uint16_t>(i),
                         locations[loc]);
             }
@@ -596,8 +612,13 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
         // add high-precision timestamps
         if (has_cretime || force_precise_time)
         {
-            field = ExtraField::createNtfsExtraField (locations[loc], m_mtime,
-                    m_atime, m_cretime, len);
+            if (ntfs_field) {
+                len = ExtraField::editNtfsExtraField(ntfs_field_len, ntfs_field.get(),
+                        m_mtime, m_atime, m_cretime);
+                field = ntfs_field.get();
+            } else {
+                field = ExtraField::createNtfsExtraField (m_mtime, m_atime, m_cretime, len);
+            }
             res = zip_file_extra_field_set (zip, id(), FZ_EF_NTFS,
                     ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
             if (res != 0) {

@@ -6,8 +6,6 @@
 #include <cstring>
 #include <cerrno>
 
-#include "common.h"
-
 #define private public
 
 #include "extraField.h"
@@ -305,7 +303,6 @@ void infozip_unix_new_create () {
 /**
  * Parse NTFS Extra Field
  */
-
 void ntfs_extra_field_parse() {
     const zip_uint8_t data[] = {
         0x00, 0x00, 0x00, 0x00, // reserved
@@ -359,8 +356,160 @@ void ntfs_extra_field_create() {
     btime.tv_sec  = 0;
     btime.tv_nsec = 0xFF * 100;
 
-    data = ExtraField::createNtfsExtraField(ZIP_FL_LOCAL, mtime, atime, btime, len);
+    data = ExtraField::createNtfsExtraField(mtime, atime, btime, len);
     assert(data != NULL);
+    assert(len == sizeof(expected));
+    for (unsigned int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
+
+    struct timespec mtime2, atime2, btime2;
+    assert(ExtraField::parseNtfsExtraField(len, data,
+                mtime2, atime2, btime2));
+
+    assert(mtime.tv_sec  == mtime2.tv_sec);
+    assert(mtime.tv_nsec == mtime2.tv_nsec);
+    assert(atime.tv_sec  == atime2.tv_sec);
+    assert(atime.tv_nsec == atime2.tv_nsec);
+    assert(btime.tv_sec  == btime2.tv_sec);
+    assert(btime.tv_nsec == btime2.tv_nsec);
+}
+
+/**
+ * Edit NTFS Extra Field
+ */
+void ntfs_extra_field_edit_replace() {
+    struct timespec mtime, atime, btime;
+    zip_uint8_t data[] = {
+        0x12, 0x34, 0x56, 0x78, // reserved
+        0x01, 0x00, // tag 1
+        0x18, 0x00, // size
+        0x00, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01, // ctime
+        0x00, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01, // atime
+        0x00, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01, // btime
+        0xEF, 0xDC, // unknown tag
+        0x03, 0x00, // size
+        0x01, 0x02, 0x03, // unhandled data
+        0x01, 0x00, // tag 1 (again)
+        0x18, 0x00, // size
+        0x1B, 0xFA, 0x1F, 0x5E, 0xF3, 0x21, 0xD5, 0x01, // ctime
+        0x87, 0xCB, 0xA9, 0x32, 0x33, 0x8E, 0xC9, 0x01, // atime
+        0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01  // btime
+    };
+    const zip_uint8_t expected[] = {
+        0x12, 0x34, 0x56, 0x78, // reserved
+        0xEF, 0xDC, // unknown tag
+        0x03, 0x00, // size
+        0x01, 0x02, 0x03, // unhandled data
+        0x01, 0x00, // tag 1
+        0x18, 0x00, // size
+        0xFF, 0x60, 0x4A, 0x5E, 0xF3, 0x21, 0xD5, 0x01, // mtime
+        0x87, 0xCB, 0xA9, 0x32, 0x33, 0x8E, 0xC9, 0x01, // atime
+        0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01  // btime
+    };
+
+    mtime.tv_sec  = 1560435721;
+    mtime.tv_nsec = 999999900;
+    atime.tv_sec  = 1234567890;
+    atime.tv_nsec = 123456700;
+    btime.tv_sec  = 0;
+    btime.tv_nsec = 0xFF * 100;
+
+    uint16_t len = ExtraField::editNtfsExtraField(sizeof(data), data, mtime, atime, btime);
+    assert(len == sizeof(expected));
+    for (unsigned int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
+
+    struct timespec mtime2, atime2, btime2;
+    assert(ExtraField::parseNtfsExtraField(len, data,
+                mtime2, atime2, btime2));
+
+    assert(mtime.tv_sec  == mtime2.tv_sec);
+    assert(mtime.tv_nsec == mtime2.tv_nsec);
+    assert(atime.tv_sec  == atime2.tv_sec);
+    assert(atime.tv_nsec == atime2.tv_nsec);
+    assert(btime.tv_sec  == btime2.tv_sec);
+    assert(btime.tv_nsec == btime2.tv_nsec);
+}
+
+void ntfs_extra_field_edit_add() {
+}
+
+void ntfs_extra_field_edit_incomplete_reserved() {
+    struct timespec mtime, atime, btime;
+    zip_uint8_t data[] = {
+        0x12, 0x34, 0x56, /* END */ 0x78, // reserved
+        0x00, 0x00, // tag 1
+        0x00, 0x00, // size
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // ctime
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // atime
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // btime
+    };
+    const zip_uint8_t expected[] = {
+        0x00, 0x00, 0x00, 0x00, // reserved
+        0x01, 0x00, // tag 1
+        0x18, 0x00, // size
+        0xFF, 0x60, 0x4A, 0x5E, 0xF3, 0x21, 0xD5, 0x01, // mtime
+        0x87, 0xCB, 0xA9, 0x32, 0x33, 0x8E, 0xC9, 0x01, // atime
+        0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01  // btime
+    };
+
+    mtime.tv_sec  = 1560435721;
+    mtime.tv_nsec = 999999900;
+    atime.tv_sec  = 1234567890;
+    atime.tv_nsec = 123456700;
+    btime.tv_sec  = 0;
+    btime.tv_nsec = 0xFF * 100;
+
+    uint16_t len = ExtraField::editNtfsExtraField(3, data, mtime, atime, btime);
+    assert(len == sizeof(expected));
+    for (unsigned int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
+
+    struct timespec mtime2, atime2, btime2;
+    assert(ExtraField::parseNtfsExtraField(len, data,
+                mtime2, atime2, btime2));
+
+    assert(mtime.tv_sec  == mtime2.tv_sec);
+    assert(mtime.tv_nsec == mtime2.tv_nsec);
+    assert(atime.tv_sec  == atime2.tv_sec);
+    assert(atime.tv_nsec == atime2.tv_nsec);
+    assert(btime.tv_sec  == btime2.tv_sec);
+    assert(btime.tv_nsec == btime2.tv_nsec);
+}
+
+void ntfs_extra_field_edit_incomplete_tag() {
+    struct timespec mtime, atime, btime;
+    zip_uint8_t data[] = {
+        0x12, 0x34, 0x56, 0x78, // reserved
+        0xEF, 0xDC, // unknown tag
+        0x03, 0x00, // size
+        0x01, /* END */ 0x02, 0x03, // unhandled data
+        0x00, 0x00, // tag 1
+        0x00, 0x00, // size
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // ctime
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // atime
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // btime
+    };
+    const zip_uint8_t expected[] = {
+        0x12, 0x34, 0x56, 0x78, // reserved
+        0x01, 0x00, // tag 1
+        0x18, 0x00, // size
+        0xFF, 0x60, 0x4A, 0x5E, 0xF3, 0x21, 0xD5, 0x01, // mtime
+        0x87, 0xCB, 0xA9, 0x32, 0x33, 0x8E, 0xC9, 0x01, // atime
+        0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01  // btime
+    };
+
+    mtime.tv_sec  = 1560435721;
+    mtime.tv_nsec = 999999900;
+    atime.tv_sec  = 1234567890;
+    atime.tv_nsec = 123456700;
+    btime.tv_sec  = 0;
+    btime.tv_nsec = 0xFF * 100;
+
+    uint16_t len = ExtraField::editNtfsExtraField(9, data, mtime, atime, btime);
     assert(len == sizeof(expected));
     for (unsigned int i = 0; i < len; ++i) {
         assert(data[i] == expected[i]);
@@ -401,6 +550,10 @@ int main(int, char **) {
 
     ntfs_extra_field_parse();
     ntfs_extra_field_create();
+    ntfs_extra_field_edit_replace();
+    ntfs_extra_field_edit_add();
+    ntfs_extra_field_edit_incomplete_reserved();
+    ntfs_extra_field_edit_incomplete_tag();
 
     return EXIT_SUCCESS;
 }

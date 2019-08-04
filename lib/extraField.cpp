@@ -20,6 +20,7 @@
 #include "extraField.h"
 
 #include <cassert>
+#include <cstring>
 
 static const uint64_t NTFS_TO_UNIX_OFFSET = ((uint64_t)(369 * 365 + 89) * 24 * 3600 * 10000000);
 
@@ -322,6 +323,16 @@ struct NtfsExtraFieldFull
     uint64_t atime;
     uint64_t btime;
 };
+
+struct NtfsExtraFieldTag
+{
+    uint16_t tag;
+    uint16_t size;
+
+    uint64_t mtime;
+    uint64_t atime;
+    uint64_t btime;
+};
 #pragma pack(pop)
 
 inline static uint64_t timespec2ntfs(const timespec &ts) {
@@ -331,11 +342,8 @@ inline static uint64_t timespec2ntfs(const timespec &ts) {
 }
 
 const zip_uint8_t *
-ExtraField::createNtfsExtraField (zip_flags_t location,
-        const timespec &mtime, const timespec &atime, const timespec &btime,
-        zip_uint16_t &len) {
-    assert(location == ZIP_FL_LOCAL || location == ZIP_FL_CENTRAL);
-
+ExtraField::createNtfsExtraField (const timespec &mtime,
+        const timespec &atime, const timespec &btime, zip_uint16_t &len) {
     len = sizeof(NtfsExtraFieldFull);
     static NtfsExtraFieldFull data;
 
@@ -348,4 +356,56 @@ ExtraField::createNtfsExtraField (zip_flags_t location,
     data.btime = le_64(timespec2ntfs(btime));
 
     return reinterpret_cast<zip_uint8_t*>(&data);
+}
+
+zip_uint16_t
+ExtraField::editNtfsExtraField (zip_uint16_t len, zip_uint8_t *data,
+        const timespec &mtime, const timespec &atime, const timespec &btime) {
+    zip_uint8_t *orig = data;
+    zip_uint8_t *dest = data;
+    const zip_uint8_t *end = data + len;
+    if (data + 4 > end) {
+        // incomplete 'reserved' field - re-create
+        NtfsExtraFieldFull *out = reinterpret_cast<NtfsExtraFieldFull*>(dest);
+        out->reserved = 0;
+        out->tag = le_16(0x0001);
+        out->size = le_16(24);
+
+        out->mtime = le_64(timespec2ntfs(mtime));
+        out->atime = le_64(timespec2ntfs(atime));
+        out->btime = le_64(timespec2ntfs(btime));
+
+        return static_cast<zip_uint16_t>(sizeof(*out));
+    }
+    // skip 'Reserved' field
+    data += 4;
+    dest += 4;
+
+    while (data + 4 < end) {
+        // use only header fields
+        NtfsExtraFieldTag *in = reinterpret_cast<NtfsExtraFieldTag*>(data);
+        zip_uint16_t tag = le_16(in->tag);
+        zip_uint16_t size = le_16(in->size);
+        if (data + 4 + size > end)
+            break;
+
+        if (tag != 0x0001) {
+            // copy tag content
+            memmove(dest, data, 4U + size);
+            dest += 4 + size;
+        }
+        data += 4 + size;
+    }
+    // fill tag 0001
+    NtfsExtraFieldTag *out = reinterpret_cast<NtfsExtraFieldTag*>(dest);
+    out->tag = le_16(0x0001);
+    out->size = le_16(24);
+
+    out->mtime = le_64(timespec2ntfs(mtime));
+    out->atime = le_64(timespec2ntfs(atime));
+    out->btime = le_64(timespec2ntfs(btime));
+
+    dest += sizeof(*out);
+
+    return static_cast<zip_uint16_t>(dest - orig);
 }

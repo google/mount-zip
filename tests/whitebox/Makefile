@@ -1,4 +1,4 @@
-CXXFLAGS=-g -O2 -Wall -Wextra -Werror
+CXXFLAGS=-g -O2 -Wall -Wextra -Werror -std=c++11
 FUSEFLAGS=$(shell pkg-config fuse --cflags)
 ZIPFLAGS=$(shell pkg-config libzip --cflags)
 VALGRIND=valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33

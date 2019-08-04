@@ -55,11 +55,6 @@ const char *zip_get_file_comment(struct zip *, int, int *, int) {
     return NULL;
 }
 
-const char *zip_get_name(struct zip *, int, int) {
-    assert(false);
-    return NULL;
-}
-
 int zip_name_locate(struct zip *, const char *, int) {
     assert(false);
     return 0;
