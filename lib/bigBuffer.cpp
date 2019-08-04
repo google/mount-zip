@@ -331,10 +331,10 @@ int BigBuffer::saveToZip(time_t mtime, struct zip *z, const char *fname,
     } else {
         assert(index >= 0);
         if (zip_file_replace(z, static_cast<zip_uint64_t>(index), s, ZIP_FL_ENC_GUESS) < 0) {
-        delete cbs;
-        zip_source_free(s);
-        return -ENOMEM;
-    }
+            delete cbs;
+            zip_source_free(s);
+            return -ENOMEM;
+        }
     }
     return 0;
 }
