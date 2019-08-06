@@ -252,7 +252,7 @@ int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
 }
 
 int fusezip_mknod(const char *path, mode_t mode, dev_t dev) {
-    if (S_ISFIFO(mode) || S_ISSOCK(mode)) {
+    if (S_ISFIFO(mode)) {
         return -EPERM;
     }
     if (*path == '\0') {

@@ -2724,7 +2724,7 @@ namespace eval ::fusezip::test {
         umount
     }
 
-    fstest special-device-create {read device nodes from archive} {
+    fstest special-device-create {create and save device node} {
         mount -o allow_root
 
         exec sudo mknod $mountdir/block b 8 255
@@ -2751,6 +2751,31 @@ namespace eval ::fusezip::test {
 
         umount
     } sudo
+
+    fstest special-socket-read {read socket from archive} {
+        use data/pkware-specials.zip
+
+        mount -r
+
+        assert {[file type $mountdir/socket] eq "socket"}
+
+        umount
+    }
+
+    fstest special-socket-create {create and save socket} {
+        mount
+
+        set p [exec socat UNIX-LISTEN:$mountdir/socket,unlink-close=0 - &]
+        exec socat - UNIX-CONNECT:$mountdir/socket << ""
+        wait $p
+        assert {[file type $mountdir/socket] eq "socket"} "socket not created"
+
+        umount
+
+        mount
+        assert {[file type $mountdir/socket] eq "socket"} "socket not read"
+        umount
+    }
 
     finalize
 }
