@@ -68,11 +68,8 @@ static const zip_uint8_t *createExtTimeStamp (zip_flags_t location,
         zip_uint16_t &len);
 
 /**
- * Parse simple UNIX LOCAL extra field to extract UID/GID and (maybe)
- * timestamps:
- *  000D    PKWARE Unix Extra Field
- *  5855    Info-ZIP Unix Extra Field (type 1)
- * Variable part of 000D are currently ignored
+ * Parse Info-ZIP UNIX extra field (5855) to extract UID/GID and (maybe)
+ * timestamps.
  *
  * @param type extended field type ID
  * @param len field length in bytes
@@ -103,6 +100,29 @@ static bool parseSimpleUnixField (zip_uint16_t type, zip_uint16_t len,
  */
 static bool parseUnixUidGidField (zip_uint16_t type, zip_uint16_t len,
         const zip_uint8_t *data, uid_t &uid, gid_t &gid);
+
+/**
+ * Parse PKWARE Unix Extra Field (000D). If file is a device (character or
+ * block) then device inor-major numbers are extracted into 'dev' parameter.
+ * For symbolic links and regular files link target pointer is extracted into
+ * 'link_target' field and 'link_target_len' variables.
+ *
+ * @param type extended field type ID
+ * @param len field length in bytes
+ * @param data field data
+ * @param mode UNIX file mode
+ * @param mtime (OUT) file modification time if present
+ * @param atime (OUT) file access time if present
+ * @param uid (OUT) UID
+ * @param gid (OUT) GID
+ * @param dev (OUT) device major/minor numbers
+ * @param link_target (OUT) pointer to a first byte of hard/symbolic link target
+ * @param link_target_len (OUT) length of hard/symbolic link target
+ * @return successful completion flag
+ */
+static bool parsePkWareUnixField(zip_uint16_t len, const zip_uint8_t *data, mode_t mode,
+        time_t &mtime, time_t &atime, uid_t &uid, gid_t &gid, dev_t &dev,
+        const char *&link_target, zip_uint16_t &link_target_len);
 
 /**
  * Parse NTFS Extra FIeld

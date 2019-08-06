@@ -1,10 +1,13 @@
 #include "../config.h"
 
-#include <zip.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <cstring>
+#include <cassert>
 #include <cerrno>
+#include <cstdlib>
+#include <cstring>
+
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
+#include <zip.h>
 
 #define private public
 
@@ -129,33 +132,94 @@ void timestamp_create_local_cretime () {
 }
 
 /**
- * Parse PKWARE Unix Extra Field
+ * Parse PKWARE Unix Extra Field - regular file
  */
-void simple_unix_pkware() {
+void unix_pkware_regular() {
     const zip_uint8_t data[] = {
-        0xD4, 0x6F, 0xCE, 0x51,
-        0x72, 0xE3, 0xC7, 0x52,
-        0x02, 0x01,
-        0x04, 0x03
+        0xD4, 0x6F, 0xCE, 0x51, // atime
+        0x72, 0xE3, 0xC7, 0x52, // mtime
+        0x02, 0x01,             // UID
+        0x04, 0x03              // GID
     };
 
-    bool has_uid_gid;
     time_t atime, mtime;
     uid_t uid;
     gid_t gid;
-    assert(ExtraField::parseSimpleUnixField(0x000D, sizeof(data), data,
-                has_uid_gid, uid, gid, mtime, atime));
-    assert(has_uid_gid);
+    dev_t dev;
+    const char *link;
+    uint16_t link_len;
+    assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFREG | 0666,
+                mtime, atime, uid, gid, dev, link, link_len));
     assert(atime == 0x51CE6FD4);
     assert(mtime == 0x52C7E372);
     assert(uid == 0x0102);
     assert(gid == 0x0304);
+    assert(dev == 0);
+    assert(link_len == 0);
+}
+
+/**
+ * Parse PKWARE Unix Extra Field - block device
+ */
+void unix_pkware_device() {
+    const zip_uint8_t data[] = {
+        0xC8, 0x76, 0x45, 0x5D, // atime
+        0xC8, 0x76, 0x45, 0x5D, // mtime
+        0x00, 0x00,             // UID
+        0x06, 0x00,             // GID
+        0x08, 0x00, 0x00, 0x00, // major
+        0x01, 0x00, 0x00, 0x00  // minor
+    };
+
+    time_t atime, mtime;
+    uid_t uid;
+    gid_t gid;
+    dev_t dev;
+    const char *link;
+    uint16_t link_len;
+    assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFBLK | 0666,
+                mtime, atime, uid, gid, dev, link, link_len));
+    assert(atime == 0x5D4576C8);
+    assert(mtime == 0x5D4576C8);
+    assert(uid == 0x0000);
+    assert(gid == 0x0006);
+    assert(dev == makedev(8, 1));
+    assert(link_len == 0);
+}
+
+/**
+ * Parse PKWARE Unix Extra Field - symlink
+ */
+void unix_pkware_link() {
+    const zip_uint8_t data[] = {
+        0xF3, 0x73, 0x49, 0x5D, // atime
+        0xA9, 0x7B, 0x45, 0x5D, // mtime
+        0xE8, 0x03,             // UID
+        0xE8, 0x03,             // GID
+        0x72, 0x65, 0x67, 0x75, 0x6C, 0x61, 0x72 // link target
+    };
+
+    time_t atime, mtime;
+    uid_t uid;
+    gid_t gid;
+    dev_t dev;
+    const char *link;
+    uint16_t link_len;
+    assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFLNK | 0777,
+                mtime, atime, uid, gid, dev, link, link_len));
+    assert(atime == 0x5D4973F3);
+    assert(mtime == 0x5D457BA9);
+    assert(uid == 1000);
+    assert(gid == 1000);
+    assert(dev == 0);
+    assert(link_len == 7);
+    assert(strncmp(link, "regular", link_len) == 0);
 }
 
 /**
  * Parse Info-ZIP Unix Extra Field (type1)
  */
-void simple_unix_infozip1() {
+void unix_infozip1() {
     const zip_uint8_t data_local[] = {
         0xD4, 0x6F, 0xCE, 0x51,
         0x72, 0xE3, 0xC7, 0x52,
@@ -190,7 +254,7 @@ void simple_unix_infozip1() {
 /**
  * Parse Info-ZIP Unix Extra Field (type2)
  */
-void simple_unix_infozip2() {
+void unix_infozip2() {
     const zip_uint8_t data_local[] = {
         0x02, 0x01,
         0x04, 0x03
@@ -213,7 +277,7 @@ void simple_unix_infozip2() {
 /**
  * Parse Info-ZIP New Unix Extra Field
  */
-void simple_unix_infozip_new() {
+void unix_infozip_new() {
     const zip_uint8_t data1[] = {
         1,
         1, 0x01,
@@ -298,6 +362,12 @@ void infozip_unix_new_create () {
     for (unsigned int i = 0; i < sizeof(expected); ++i) {
         assert(data[i] == expected[i]);
     }
+}
+
+/**
+ * Create PKWARE Unix Extra Field
+ */
+void pkware_create () {
 }
 
 /**
@@ -541,12 +611,16 @@ int main(int, char **) {
     timestamp_create_local();
     timestamp_create_local_cretime();
 
-    simple_unix_pkware();
-    simple_unix_infozip1();
-    simple_unix_infozip2();
-    simple_unix_infozip_new();
+    unix_pkware_regular();
+    unix_pkware_device();
+    unix_pkware_link();
+
+    unix_infozip1();
+    unix_infozip2();
+    unix_infozip_new();
 
     infozip_unix_new_create();
+    pkware_create();
 
     ntfs_extra_field_parse();
     ntfs_extra_field_create();

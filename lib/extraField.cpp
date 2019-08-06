@@ -19,6 +19,9 @@
 
 #include "extraField.h"
 
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
+
 #include <cassert>
 #include <cstring>
 
@@ -246,6 +249,43 @@ ExtraField::parseUnixUidGidField (zip_uint16_t type, zip_uint16_t len,
         default:
             return false;
     }
+    return true;
+}
+
+bool
+ExtraField::parsePkWareUnixField(zip_uint16_t len, const zip_uint8_t *data, mode_t mode,
+        time_t &mtime, time_t &atime, uid_t &uid, gid_t &gid, dev_t &dev,
+        const char *&link_target, zip_uint16_t &link_target_len) {
+    const zip_uint8_t *end = data + len;
+
+    if (data + 12 > end) {
+        return false;
+    }
+    atime = static_cast<time_t>(getLong(data));
+    mtime = static_cast<time_t>(getLong(data));
+    uid = getShort (data);
+    gid = getShort (data);
+
+    // variable data field
+    dev = 0;
+    link_target = NULL;
+    link_target_len = 0;
+    if (S_ISBLK(mode) || S_ISCHR(mode)) {
+        if (data + 8 > end)
+            return false;
+        
+        unsigned int maj, min;
+        maj = static_cast<unsigned int>(getLong(data));
+        min = static_cast<unsigned int>(getLong(data));
+
+        dev = makedev(maj, min);
+        link_target = NULL;
+        link_target_len = 0;
+    } else {
+        link_target = reinterpret_cast<const char*>(data);
+        link_target_len = static_cast<zip_uint16_t>(len - 12);
+    }
+
     return true;
 }
 

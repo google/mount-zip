@@ -4,6 +4,7 @@
 #include <zip.h>
 
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #include "lib/extraField.h"
 
@@ -35,7 +36,8 @@ void print_time (const char *label, time_t time) {
     print_time(label, ts);
 }
 
-void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, bool central) {
+void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field,
+        bool central, mode_t mode) {
     const zip_uint8_t *end = field + len;
     for (const zip_uint8_t *f = field; f < end; ++f) {
         printf("0x%02X, ", *f);
@@ -64,17 +66,36 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
         }
 
         case FZ_EF_PKWARE_UNIX:
+        {
+            printf("    PKWare Unix\n");
+            time_t atime, mtime;
+            uid_t uid;
+            gid_t gid;
+            dev_t dev;
+            const char *link;
+            uint16_t link_len;
+            bool res = ExtraField::parsePkWareUnixField(len, field, mode, mtime, atime,
+                    uid, gid, dev, link, link_len);
+            if (!res) {
+                printf("      parse failed\n");
+                break;
+            }
+            print_time("atime:   ", atime);
+            print_time("mtime:   ", mtime);
+            printf("      UID %u\n", uid);
+            printf("      GID %u\n", gid);
+            if (S_ISBLK(mode) || S_ISCHR(mode)) {
+                printf("      device: %u, %u\n", major(dev), minor(dev));
+            }
+            if (link_len > 0) {
+                printf("      link target: %*s\n", link_len, link);
+            }
+            break;
+        }
+
         case FZ_EF_INFOZIP_UNIX1:
         {
-            switch (id)
-            {
-                case FZ_EF_PKWARE_UNIX:
-                    printf("    PKWare Unix\n");
-                    break;
-                case FZ_EF_INFOZIP_UNIX1:
-                    printf("    Info-ZIP Unix v1\n");
-                    break;
-            }
+            printf("    Info-ZIP Unix v1\n");
             bool has_uid_gid;
             time_t mtime, atime;
             uid_t uid;
@@ -85,13 +106,13 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field, 
                 break;
             }
             if (has_uid_gid) {
-            printf("      UID %u\n", uid);
-            printf("      GID %u\n", gid);
+                printf("      UID %u\n", uid);
+                printf("      GID %u\n", gid);
             }
-                print_time("atime:   ", atime);
+            print_time("atime:   ", atime);
             print_time("mtime:   ", mtime);
             break;
-            }
+        }
 
         case FZ_EF_INFOZIP_UNIX2:
         {
@@ -403,13 +424,13 @@ int main(int argc, char **argv) {
             zip_uint16_t id, len;
             const zip_uint8_t *field = zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
             printf("  0x%04X len=%d central: ", id, len);
-            dump_extrafld(id, len, field, true);
+            dump_extrafld(id, len, field, true, static_cast<mode_t>(unix_mode));
         }
         for (zip_int16_t j = 0; j < zip_file_extra_fields_count(z, i, ZIP_FL_LOCAL); ++j) {
             zip_uint16_t id, len;
             const zip_uint8_t *field = zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_LOCAL);
             printf("  0x%04X len=%d local: ", id, len);
-            dump_extrafld(id, len, field, false);
+            dump_extrafld(id, len, field, false, static_cast<mode_t>(unix_mode));
         }
     }
 
