@@ -365,9 +365,73 @@ void infozip_unix_new_create () {
 }
 
 /**
- * Create PKWARE Unix Extra Field
+ * Create PKWARE Unix Extra Field - regular file
  */
-void pkware_create () {
+void pkware_create_regular () {
+    zip_uint8_t expected[] = {
+        0xD4, 0x6F, 0xCE, 0x51, // atime
+        0x72, 0xE3, 0xC7, 0x52, // mtime
+        0x02, 0x01,             // UID
+        0x04, 0x03              // GID
+    };
+
+    zip_uint16_t len;
+    const zip_uint8_t *data;
+
+    time_t atime, mtime;
+    uid_t uid;
+    gid_t gid;
+    dev_t dev;
+
+    atime = 0x51CE6FD4;
+    mtime = 0x52C7E372;
+    uid = 0x0102;
+    gid = 0x0304;
+    dev = 0;
+
+    data = ExtraField::createPkWareUnixField(mtime, atime, S_IFREG | 0666,
+            uid, gid, dev, len);
+    assert(data != NULL);
+    assert(len == sizeof(expected));
+    for (int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
+}
+
+/**
+ * Create PKWARE Unix Extra Field - device
+ */
+void pkware_create_device () {
+    zip_uint8_t expected[] = {
+        0xD4, 0x6F, 0xCE, 0x51, // atime
+        0x72, 0xE3, 0xC7, 0x52, // mtime
+        0x02, 0x01,             // UID
+        0x04, 0x03,             // GID
+        0x34, 0x12, 0x00, 0x00, // device major
+        0x78, 0x56, 0x00, 0x00  // device minor
+    };
+
+    zip_uint16_t len;
+    const zip_uint8_t *data;
+
+    time_t atime, mtime;
+    uid_t uid;
+    gid_t gid;
+    dev_t dev;
+
+    atime = 0x51CE6FD4;
+    mtime = 0x52C7E372;
+    uid = 0x0102;
+    gid = 0x0304;
+    dev = makedev(0x1234, 0x5678);
+
+    data = ExtraField::createPkWareUnixField(mtime, atime, S_IFCHR | 0666,
+            uid, gid, dev, len);
+    assert(data != NULL);
+    assert(len == sizeof(expected));
+    for (int i = 0; i < len; ++i) {
+        assert(data[i] == expected[i]);
+    }
 }
 
 /**
@@ -620,7 +684,9 @@ int main(int, char **) {
     unix_infozip_new();
 
     infozip_unix_new_create();
-    pkware_create();
+
+    pkware_create_regular();
+    pkware_create_device();
 
     ntfs_extra_field_parse();
     ntfs_extra_field_create();

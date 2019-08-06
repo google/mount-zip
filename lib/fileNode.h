@@ -80,7 +80,7 @@ public:
      * Create new regular file
      */
     static FileNode *createFile(struct zip *zip, const char *fname,
-            uid_t owner, gid_t group, mode_t mode);
+            uid_t owner, gid_t group, mode_t mode, dev_t dev = 0);
     /**
      * Create new symbolic link
      */

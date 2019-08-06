@@ -3,6 +3,9 @@
 #include <zip.h>
 #include <fuse.h>
 
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
+
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -188,29 +191,47 @@ void test_mknod () {
     void *initResult = fusezip_init(&conn);
     assert(initResult == data);
 
-    dev_t dev = 0;
-
     // empty path
-    assert(fusezip_mknod("", 0, dev) == -EACCES);
-    // character device
-    assert(fusezip_mknod("/test", S_IFCHR, dev) == -EPERM);
-    // block device
-    assert(fusezip_mknod("/test", S_IFBLK, dev) == -EPERM);
+    assert(fusezip_mknod("", 0, 0) == -EACCES);
+    {
+        // character device
+        dev_t dev = makedev(4, 63);
+        assert(fusezip_mknod("/char", S_IFCHR, dev) == 0);
+        FileNode *node = data->find("char");
+        assert(node != NULL);
+        assert(S_ISCHR(node->m_mode));
+        assert(node->m_device == dev);
+
+        assert(fusezip_unlink("/char") == 0);
+    }
+    {
+        // block device
+        dev_t dev = makedev(8, 255);
+        assert(fusezip_mknod("/block", S_IFBLK, dev) == 0);
+        FileNode *node = data->find("block");
+        assert(node != NULL);
+        assert(S_ISBLK(node->m_mode));
+        assert(node->m_device == dev);
+
+        assert(fusezip_unlink("/block") == 0);
+    }
     // FIFO
-    assert(fusezip_mknod("/test", S_IFIFO, dev) == -EPERM);
+    assert(fusezip_mknod("/test", S_IFIFO, 0) == -EPERM);
     // SOCKET
-    assert(fusezip_mknod("/test", S_IFSOCK, dev) == -EPERM);
+    assert(fusezip_mknod("/test", S_IFSOCK, 0) == -EPERM);
 
-    // create new
-    assert(fusezip_mknod("/test", 0, dev) == 0);
-    FileNode *node = data->find("test");
-    assert(node != NULL);
-    assert(std::string("test") == node->name);
-    // create twice
-    assert(fusezip_mknod("/test", 0, dev) == -EEXIST);
+    {
+        // create new
+        assert(fusezip_mknod("/test", 0, 0) == 0);
+        FileNode *node = data->find("test");
+        assert(node != NULL);
+        assert(std::string("test") == node->name);
+        // create twice
+        assert(fusezip_mknod("/test", 0, 0) == -EEXIST);
 
-    // unlink created file
-    assert(fusezip_unlink("/test") == 0);
+        // unlink created file
+        assert(fusezip_unlink("/test") == 0);
+    }
 
     fusezip_destroy(data);
 }

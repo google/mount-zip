@@ -142,9 +142,24 @@ static bool parseNtfsExtraField (zip_uint16_t len, const zip_uint8_t *data,
  * @param uid UID
  * @param gid GID
  * @param len (OUT) data length
- * @return pointer to timestamp data (must not be free()-d)
+ * @return pointer to extra field data (must not be free()-d)
  */
 static const zip_uint8_t *createInfoZipNewUnixField (uid_t uid, gid_t gid,
+        zip_uint16_t &len);
+
+/**
+ * Create PKWARE Unix extra field (0x000D)
+ * @param mtime modification time
+ * @param atime access time
+ * @param mode UNIX file mode
+ * @param uid UID
+ * @param gid GID
+ * @param dev device major/minor numbers
+ * @param len (OUT) data length
+ * @return pointer to extra field data (must not be free()-d)
+ */
+static const zip_uint8_t *createPkWareUnixField (time_t mtime, time_t atime,
+        mode_t mode, uid_t uid, gid_t gid, dev_t dev,
         zip_uint16_t &len);
 
 /**
@@ -153,7 +168,7 @@ static const zip_uint8_t *createInfoZipNewUnixField (uid_t uid, gid_t gid,
  * @param atime access time
  * @param btime birth/creation time
  * @param len (OUT) data length
- * @return pointer to timestamp data (must not be free()-d)
+ * @return pointer to extra field data (must not be free()-d)
  */
 static const zip_uint8_t *createNtfsExtraField (const timespec &mtime,
         const timespec &atime, const timespec &btime, zip_uint16_t &len);

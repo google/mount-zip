@@ -252,41 +252,73 @@ ExtraField::parseUnixUidGidField (zip_uint16_t type, zip_uint16_t len,
     return true;
 }
 
+#pragma pack(push,1)
+struct PkWareUnixExtraField
+{
+    uint32_t atime;
+    uint32_t mtime;
+    uint16_t uid;
+    uint16_t gid;
+    struct {
+        uint32_t major;
+        uint32_t minor;
+    } dev;
+};
+#pragma pack(pop)
+
 bool
 ExtraField::parsePkWareUnixField(zip_uint16_t len, const zip_uint8_t *data, mode_t mode,
         time_t &mtime, time_t &atime, uid_t &uid, gid_t &gid, dev_t &dev,
         const char *&link_target, zip_uint16_t &link_target_len) {
-    const zip_uint8_t *end = data + len;
+    const PkWareUnixExtraField *f = reinterpret_cast<const PkWareUnixExtraField*>(data);
 
-    if (data + 12 > end) {
+    if (len < 12) {
         return false;
     }
-    atime = static_cast<time_t>(getLong(data));
-    mtime = static_cast<time_t>(getLong(data));
-    uid = getShort (data);
-    gid = getShort (data);
+    atime = le_32(f->atime);
+    mtime = le_32(f->mtime);
+    uid   = le_16(f->uid);
+    gid   = le_16(f->gid);
 
     // variable data field
     dev = 0;
     link_target = NULL;
     link_target_len = 0;
     if (S_ISBLK(mode) || S_ISCHR(mode)) {
-        if (data + 8 > end)
+        if (len < 20)
             return false;
         
         unsigned int maj, min;
-        maj = static_cast<unsigned int>(getLong(data));
-        min = static_cast<unsigned int>(getLong(data));
+        maj = static_cast<unsigned int>(le_32(f->dev.major));
+        min = static_cast<unsigned int>(le_32(f->dev.minor));
 
         dev = makedev(maj, min);
         link_target = NULL;
         link_target_len = 0;
     } else {
-        link_target = reinterpret_cast<const char*>(data);
+        link_target = reinterpret_cast<const char*>(data + 12);
         link_target_len = static_cast<zip_uint16_t>(len - 12);
     }
 
     return true;
+}
+
+const zip_uint8_t *
+ExtraField::createPkWareUnixField (time_t mtime, time_t atime,
+        mode_t mode, uid_t uid, gid_t gid, dev_t dev,
+        zip_uint16_t &len) {
+    static PkWareUnixExtraField data;
+    data.mtime = le_32(static_cast<uint32_t>(mtime));
+    data.atime = le_32(static_cast<uint32_t>(atime));
+    data.uid   = le_16(static_cast<uint16_t>(uid));
+    data.gid   = le_16(static_cast<uint16_t>(gid));
+    data.dev.major = le_32(major(dev));
+    data.dev.minor = le_32(minor(dev));
+    if (S_ISBLK(mode) || S_ISCHR(mode))
+        len = 20;
+    else
+        len = 12;
+    return reinterpret_cast<zip_uint8_t*>(&data);
 }
 
 inline static timespec ntfs2timespec(uint64_t t) {

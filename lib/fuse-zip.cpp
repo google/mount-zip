@@ -251,8 +251,8 @@ int fusezip_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     return node->open();
 }
 
-int fusezip_mknod(const char *path, mode_t mode, dev_t) {
-    if (S_ISCHR(mode) || S_ISBLK(mode) || S_ISFIFO(mode) || S_ISSOCK(mode)) {
+int fusezip_mknod(const char *path, mode_t mode, dev_t dev) {
+    if (S_ISFIFO(mode) || S_ISSOCK(mode)) {
         return -EPERM;
     }
     if (*path == '\0') {
@@ -263,7 +263,7 @@ int fusezip_mknod(const char *path, mode_t mode, dev_t) {
         return -EEXIST;
     }
     node = FileNode::createFile (get_zip(), path + 1,
-            fuse_get_context()->uid, fuse_get_context()->gid, mode);
+            fuse_get_context()->uid, fuse_get_context()->gid, mode, dev);
     if (node == NULL) {
         return -ENOMEM;
     }

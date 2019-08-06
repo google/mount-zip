@@ -7,6 +7,7 @@ BLT
 Tclx
 attr
 diff
+sudo (optional)
 valgrind
 zip
 
@@ -15,6 +16,12 @@ $ ./fuse-zip.test
 or
 $ ./fuse-zip.test -valgrind
 to check memory errors with valgrind.
+
+Some tests require root access. To run them use -sudo flag and configure
+sudoers in NOPASSWD mode (don't do this unless you are really know all security
+impacts!):
+user ALL=(ALL:ALL) NOPASSWD: /bin/mknod /tmp/fuse-zip-tests-[0-9]*/mountPoint-special-device-create/block b 8 255
+user ALL=(ALL:ALL) NOPASSWD: /bin/mknod /tmp/fuse-zip-tests-[0-9]*/mountPoint-special-device-create/char c 4 63
 
 Additional options can be passed to valgrind using VALGRIND_ARGS environment
 variable. For example, you can ask valgrind to generate suppressions (that can

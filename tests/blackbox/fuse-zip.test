@@ -21,6 +21,7 @@ namespace eval ::fusezip::test {
 
     variable valgrind false
     variable listTests false
+    variable enabledConditions {}
 
     variable status {}
     variable error {}
@@ -40,11 +41,13 @@ namespace eval ::fusezip::test {
 
     proc parseArgs {} {
         variable matchList
+        variable enabledConditions
         upvar #0 argv argv
 
         set options {
             {list       "List tests and exit"}
             {valgrind   "Run tests under valgrind and check memory errors"}
+            {sudo       "Enable tests that require sudo"}
             {-help      "Print this message"}
         }
         
@@ -60,6 +63,9 @@ namespace eval ::fusezip::test {
         }
         variable listTests $p(list)
         variable valgrind $p(valgrind)
+        if {$p(sudo)} {
+            lappend enabledConditions sudo
+        }
 
         if {[ llength $argv ] != 0} {
             set matchList $argv
@@ -103,8 +109,9 @@ namespace eval ::fusezip::test {
     #   id          Test ID
     #   description Test Description
     #   script      Test body
+    #   conditions  (optional) conditions to execute test
 
-    proc fstest {id description script} {
+    proc fstest {id description script {conditions {}}} {
         variable mounted false
         variable error
         variable numPassed
@@ -114,6 +121,7 @@ namespace eval ::fusezip::test {
         variable mountdir
         variable matchList
         variable failed
+        variable enabledConditions
         upvar fname fname
         set fname {}
 
@@ -122,6 +130,11 @@ namespace eval ::fusezip::test {
             if {[ string match $match $id ]} {
                 set do true
                 break
+            }
+        }
+        foreach cond $conditions {
+            if {$cond ni $enabledConditions} {
+                set do false
             }
         }
         if {!$do} {
@@ -2305,20 +2318,6 @@ namespace eval ::fusezip::test {
         mount
 
         catch {
-            exec mknod $mountdir/dev c 1 1
-        } err opts
-        lassign [dict get $opts -errorcode] type pid err
-        assert {$type eq "CHILDSTATUS"}
-        assert {$err == 1}
-
-        catch {
-            exec mknod $mountdir/dev b 1 1
-        } err opts
-        lassign [dict get $opts -errorcode] type pid err
-        assert {$type eq "CHILDSTATUS"}
-        assert {$err == 1}
-
-        catch {
             exec mknod $mountdir/pipe p
         } err opts
         lassign [dict get $opts -errorcode] type pid err
@@ -2712,18 +2711,46 @@ namespace eval ::fusezip::test {
     fstest special-device-read {read device nodes from archive} {
         use data/pkware-specials.zip
 
+        mount -r
+
+        assert {[file type $mountdir/block] eq "blockSpecial"}
+        lassign [exec stat -c "%t %T" $mountdir/block] maj min
+        assert {$maj == 8 && $min == 1} "failed block device numbers $maj, $min"
+
+        assert {[file type $mountdir/char] eq "characterSpecial"}
+        lassign [exec stat -c "%t %T" $mountdir/char] maj min
+        assert {$maj == 4 && $min == 0} "failed char device numbers $maj, $min"
+
+        umount
+    }
+
+    fstest special-device-create {read device nodes from archive} {
+        mount -o allow_root
+
+        exec sudo mknod $mountdir/block b 8 255
+        assert {[file type $mountdir/block] eq "blockSpecial"}
+        lassign [exec stat -c "%t %T" $mountdir/block] maj min
+        assert {$maj == 8 && $min eq "ff"} "create: failed block device numbers $maj, $min"
+
+        exec sudo mknod $mountdir/char  c 4 63
+        assert {[file type $mountdir/char] eq "characterSpecial"}
+        lassign [exec stat -c "%t %T" $mountdir/char] maj min
+        assert {$maj == 4 && $min == "3f"} "create: failed char device numbers $maj, $min"
+
+        umount
+
         mount
 
         assert {[file type $mountdir/block] eq "blockSpecial"}
         lassign [exec stat -c "%t %T" $mountdir/block] maj min
-        assert {$maj == 8 && $min == 1}
+        assert {$maj == 8 && $min == "ff"} "remount: failed block device numbers $maj, $min"
 
         assert {[file type $mountdir/char] eq "characterSpecial"}
         lassign [exec stat -c "%t %T" $mountdir/char] maj min
-        assert {$maj == 4 && $min == 0}
+        assert {$maj == 4 && $min == "3f"} "remount: failed char device numbers $maj, $min"
 
         umount
-    }
+    } sudo
 
     finalize
 }

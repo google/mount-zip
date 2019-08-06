@@ -52,7 +52,7 @@ FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id_) {
 }
 
 FileNode *FileNode::createFile (struct zip *zip, const char *fname, 
-        uid_t owner, gid_t group, mode_t mode) {
+        uid_t owner, gid_t group, mode_t mode, dev_t dev) {
     FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX);
     if (n == NULL) {
         return NULL;
@@ -71,6 +71,7 @@ FileNode *FileNode::createFile (struct zip *zip, const char *fname,
     n->m_mode = mode;
     n->m_uid = owner;
     n->m_gid = group;
+    n->m_device = dev;
 
     return n;
 }
@@ -621,9 +622,8 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
                     &len, locations[loc]);
             if (field == NULL)
                 continue;
-            // FZ_EF_PKWARE_UNIX not removed because can contain extra data
-            // that currently not handled by fuse-zip
             if (type == FZ_EF_TIMESTAMP ||
+                        type == FZ_EF_PKWARE_UNIX   ||
                         type == FZ_EF_INFOZIP_UNIX1 ||
                         type == FZ_EF_INFOZIP_UNIX2 ||
                         type == FZ_EF_INFOZIP_UNIXN) {
@@ -662,6 +662,16 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
                 field = ExtraField::createNtfsExtraField (m_mtime, m_atime, m_cretime, len);
             }
             res = zip_file_extra_field_set (zip, id(), FZ_EF_NTFS,
+                    ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
+            if (res != 0) {
+                return res;
+            }
+        }
+        // add special device information
+        if (S_ISBLK(m_mode) || S_ISCHR(m_mode)) {
+            field = ExtraField::createPkWareUnixField(m_mtime.tv_sec, m_atime.tv_sec, m_mode,
+                    m_uid, m_gid, m_device, len);
+            res = zip_file_extra_field_set(zip, id(), FZ_EF_PKWARE_UNIX,
                     ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
             if (res != 0) {
                 return res;
