@@ -51,6 +51,7 @@ private:
     zip_uint64_t m_size;
     bool has_cretime, metadataChanged;
     mode_t m_mode;
+    dev_t m_device;
     struct timespec m_mtime, m_atime, m_ctime, m_cretime;
     uid_t m_uid;
     gid_t m_gid;
@@ -61,6 +62,9 @@ private:
 
     void parse_name();
     void processExtraFields();
+    void processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
+            bool mtimeFromTimestamp, bool atimeFromTimestamp, bool highPrecisionTime,
+            int &lastProcessedUnixField);
     void processExternalAttributes();
     int updateExtraFields(bool force_precise_time) const;
     int updateExternalAttributes() const;
@@ -167,6 +171,10 @@ public:
     void chmod (mode_t mode);
     inline mode_t mode() const {
         return m_mode;
+    }
+
+    inline dev_t device() const {
+        return m_device;
     }
 
     /**

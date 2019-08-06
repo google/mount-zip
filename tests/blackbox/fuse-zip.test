@@ -2709,6 +2709,22 @@ namespace eval ::fusezip::test {
         assert {$content2 eq "stdin content\n"} "bad zipped stdin content"
     }
 
+    fstest special-device-read {read device nodes from archive} {
+        use data/pkware-specials.zip
+
+        mount
+
+        assert {[file type $mountdir/block] eq "blockSpecial"}
+        lassign [exec stat -c "%t %T" $mountdir/block] maj min
+        assert {$maj == 8 && $min == 1}
+
+        assert {[file type $mountdir/char] eq "characterSpecial"}
+        lassign [exec stat -c "%t %T" $mountdir/char] maj min
+        assert {$maj == 4 && $min == 0}
+
+        umount
+    }
+
     finalize
 }
 namespace delete ::fusezip::test

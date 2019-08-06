@@ -48,6 +48,7 @@ FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id_) {
     m_comment = NULL;
     m_commentLen = 0;
     m_commentChanged = true;
+    m_device = 0;
 }
 
 FileNode *FileNode::createFile (struct zip *zip, const char *fname, 
@@ -458,14 +459,21 @@ void FileNode::processExtraFields () {
             const zip_uint8_t *field = zip_file_extra_field_get (zip,
                     id(), i, &type, &len, ZIP_FL_CENTRAL);
 
-            if (type == FZ_EF_NTFS) {
-                if (ExtraField::parseNtfsExtraField(len, field, mt, at, cret)) {
-                    m_mtime = mt;
-                    m_atime = at;
-                    m_cretime = cret;
-                    has_cretime = true;
-                    highPrecisionTime = true;
-                }
+            switch (type) {
+                case FZ_EF_PKWARE_UNIX:
+                    processPkWareUnixField(type, len, field,
+                            mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
+                            lastProcessedUnixField);
+                    break;
+                case FZ_EF_NTFS:
+                    if (ExtraField::parseNtfsExtraField(len, field, mt, at, cret)) {
+                        m_mtime = mt;
+                        m_atime = at;
+                        m_cretime = cret;
+                        has_cretime = true;
+                        highPrecisionTime = true;
+                    }
+                    break;
             }
         }
     }
@@ -504,6 +512,10 @@ void FileNode::processExtraFields () {
                 break;
             }
             case FZ_EF_PKWARE_UNIX:
+                processPkWareUnixField(type, len, field,
+                        mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
+                        lastProcessedUnixField);
+                break;
             case FZ_EF_INFOZIP_UNIX1:
             {
                 bool has_uid_gid;
@@ -553,6 +565,36 @@ void FileNode::processExtraFields () {
             }
         }
     }
+}
+
+void FileNode::processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
+        bool mtimeFromTimestamp, bool atimeFromTimestamp, bool highPrecisionTime,
+        int &lastProcessedUnixField) {
+    time_t mt, at;
+    uid_t uid;
+    gid_t gid;
+    dev_t dev;
+    const char *link;
+    uint16_t link_len;
+    if (!ExtraField::parsePkWareUnixField(len, field, m_mode, mt, at,
+                uid, gid, dev, link, link_len))
+        return;
+
+    if (type >= lastProcessedUnixField) {
+        m_uid = uid;
+        m_gid = gid;
+        lastProcessedUnixField = type;
+    }
+    if (!mtimeFromTimestamp && !highPrecisionTime) {
+        m_mtime.tv_sec = mt;
+        m_mtime.tv_nsec = 0;
+    }
+    if (!atimeFromTimestamp && !highPrecisionTime) {
+        m_atime.tv_sec = at;
+        m_atime.tv_nsec = 0;
+    }
+    m_device = dev;
+    //TODO: handle link target
 }
 
 /**
