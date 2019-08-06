@@ -192,8 +192,17 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
 
     n->parse_name();
 
+    bool hasPkWareField;
     n->processExternalAttributes();
-    n->processExtraFields();
+    n->processExtraFields(hasPkWareField);
+
+    // InfoZIP may produce FIFO-marked node with content, PkZip - can't.
+    if (S_ISFIFO(n->m_mode)) {
+        unsigned int type = S_IFREG;
+        if (n->m_size == 0 && hasPkWareField)
+            type = S_IFIFO;
+        n->m_mode = (n->m_mode & static_cast<unsigned>(~S_IFMT)) | type;
+    }
 
     uint32_t len = 0;
     n->m_comment = zip_file_get_comment(zip, n->id(), &len, ZIP_FL_ENC_RAW);
@@ -394,11 +403,6 @@ void FileNode::processExternalAttributes () {
             } else if ((m_mode & S_IFMT) == S_IFDIR) {
                 m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
             }
-            // treat FIFOs as regular files
-            if (S_ISFIFO(m_mode)) {
-                m_mode &= static_cast<unsigned>(~S_IFIFO);
-                m_mode |= S_IFREG;
-            }
             break;
         }
         case ZIP_OPSYS_DOS:
@@ -438,7 +442,7 @@ void FileNode::processExternalAttributes () {
  * Get timestamp information from extra fields.
  * Get owner and group information.
  */
-void FileNode::processExtraFields () {
+void FileNode::processExtraFields (bool &hasPkWareField) {
     zip_int16_t count;
     // times from timestamp have precedence to UNIX field times
     bool mtimeFromTimestamp = false, atimeFromTimestamp = false;
@@ -447,6 +451,8 @@ void FileNode::processExtraFields () {
     // UIDs and GIDs from UNIX extra fields with bigger type IDs have
     // precedence
     int lastProcessedUnixField = 0;
+
+    hasPkWareField = false;
 
     assert(_id >= 0);
     assert (zip != NULL);
@@ -462,6 +468,7 @@ void FileNode::processExtraFields () {
 
             switch (type) {
                 case FZ_EF_PKWARE_UNIX:
+                    hasPkWareField = true;
                     processPkWareUnixField(type, len, field,
                             mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
                             lastProcessedUnixField);
@@ -513,6 +520,7 @@ void FileNode::processExtraFields () {
                 break;
             }
             case FZ_EF_PKWARE_UNIX:
+                hasPkWareField = true;
                 processPkWareUnixField(type, len, field,
                         mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
                         lastProcessedUnixField);
@@ -667,8 +675,8 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
                 return res;
             }
         }
-        // add special device information
-        if (S_ISBLK(m_mode) || S_ISCHR(m_mode)) {
+        // add special device or FIFO information
+        if (S_ISBLK(m_mode) || S_ISCHR(m_mode) || S_ISFIFO(m_mode)) {
             field = ExtraField::createPkWareUnixField(m_mtime.tv_sec, m_atime.tv_sec, m_mode,
                     m_uid, m_gid, m_device, len);
             res = zip_file_extra_field_set(zip, id(), FZ_EF_PKWARE_UNIX,

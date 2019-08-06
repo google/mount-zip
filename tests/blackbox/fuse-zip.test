@@ -2314,19 +2314,6 @@ namespace eval ::fusezip::test {
         umount
     }
 
-    fstest special-files {check that special files creation is forbidden} {
-        mount
-
-        catch {
-            exec mknod $mountdir/pipe p
-        } err opts
-        lassign [dict get $opts -errorcode] type pid err
-        assert {$type eq "CHILDSTATUS"}
-        assert {$err == 1}
-
-        umount
-    }
-
     fstest inode {different files must have different inode numbers} {
         create {
             foo bar
@@ -2688,7 +2675,7 @@ namespace eval ::fusezip::test {
         assert {![dict exists $comm "foo"]} "unzip: comment not removed"
     }
 
-    fstest fifo-read {read zipped FIFOs} {
+    fstest special-fifo-read-infozip {read zipped FIFOs (Info-ZIP)} {
         use data/fifo.zip
         mount -r
 
@@ -2706,6 +2693,28 @@ namespace eval ::fusezip::test {
 
         assert {$content1 eq "FIFO content\n"} "bad zipped FIFO content"
         assert {$content2 eq "stdin content\n"} "bad zipped stdin content"
+    }
+
+    fstest special-fifo-read-pkware {read zipped FIFOs (PKWARE)} {
+        use data/pkware-specials.zip
+
+        mount -r
+
+        assert {[file type $mountdir/fifo] eq "fifo"}
+
+        umount
+    }
+
+    fstest special-fifo-create {create and save FIFO} {
+        mount
+
+        exec mknod $mountdir/fifo p
+        assert {[file type $mountdir/fifo] eq "fifo"} "bad created node type"
+        umount
+
+        mount
+        assert {[file type $mountdir/fifo] eq "fifo"} "reopen: bad node type"
+        umount
     }
 
     fstest special-device-read {read device nodes from archive} {
@@ -2766,6 +2775,7 @@ namespace eval ::fusezip::test {
         mount
 
         set p [exec socat UNIX-LISTEN:$mountdir/socket,unlink-close=0 - &]
+        after 500
         exec socat - UNIX-CONNECT:$mountdir/socket << ""
         wait $p
         assert {[file type $mountdir/socket] eq "socket"} "socket not created"

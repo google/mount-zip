@@ -215,8 +215,16 @@ void test_mknod () {
 
         assert(fusezip_unlink("/block") == 0);
     }
-    // FIFO
-    assert(fusezip_mknod("/test", S_IFIFO, 0) == -EPERM);
+    {
+        // FIFO
+        assert(fusezip_mknod("/fifo", S_IFIFO, 0) == 0);
+        FileNode *node = data->find("fifo");
+        assert(node != NULL);
+        assert(S_ISFIFO(node->m_mode));
+        assert(node->m_size == 0);
+
+        assert(fusezip_unlink("/fifo") == 0);
+    }
     {
         // socket
         assert(fusezip_mknod("/socket", S_IFSOCK, 0) == 0);
