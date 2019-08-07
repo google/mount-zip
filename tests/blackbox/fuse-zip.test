@@ -2185,10 +2185,19 @@ namespace eval ::fusezip::test {
         umount
     }
 
-    fstest readlink {Check readlink} {
+    fstest symlink-infozip {Check symlink in Info-ZIP format} {
         use data/symlink.zip
         mount -r
+        assert {[file type $mountdir/symlink] eq "link"}
         assert {[file readlink $mountdir/symlink] eq "../tmp/date"} "invalid link content"
+        umount
+    }
+
+    fstest symlink-pkware {Check symlink in PKWARE format} {
+        use data/pkware-specials.zip
+        mount -r
+        assert {[file type $mountdir/symlink] eq "link"}
+        assert {[file readlink $mountdir/symlink] eq "regular"} "invalid link content"
         umount
     }
 

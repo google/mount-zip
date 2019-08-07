@@ -37,6 +37,7 @@ private:
     enum nodeState {
         CLOSED,
         OPENED,
+        VIRTUAL_CONTENT,
         CHANGED,
         NEW,
         NEW_DIR

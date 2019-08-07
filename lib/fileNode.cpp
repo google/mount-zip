@@ -219,7 +219,7 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
 }
 
 FileNode::~FileNode() {
-    if (state == OPENED || state == CHANGED || state == NEW) {
+    if (state == OPENED || state == CHANGED || state == NEW || state == VIRTUAL_CONTENT) {
         delete buffer;
     }
     if (m_commentChanged && m_comment != NULL)
@@ -269,7 +269,7 @@ void FileNode::rename(const char *new_name) {
 }
 
 int FileNode::open() {
-    if (state == NEW) {
+    if (state == NEW || state == VIRTUAL_CONTENT) {
         return 0;
     }
     if (state == OPENED) {
@@ -306,6 +306,7 @@ int FileNode::read(char *buf, size_t sz, size_t offset) {
 }
 
 int FileNode::write(const char *buf, size_t sz, size_t offset) {
+    assert(state != VIRTUAL_CONTENT);
     if (state == OPENED) {
         state = CHANGED;
     }
@@ -326,7 +327,8 @@ int FileNode::close() {
 int FileNode::save() {
     assert (!is_dir);
     // index is modified if state == NEW
-    assert (zip != NULL);
+    assert(zip != NULL);
+    assert(state != VIRTUAL_CONTENT);
     return buffer->saveToZip(m_mtime.tv_sec, zip, full_name.c_str(),
             state == NEW, _id);
 }
@@ -349,6 +351,7 @@ int FileNode::saveComment() const {
 }
 
 int FileNode::truncate(size_t offset) {
+    assert(state != VIRTUAL_CONTENT);
     if (state != CLOSED) {
         if (state != NEW) {
             state = CHANGED;
@@ -368,7 +371,7 @@ int FileNode::truncate(size_t offset) {
 }
 
 zip_uint64_t FileNode::size() const {
-    if (state == NEW || state == OPENED || state == CHANGED) {
+    if (state == NEW || state == OPENED || state == CHANGED || state == VIRTUAL_CONTENT) {
         return buffer->len;
     } else {
         return m_size;
@@ -604,7 +607,23 @@ void FileNode::processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const
         m_atime.tv_nsec = 0;
     }
     m_device = dev;
-    //TODO: handle link target
+    // use PKWARE link target only if link target in Info-ZIP format is not
+    // specified (empty file content)
+    if (S_ISLNK(m_mode) && m_size == 0 && link_len > 0) {
+        assert(state == CLOSED || state == VIRTUAL_CONTENT);
+        if (state == VIRTUAL_CONTENT)
+        {
+            state = CLOSED;
+            delete buffer;
+        }
+        buffer = new BigBuffer();
+        if (!buffer)
+            return;
+        assert(link != NULL);
+        buffer->write(link, link_len, 0);
+        state = VIRTUAL_CONTENT;
+    }
+    // TODO: hardlinks
 }
 
 /**
