@@ -43,6 +43,7 @@ FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id_) {
     metadataChanged = false;
     full_name = fname;
     _id = id_;
+    m_size = 0;
     m_uid = 0;
     m_gid = 0;
     m_comment = NULL;
