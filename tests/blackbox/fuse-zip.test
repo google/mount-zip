@@ -145,6 +145,7 @@ namespace eval ::fusezip::test {
         file mkdir $tmpdir
         set mountdir "[ file join $tmpdir mountPoint ]-$id"
         file mkdir $mountdir
+        set pwd [pwd]
         set code [ catch {
             if {[ catch {
                 uplevel $script
@@ -187,8 +188,14 @@ namespace eval ::fusezip::test {
                 incr numSkipped
             }
         }
-        exec chmod -R u+w $tmpdir
-        exec rm -rf $tmpdir
+        cd $pwd
+        if {"sudo" in $conditions} {
+            exec sudo chmod -R u+w $tmpdir
+            exec sudo rm -rf $tmpdir
+        } else {
+            exec chmod -R u+w $tmpdir
+            exec rm -rf $tmpdir
+        }
     }
 
     # mount --

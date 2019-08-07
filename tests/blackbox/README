@@ -23,6 +23,8 @@ sudoers in NOPASSWD mode (don't do this unless you are really know all security
 impacts!):
     user ALL=(ALL:ALL) NOPASSWD: /bin/mknod /tmp/fuse-zip-tests-[0-9]*/mountPoint-special-device-create/block b 8 255
     user ALL=(ALL:ALL) NOPASSWD: /bin/mknod /tmp/fuse-zip-tests-[0-9]*/mountPoint-special-device-create/char c 4 63
+    user ALL=(ALL:ALL) NOPASSWD: /bin/chmod -R u+w /tmp/fuse-zip-tests-[0-9]*
+    user ALL=(ALL:ALL) NOPASSWD: /bin/rm -rf /tmp/fuse-zip-tests-[0-9]*
 and enable user_allow_other option in /etc/fuse.conf.
 
 Additional options can be passed to valgrind using VALGRIND_ARGS environment
