@@ -275,8 +275,8 @@ ExtraField::parsePkWareUnixField(zip_uint16_t len, const zip_uint8_t *data, mode
     if (len < 12) {
         return false;
     }
-    atime = le_32(f->atime);
-    mtime = le_32(f->mtime);
+    atime = static_cast<time_t>(le_32(f->atime));
+    mtime = static_cast<time_t>(le_32(f->mtime));
     uid   = le_16(f->uid);
     gid   = le_16(f->gid);
 
@@ -325,7 +325,7 @@ inline static timespec ntfs2timespec(uint64_t t) {
     timespec ts;
     t -= NTFS_TO_UNIX_OFFSET;
     ts.tv_sec  = static_cast<time_t>(t / 10000000);
-    ts.tv_nsec = static_cast<uint32_t>(t % 10000000) * 100;
+    ts.tv_nsec = static_cast<long int>(t % 10000000) * 100;
     return ts;
 }
 
