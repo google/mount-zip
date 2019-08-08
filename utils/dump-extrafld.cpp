@@ -88,7 +88,7 @@ void dump_extrafld(zip_uint16_t id, zip_uint16_t len, const zip_uint8_t *field,
                 printf("      device: %u, %u\n", major(dev), minor(dev));
             }
             if (link_len > 0) {
-                printf("      link target: %*s\n", link_len, link);
+                printf("      link target: %.*s\n", link_len, link);
             }
             break;
         }
