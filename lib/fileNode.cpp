@@ -219,7 +219,7 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
 }
 
 FileNode::~FileNode() {
-    if (state == OPENED || state == CHANGED || state == NEW || state == VIRTUAL_CONTENT) {
+    if (state == OPENED || state == CHANGED || state == NEW || state == VIRTUAL_SYMLINK) {
         delete buffer;
     }
     if (m_commentChanged && m_comment != NULL)
@@ -269,7 +269,7 @@ void FileNode::rename(const char *new_name) {
 }
 
 int FileNode::open() {
-    if (state == NEW || state == VIRTUAL_CONTENT) {
+    if (state == NEW || state == VIRTUAL_SYMLINK) {
         return 0;
     }
     if (state == OPENED) {
@@ -306,7 +306,7 @@ int FileNode::read(char *buf, size_t sz, size_t offset) {
 }
 
 int FileNode::write(const char *buf, size_t sz, size_t offset) {
-    assert(state != VIRTUAL_CONTENT);
+    assert(state != VIRTUAL_SYMLINK);
     if (state == OPENED) {
         state = CHANGED;
     }
@@ -328,7 +328,6 @@ int FileNode::save() {
     assert (!is_dir);
     // index is modified if state == NEW
     assert(zip != NULL);
-    assert(state != VIRTUAL_CONTENT);
     return buffer->saveToZip(m_mtime.tv_sec, zip, full_name.c_str(),
             state == NEW, _id);
 }
@@ -351,7 +350,7 @@ int FileNode::saveComment() const {
 }
 
 int FileNode::truncate(size_t offset) {
-    assert(state != VIRTUAL_CONTENT);
+    assert(state != VIRTUAL_SYMLINK);
     if (state != CLOSED) {
         if (state != NEW) {
             state = CHANGED;
@@ -371,7 +370,7 @@ int FileNode::truncate(size_t offset) {
 }
 
 zip_uint64_t FileNode::size() const {
-    if (state == NEW || state == OPENED || state == CHANGED || state == VIRTUAL_CONTENT) {
+    if (state == NEW || state == OPENED || state == CHANGED || state == VIRTUAL_SYMLINK) {
         return buffer->len;
     } else {
         return m_size;
@@ -610,8 +609,8 @@ void FileNode::processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const
     // use PKWARE link target only if link target in Info-ZIP format is not
     // specified (empty file content)
     if (S_ISLNK(m_mode) && m_size == 0 && link_len > 0) {
-        assert(state == CLOSED || state == VIRTUAL_CONTENT);
-        if (state == VIRTUAL_CONTENT)
+        assert(state == CLOSED || state == VIRTUAL_SYMLINK);
+        if (state == VIRTUAL_SYMLINK)
         {
             state = CLOSED;
             delete buffer;
@@ -621,7 +620,7 @@ void FileNode::processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const
             return;
         assert(link != NULL);
         buffer->write(link, link_len, 0);
-        state = VIRTUAL_CONTENT;
+        state = VIRTUAL_SYMLINK;
     }
     // TODO: hardlinks
 }

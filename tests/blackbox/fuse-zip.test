@@ -414,6 +414,20 @@ namespace eval ::fusezip::test {
         file copy $path $fname
     }
 
+    # unzip --
+    #
+    #   Extract file to temporary dir
+    proc unzip {} {
+        upvar fname fname
+        variable tmpdir
+
+        exec unzip -t $fname
+
+        file delete -force $tmpdir/extract
+        file mkdir $tmpdir/extract
+        exec unzip -nd $tmpdir/extract $fname
+    }
+
     # check --
     #
     #   Check archive integrity by using 'unzip -t' command.
@@ -2220,6 +2234,18 @@ namespace eval ::fusezip::test {
         mount
         assert {[file readlink $mountdir/symlink] eq "/dev/null"} "invalid link content after umount"
         umount
+    }
+
+    fstest symlink-pkware-touch {Check PKWARE format symlink metadata update and save} {
+        use data/pkware-specials.zip
+        mount
+        exec touch -h -a -t 201908091406 $mountdir/symlink
+        umount
+
+        unzip
+
+        assert {[file type $tmpdir/extract/symlink] eq "link"}
+        assert {[file readlink $tmpdir/extract/symlink] eq "regular"} "invalid link content"
     }
     
     fstest no-owner-info {Check that default owner:group is root:root} {

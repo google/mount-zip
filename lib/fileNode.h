@@ -37,7 +37,7 @@ private:
     enum nodeState {
         CLOSED,
         OPENED,
-        VIRTUAL_CONTENT,
+        VIRTUAL_SYMLINK,
         CHANGED,
         NEW,
         NEW_DIR
@@ -155,7 +155,9 @@ public:
     int truncate(size_t offset);
 
     inline bool isChanged() const {
-        return state == CHANGED || state == NEW;
+        return state == CHANGED
+            || state == NEW
+            || (state == VIRTUAL_SYMLINK && metadataChanged);
     }
 
     inline bool isMetadataChanged() const {
