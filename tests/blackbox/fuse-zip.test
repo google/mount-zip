@@ -2100,6 +2100,19 @@ namespace eval ::fusezip::test {
         assert {$stat1(ctime) < $stat2(ctime)} "ctime not changed"
     }
 
+    fstest ctime-update-on-rename {Check that ctime is updated on rename} {
+        use data/foobar.zip
+        mount
+        file stat $mountdir/foo stat1
+        file rename $mountdir/foo $mountdir/foo2
+        file stat $mountdir/foo2 stat2
+        umount
+
+        assert {$stat1(mtime) == $stat2(mtime)} "mtime changed"
+        assert {$stat1(atime) == $stat2(atime)} "atime changed"
+        assert {$stat1(ctime) <  $stat2(ctime)} "ctime not updated"
+    }
+
     fstest dir-accessible-after-creation {Check that directory is accessible after creation} {
         create {
             file content

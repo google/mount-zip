@@ -265,6 +265,7 @@ void FileNode::detachChild (FileNode *child) {
 
 void FileNode::rename(const char *new_name) {
     full_name = new_name;
+    m_ctime = currentTime();
     parse_name();
 }
 
