@@ -27,6 +27,11 @@ impacts!):
     user ALL=(ALL:ALL) NOPASSWD: /bin/rm -rf /tmp/fuse-zip-tests-[0-9]*
 and enable user_allow_other option in /etc/fuse.conf.
 
+In order to test pkzip compatibility you need to install pkzipc and configure sudo:
+    user ALL=(ALL:ALL) NOPASSWD: /path/to/pkzipc -extract -filetype=all /tmp/fuse-zip-tests-[0-9]*/test.zip
+    user ALL=(ALL:ALL) NOPASSWD: /bin/rm -rf /tmp/fuse-zip-tests-[0-9]*/extract
+    user ALL=(ALL:ALL) NOPASSWD: /bin/chown 0:0 /tmp/fuse-zip-tests-[0-9]*/regular
+
 Additional options can be passed to valgrind using VALGRIND_ARGS environment
 variable. For example, you can ask valgrind to generate suppressions (that can
 be added to file valgrind.supp) by specifying the following variable value:

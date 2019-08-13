@@ -66,6 +66,9 @@ namespace eval ::fusezip::test {
         if {$p(sudo)} {
             lappend enabledConditions sudo
         }
+        if {[llength [auto_execok pkzipc]] != 0} {
+            lappend enabledConditions pkzip
+        }
 
         if {[ llength $argv ] != 0} {
             set matchList $argv
@@ -609,6 +612,29 @@ namespace eval ::fusezip::test {
             }
         }
         return $res
+    }
+
+    proc pkzipExtract {{sudo {}}} {
+        upvar fname fname
+        variable tmpdir
+
+        file delete -force $tmpdir/extract
+        file mkdir $tmpdir/extract
+        set pwd [pwd]
+        if {$sudo eq "sudo"} {
+            set prefix sudo
+        } else {
+            set prefix {}
+        }
+        try {
+            cd $tmpdir/extract
+            exec {*}$prefix pkzipc -extract -filetype=all -permission $fname
+        } on error {err opts} {
+            exec {*}$prefix rm -rf $tmpdir/extract
+            return -options $opts $err
+        } finally {
+            cd $pwd
+        }
     }
 
     ############################################################
@@ -2841,6 +2867,98 @@ namespace eval ::fusezip::test {
         assert {[file type $mountdir/socket] eq "socket"} "socket not read"
         umount
     }
+
+    fstest pkzip-compatibility-regular {PkZip compatibility: regular file} {
+        mount
+        makeFile "file content" regular $mountdir
+        umount
+
+        pkzipExtract
+        set f [open $tmpdir/extract/regular r]
+        set data [read $f]
+        close $f
+
+        assert {$data eq "file content"} "bad extracted file content: $data"
+    } pkzip
+
+    fstest pkzip-compatibility-fifo {PkZip compatibility: FIFO} {
+        mount
+        exec mknod $mountdir/fifo p
+        umount
+
+        pkzipExtract
+        assert {[file type $tmpdir/extract/fifo] eq "fifo"} "bad extracted node type"
+    } pkzip
+
+    fstest pkzip-compatibility-socket {PkZip compatibility: socket} {
+        mount
+        set p [exec socat UNIX-LISTEN:$mountdir/socket,unlink-close=0 - &]
+        after 500
+        exec socat - UNIX-CONNECT:$mountdir/socket << ""
+        wait $p
+        umount
+
+        pkzipExtract
+        assert {[file type $tmpdir/extract/socket] eq "socket"} "bad extracted node type"
+    } pkzip
+
+    fstest pkzip-compatibility-device {PkZip compatibility: device} {
+        mount -o allow_root
+        exec sudo mknod $mountdir/block b 8 255
+        exec sudo mknod $mountdir/char  c 4 63
+        makeFile "file content" regular $mountdir
+        umount
+
+        pkzipExtract sudo
+
+        set fn $tmpdir/extract/block
+        assert {[file type $fn] eq "blockSpecial"}
+        lassign [exec stat -c "%t %T" $fn] maj min
+        assert {$maj == 8 && $min == "ff"} "remount: failed block device numbers $maj, $min"
+
+        set fn $tmpdir/extract/char
+        assert {[file type $fn] eq "characterSpecial"}
+        lassign [exec stat -c "%t %T" $fn] maj min
+        assert {$maj == 4 && $min == "3f"} "remount: failed char device numbers $maj, $min"
+
+        exec sudo rm -rf $tmpdir/extract
+    } {sudo pkzip}
+
+    fstest pkzip-compatibility-symlink {PkZip compatibility: symlink} {
+        mount
+        file link -symbolic $mountdir/symlink /dev/null
+        umount
+
+        pkzipExtract
+        assert {[file type $tmpdir/extract/symlink] eq "link"}
+        assert {[file readlink $tmpdir/extract/symlink] eq "/dev/null"} "invalid link content"
+    } pkzip
+
+    fstest pkzip-compatibility-permissions {PkZip compatibility: owner and permissions} {
+        mount -o allow_root
+        makeFile "file content" regular $mountdir
+        exec chmod 444 $mountdir/regular
+        exec sudo chown 0:0 $mountdir/regular
+        umount
+
+        pkzipExtract sudo
+        lassign [exec stat -c "%a %u %g" $tmpdir/extract/regular] perm uid gid
+        assert {$perm eq "444"}
+        assert {$uid == 0}
+        assert {$gid == 0}
+    } {sudo pkzip}
+
+    fstest pkzip-compatibility-symlink-rename {PkZip compatibility: PKWARE format symlink rename and save} {
+        use data/pkware-symlink.zip
+        mount
+        file rename $mountdir/symlink $mountdir/symlink2
+        umount
+
+        pkzipExtract
+
+        assert {[file type $tmpdir/extract/symlink2] eq "link"}
+        assert {[file readlink $tmpdir/extract/symlink2] eq "regular"} "invalid link content"
+    } pkzip
 
     finalize
 }

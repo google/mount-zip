@@ -671,6 +671,22 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
         // add new extra fields
         zip_uint16_t len;
         int res;
+        // add special device or FIFO information
+        if (S_ISBLK(m_mode) || S_ISCHR(m_mode) || S_ISFIFO(m_mode)) {
+            field = ExtraField::createPkWareUnixField(m_mtime.tv_sec, m_atime.tv_sec, m_mode,
+                    m_uid, m_gid, m_device, len);
+            res = zip_file_extra_field_set(zip, id(), FZ_EF_PKWARE_UNIX,
+                    ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
+            if (res != 0) {
+                return res;
+            }
+
+            // PKZIP 14 for Linux doesn't extract device nodes if extra fields
+            // other than PKWARE UNIX are present in the central directory
+            if ((S_ISBLK(m_mode) || S_ISCHR(m_mode)) && locations[loc] == ZIP_FL_CENTRAL)
+                continue;
+        }
+
         // add timestamps
         field = ExtraField::createExtTimeStamp (locations[loc], m_mtime.tv_sec,
                 m_atime.tv_sec, has_cretime, m_cretime.tv_sec, len);
@@ -679,9 +695,12 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
         if (res != 0) {
             return res;
         }
-        // add high-precision timestamps
-        if (has_cretime || force_precise_time)
+        // PKZIP 14 for Linux doesn't extract symlinks if NTFS extra field
+        // is present in the central directory
+        if ((has_cretime || force_precise_time) &&
+            (locations[loc] == ZIP_FL_LOCAL || !S_ISLNK(m_mode)))
         {
+            // add high-precision timestamps
             if (ntfs_field) {
                 len = ExtraField::editNtfsExtraField(ntfs_field_len, ntfs_field.get(),
                         m_mtime, m_atime, m_cretime);
@@ -690,16 +709,6 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
                 field = ExtraField::createNtfsExtraField (m_mtime, m_atime, m_cretime, len);
             }
             res = zip_file_extra_field_set (zip, id(), FZ_EF_NTFS,
-                    ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
-            if (res != 0) {
-                return res;
-            }
-        }
-        // add special device or FIFO information
-        if (S_ISBLK(m_mode) || S_ISCHR(m_mode) || S_ISFIFO(m_mode)) {
-            field = ExtraField::createPkWareUnixField(m_mtime.tv_sec, m_atime.tv_sec, m_mode,
-                    m_uid, m_gid, m_device, len);
-            res = zip_file_extra_field_set(zip, id(), FZ_EF_PKWARE_UNIX,
                     ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
             if (res != 0) {
                 return res;
