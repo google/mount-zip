@@ -61,6 +61,11 @@ private:
      */
     void connectNodeToTree (FileNode *node);
 
+    /**
+     * Get ZIP file entry UNIX mode and PkWare hardlink flag from external attributes field.
+     */
+    mode_t getEntryAttributes(zip_uint64_t id, const char *name, bool &isHardlink);
+
     FileNode *m_root;
     filemap_t files;
 public:

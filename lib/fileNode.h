@@ -66,7 +66,6 @@ private:
     void processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
             bool mtimeFromTimestamp, bool atimeFromTimestamp, bool highPrecisionTime,
             int &lastProcessedUnixField);
-    void processExternalAttributes();
     int updateExtraFields(bool force_precise_time) const;
     int updateExternalAttributes() const;
 
@@ -99,7 +98,7 @@ public:
      * Create node for existing ZIP file entry
      */
     static FileNode *createNodeForZipEntry(struct zip *zip,
-            const char *fname, zip_int64_t id);
+            const char *fname, zip_int64_t id, mode_t mode);
     ~FileNode();
     
     /**

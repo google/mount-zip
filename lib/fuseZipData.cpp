@@ -26,6 +26,8 @@
 
 #include "fuseZipData.h"
 
+#define FZ_ATTR_HARDLINK (0x800)
+
 FuseZipData::FuseZipData(const char *archiveName, struct zip *z, const char *cwd,
         bool force_precise_time):
     m_zip(z), m_archiveName(archiveName), m_cwd(cwd), m_force_precise_time(force_precise_time) {
@@ -72,9 +74,15 @@ void FuseZipData::build_tree(bool readonly) {
             }
         }
     }
-    // add zip entries into tree
+    // add zip entries for all items except hardlinks
     for (zip_int64_t i = 0; i < n; ++i) {
+        bool isHardlink;
         const char *name = zip_get_name(m_zip, static_cast<zip_uint64_t>(i), ZIP_FL_ENC_RAW);
+        mode_t mode = getEntryAttributes(static_cast<zip_uint64_t>(i), name, isHardlink);
+        
+        if (isHardlink)
+            continue;
+
         std::string converted;
         convertFileName(name, readonly, needPrefix, converted);
         const char *cname = converted.c_str();
@@ -82,12 +90,14 @@ void FuseZipData::build_tree(bool readonly) {
             syslog(LOG_ERR, "duplicated file name: %s", cname);
             throw std::runtime_error("duplicate file names");
         }
-        FileNode *node = FileNode::createNodeForZipEntry(m_zip, cname, i);
+        FileNode *node = FileNode::createNodeForZipEntry(m_zip, cname, i, mode);
         if (node == NULL) {
             throw std::bad_alloc();
         }
         files[node->full_name.c_str()] = node;
     }
+    // add hardlinks
+    // TODO
     // Connect nodes to tree. Missing intermediate nodes created on demand.
     for (filemap_t::const_iterator i = files.begin(); i != files.end(); ++i)
     {
@@ -114,6 +124,101 @@ void FuseZipData::connectNodeToTree (FileNode *node) {
     // connecting to parent
     node->parent = parent;
     parent->appendChild (node);
+}
+
+mode_t FuseZipData::getEntryAttributes(zip_uint64_t id, const char *name, bool &isHardlink) {
+    bool is_dir = false;
+    size_t len = strlen(name);
+    if (len > 0)
+        is_dir = name[len - 1] == '/';
+
+    zip_uint8_t opsys;
+    zip_uint32_t attr;
+    zip_file_get_external_attributes(m_zip, id, 0, &opsys, &attr);
+
+    mode_t unix_mode = attr >> 16;
+    mode_t mode;
+    isHardlink = false;
+    /*
+     * PKWARE describes "OS made by" now (since 1998) as follows:
+     * The upper byte indicates the compatibility of the file attribute
+     * information. If the external file attributes are compatible with MS-DOS
+     * and can be read by PKZIP for DOS version 2.04g then this value will be
+     * zero.
+     */
+    if (opsys == ZIP_OPSYS_DOS && (unix_mode & S_IFMT) != 0)
+        opsys = ZIP_OPSYS_UNIX;
+    switch (opsys) {
+        case ZIP_OPSYS_UNIX: {
+            mode = unix_mode;
+            // force is_dir value
+            if (is_dir) {
+                mode = (mode & static_cast<unsigned>(~S_IFMT)) | S_IFDIR;
+            } else if ((mode & S_IFMT) == S_IFDIR) {
+                mode = (mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
+            }
+            isHardlink = (attr & FZ_ATTR_HARDLINK) != 0;
+            if (isHardlink) {
+                switch (mode & S_IFMT) {
+                    case S_IFLNK:
+                        // PkZip saves hardlink to symlink as a symlink to an original symlink target
+                        isHardlink = true;
+                        break;
+                    case S_IFREG:
+                        // normal hardlink
+                        isHardlink = true;
+                        break;
+                    case S_IFSOCK:
+                    case S_IFIFO:
+                        // create hardlink if destination file exists
+                        isHardlink = true;
+                        break;
+                    case S_IFBLK:
+                    case S_IFCHR:
+                    case S_IFDIR:
+                        // always ignore hardlink flag for devices and dirs
+                        isHardlink = false;
+                        break;
+                    default:
+                        // don't hardlink unknown file types
+                        isHardlink = false;
+                }
+            }
+            break;
+        }
+        case ZIP_OPSYS_DOS:
+        case ZIP_OPSYS_WINDOWS_NTFS:
+        case ZIP_OPSYS_MVS: {
+            /*
+             * Both WINDOWS_NTFS and OPSYS_MVS used here because of
+             * difference in constant assignment by PKWARE and Info-ZIP
+             */
+            mode = 0444;
+            // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
+            // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
+            // FILE_ATTRIBUTE_READONLY
+            if ((attr & 1) == 0) {
+                mode |= 0220;
+            }
+            // directory
+            if (is_dir) {
+                mode |= S_IFDIR | 0111;
+            } else {
+                mode |= S_IFREG;
+            }
+
+            break;
+        }
+        default: {
+            if (is_dir) {
+                mode = S_IFDIR | 0775;
+            } else {
+                mode = S_IFREG | 0664;
+            }
+        }
+    }
+
+    return mode;
 }
 
 int FuseZipData::removeNode(FileNode *node) {

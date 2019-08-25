@@ -156,7 +156,7 @@ void ntfs_extra_field_create() {
     expected_data = expected;
     expected_len = sizeof(expected);
 
-    std::unique_ptr<FileNode> n (FileNode::createNodeForZipEntry((zip*)1, "test", 0));
+    std::unique_ptr<FileNode> n (FileNode::createNodeForZipEntry((zip*)1, "test", 0, S_IFREG | 0666));
     struct timespec atime, mtime;
     mtime.tv_sec  = 1560435721;
     mtime.tv_nsec = 999999900;
@@ -203,7 +203,7 @@ void ntfs_extra_field_edit() {
     expected_data = expected;
     expected_len = sizeof(expected);
 
-    std::unique_ptr<FileNode> n (FileNode::createNodeForZipEntry((zip*)1, "test", 0));
+    std::unique_ptr<FileNode> n (FileNode::createNodeForZipEntry((zip*)1, "test", 0, S_IFREG | 0666));
     struct timespec atime, mtime;
     mtime.tv_sec  = 1560435721;
     mtime.tv_nsec = 999999900;

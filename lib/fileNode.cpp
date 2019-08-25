@@ -123,15 +123,14 @@ FileNode *FileNode::createIntermediateDir(struct zip *zip,
 FileNode *FileNode::createDir(struct zip *zip, const char *fname,
         zip_int64_t id, uid_t owner, gid_t group, mode_t mode) {
     assert(id >= 0);
-    FileNode *n = createNodeForZipEntry(zip, fname, id);
+    // FUSE does not pass S_IFDIR bit here
+    FileNode *n = createNodeForZipEntry(zip, fname, id, S_IFDIR | mode);
     if (n == NULL) {
         return NULL;
     }
     n->state = CLOSED;
     n->has_cretime = true;
     n->m_cretime = n->m_mtime;
-    // FUSE does not pass S_IFDIR bit here
-    n->m_mode = S_IFDIR | mode;
     n->m_uid = owner;
     n->m_gid = group;
     n->is_dir = true;
@@ -168,7 +167,7 @@ FileNode *FileNode::createRootNode(struct zip *zip) {
 }
 
 FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
-        const char *fname, zip_int64_t id) {
+        const char *fname, zip_int64_t id, mode_t mode) {
     assert(id >= 0);
     FileNode *n = new FileNode(zip, fname, id);
     if (n == NULL) {
@@ -190,11 +189,11 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
     n->m_mtime.tv_nsec = n->m_atime.tv_nsec = n->m_ctime.tv_nsec = n->m_cretime.tv_nsec = 0;
     n->has_cretime = false;
     n->m_size = stat.size;
+    n->m_mode = mode;
 
     n->parse_name();
 
     bool hasPkWareField;
-    n->processExternalAttributes();
     n->processExtraFields(hasPkWareField);
 
     // InfoZIP may produce FIFO-marked node with content, PkZip - can't.
@@ -375,70 +374,6 @@ zip_uint64_t FileNode::size() const {
         return buffer->len;
     } else {
         return m_size;
-    }
-}
-
-/**
- * Get file mode from external attributes.
- */
-void FileNode::processExternalAttributes () {
-    zip_uint8_t opsys;
-    zip_uint32_t attr;
-    assert(_id >= 0);
-    assert (zip != NULL);
-    zip_file_get_external_attributes(zip, id(), 0, &opsys, &attr);
-
-    mode_t unix_mode = attr >> 16;
-    /*
-     * PKWARE describes "OS made by" now (since 1998) as follows:
-     * The upper byte indicates the compatibility of the file attribute
-     * information.  If the external file attributes are compatible with MS-DOS
-     * and can be read by PKZIP for DOS version 2.04g then this value will be
-     * zero.
-     */
-    if (opsys == ZIP_OPSYS_DOS && (unix_mode & S_IFMT) != 0)
-        opsys = ZIP_OPSYS_UNIX;
-    switch (opsys) {
-        case ZIP_OPSYS_UNIX: {
-            m_mode = unix_mode;
-            // force is_dir value
-            if (is_dir) {
-                m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFDIR;
-            } else if ((m_mode & S_IFMT) == S_IFDIR) {
-                m_mode = (m_mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
-            }
-            break;
-        }
-        case ZIP_OPSYS_DOS:
-        case ZIP_OPSYS_WINDOWS_NTFS:
-        case ZIP_OPSYS_MVS: {
-            /*
-             * Both WINDOWS_NTFS and OPSYS_MVS used here because of
-             * difference in constant assignment by PKWARE and Info-ZIP
-             */
-            m_mode = 0444;
-            // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
-            // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
-            // FILE_ATTRIBUTE_READONLY
-            if ((attr & 1) == 0) {
-                m_mode |= 0220;
-            }
-            // directory
-            if (is_dir) {
-                m_mode |= S_IFDIR | 0111;
-            } else {
-                m_mode |= S_IFREG;
-            }
-
-            break;
-        }
-        default: {
-            if (is_dir) {
-                m_mode = S_IFDIR | 0775;
-            } else {
-                m_mode = S_IFREG | 0664;
-            }
-        }
     }
 }
 
