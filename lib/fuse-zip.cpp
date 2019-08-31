@@ -142,7 +142,7 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     if (node == NULL) {
         return -ENOENT;
     }
-    if (node->is_dir) {
+    if (node->is_dir()) {
         stbuf->st_nlink = 2 + node->childs.size();
     } else {
         stbuf->st_nlink = 1;
@@ -216,7 +216,7 @@ int fusezip_open(const char *path, struct fuse_file_info *fi) {
     if (node == NULL) {
         return -ENOENT;
     }
-    if (node->is_dir) {
+    if (node->is_dir()) {
         return -EISDIR;
     }
     fi->fh = (uint64_t)node;
@@ -309,7 +309,7 @@ int fusezip_truncate(const char *path, off_t offset) {
     if (node == NULL) {
         return -ENOENT;
     }
-    if (node->is_dir) {
+    if (node->is_dir()) {
         return -EISDIR;
     }
     int res;
@@ -331,7 +331,7 @@ int fusezip_unlink(const char *path) {
     if (node == NULL) {
         return -ENOENT;
     }
-    if (node->is_dir) {
+    if (node->is_dir()) {
         return -EISDIR;
     }
     return -get_data()->removeNode(node);
@@ -345,7 +345,7 @@ int fusezip_rmdir(const char *path) {
     if (node == NULL) {
         return -ENOENT;
     }
-    if (!node->is_dir) {
+    if (!node->is_dir()) {
         return -ENOTDIR;
     }
     if (!node->childs.empty()) {
@@ -393,20 +393,20 @@ int fusezip_rename(const char *path, const char *new_path) {
     size_t len = strlen(new_path);
     size_t oldLen = strlen(path + 1) + 1;
     std::string new_name;
-    if (!node->is_dir) {
+    if (!node->is_dir()) {
         --len;
         --oldLen;
     }
-    new_name.reserve(len + ((node->is_dir) ? 1 : 0));
+    new_name.reserve(len + ((node->is_dir()) ? 1 : 0));
     new_name.append(new_path + 1);
-    if (node->is_dir) {
+    if (node->is_dir()) {
         new_name.push_back('/');
     }
 
     try {
         struct zip *z = get_zip();
         // Renaming directory and its content recursively
-        if (node->is_dir) {
+        if (node->is_dir()) {
             queue<FileNode*> q;
             q.push(node);
             while (!q.empty()) {
@@ -415,14 +415,14 @@ int fusezip_rename(const char *path, const char *new_path) {
                 for (nodelist_t::const_iterator i = n->childs.begin(); i != n->childs.end(); ++i) {
                     FileNode *nn = *i;
                     q.push(nn);
-                    char *name = (char*)malloc(len + nn->full_name.size() - oldLen + (nn->is_dir ? 2 : 1));
+                    char *name = (char*)malloc(len + nn->full_name.size() - oldLen + (nn->is_dir() ? 2 : 1));
                     if (name == NULL) {
                         //TODO: check that we are have enough memory before entering this loop
                         return -ENOMEM;
                     }
                     strcpy(name, new_name.c_str());
                     strcpy(name + len, nn->full_name.c_str() + oldLen);
-                    if (nn->is_dir) {
+                    if (nn->is_dir()) {
                         strcat(name, "/");
                     }
                     if (nn->present_in_zip()) {

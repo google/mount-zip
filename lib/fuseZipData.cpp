@@ -119,7 +119,7 @@ void FuseZipData::connectNodeToTree (FileNode *node) {
         }
         files[parent->full_name.c_str()] = parent;
         connectNodeToTree (parent);
-    } else if (!parent->is_dir) {
+    } else if (!parent->is_dir()) {
         throw std::runtime_error ("bad archive structure");
     }
     // connecting to parent
@@ -374,7 +374,7 @@ void FuseZipData::save () {
         }
         assert(node != NULL);
         bool saveMetadata = node->isMetadataChanged();
-        if (node->isChanged() && !node->is_dir) {
+        if (node->isChanged() && !node->is_dir()) {
             saveMetadata = true;
             int res = node->save();
             if (res != 0) {

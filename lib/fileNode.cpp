@@ -57,7 +57,6 @@ FileNode *FileNode::createFile (struct zip *zip, const char *fname,
     if (n == NULL) {
         return NULL;
     }
-    n->is_dir = false;
     n->parse_name();
 
     return n;
@@ -69,7 +68,6 @@ FileNode *FileNode::createSymlink(struct zip *zip, const char *fname) {
     if (n == NULL) {
         return NULL;
     }
-    n->is_dir = false;
     n->parse_name();
 
     return n;
@@ -86,7 +84,6 @@ FileNode *FileNode::createIntermediateDir(struct zip *zip,
         return NULL;
     }
     n->m_commentChanged = false;
-    n->is_dir = true;
     n->parse_name();
 
     return n;
@@ -102,7 +99,6 @@ FileNode *FileNode::createDir(struct zip *zip, const char *fname,
         return NULL;
     }
     n->m_commentChanged = false;
-    n->is_dir = true;
     n->parse_name();
 
     return n;
@@ -114,7 +110,6 @@ FileNode *FileNode::createRootNode(struct zip *zip) {
     if (n == NULL) {
         return NULL;
     }
-    n->is_dir = true;
     n->name = n->full_name.c_str();
 
     int len = 0;
@@ -141,7 +136,6 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
     if (n == NULL) {
         return NULL;
     }
-    n->is_dir = false;
 
     n->parse_name();
 
@@ -180,7 +174,6 @@ void FileNode::parse_name() {
         // It will produce two \0s at the end of file name. I think that
         // it is not a problem
         full_name[full_name.size() - 1] = 0;
-        this->is_dir = true;
         while (lsl > full_name.c_str() && *lsl != '/') {
             lsl--;
         }
@@ -223,7 +216,7 @@ int FileNode::close() {
 }
 
 int FileNode::save() {
-    assert (!is_dir);
+    assert (!is_dir());
     // index is modified if state == NEW
     return _data->save(zip, full_name.c_str(), _id);
 }
@@ -252,6 +245,10 @@ int FileNode::truncate(size_t offset) {
 
 zip_uint64_t FileNode::size() const {
     return _data->size();
+}
+
+bool FileNode::is_dir() const {
+    return S_ISDIR(_data->mode());
 }
 
 /**
@@ -385,7 +382,7 @@ int FileNode::updateExternalAttributes() const {
     // save DOS attributes in low byte
     // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
     // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
-    if (is_dir) {
+    if (is_dir()) {
         // FILE_ATTRIBUTE_DIRECTORY
         mode |= 0x10;
     }

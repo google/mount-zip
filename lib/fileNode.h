@@ -51,7 +51,6 @@ private:
     int updateExternalAttributes() const;
 
     static const zip_int64_t ROOT_NODE_INDEX, NEW_NODE_INDEX, TMP_DIR_INDEX;
-    //TODO: is_dir into ctor args
     FileNode(struct zip *zip, const char *fname, zip_int64_t id, std::shared_ptr<DataNode> data);
 
 protected:
@@ -210,6 +209,8 @@ public:
         // called only from FuseZipData::save, so we're don't worry about 'status' variable value
     }
 
+    bool is_dir() const;
+
     bool hasComment() const { return m_comment != NULL; }
     bool isCommentChanged() const { return m_commentChanged; }
     bool setComment(const char *value, uint16_t length);
@@ -218,7 +219,6 @@ public:
 
     const char *name;
     std::string full_name;
-    bool is_dir;
     nodelist_t childs;
     FileNode *parent;
 };
