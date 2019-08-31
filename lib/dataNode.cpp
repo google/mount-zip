@@ -35,16 +35,19 @@
 #include "extraField.h"
 #include "util.h"
 
-DataNode::DataNode(zip_uint64_t id, mode_t mode) {
+DataNode::DataNode(zip_uint64_t id, mode_t mode, uid_t uid, gid_t gid, dev_t dev) {
     _id = id;
     _open_count = 0;
     _size = 0;
 
     _mode = mode;
+    _uid = uid;
+    _gid = gid;
+    _device = dev;
 }
 
 std::shared_ptr<DataNode> DataNode::createNew(mode_t mode, uid_t uid, gid_t gid, dev_t dev) {
-    std::shared_ptr<DataNode> n(new DataNode(FAKE_ID, mode));
+    std::shared_ptr<DataNode> n(new DataNode(FAKE_ID, mode, uid, gid, dev));
 
     n->_state = NodeState::NEW;
     n->_buffer.reset(new BigBuffer());
@@ -53,15 +56,11 @@ std::shared_ptr<DataNode> DataNode::createNew(mode_t mode, uid_t uid, gid_t gid,
     n->_metadataChanged = true;
     n->_mtime = n->_atime = n->_ctime = n->_btime = currentTime();
 
-    n->_uid = uid;
-    n->_gid = gid;
-    n->_device = dev;
-
     return n;
 }
 
 std::shared_ptr<DataNode> DataNode::createExisting(struct zip *zip, zip_uint64_t id, mode_t mode) {
-    std::shared_ptr<DataNode> n(new DataNode(id, mode));
+    std::shared_ptr<DataNode> n(new DataNode(id, mode, 0, 0, 0));
 
     n->_state = NodeState::CLOSED;
     n->_metadataChanged = false;

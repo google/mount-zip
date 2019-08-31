@@ -58,7 +58,7 @@ private:
     uid_t _uid;
     gid_t _gid;
 
-    DataNode(zip_uint64_t id, mode_t mode);
+    DataNode(zip_uint64_t id, mode_t mode, uid_t uid, gid_t gid, dev_t dev);
 
     void processExtraFields(struct zip *zip, bool &hasPkWareField);
     void processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
