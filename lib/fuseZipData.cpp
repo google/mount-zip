@@ -25,6 +25,7 @@
 #include <stdexcept>
 
 #include "fuseZipData.h"
+#include "util.h"
 
 #define FZ_ATTR_HARDLINK (0x800)
 
@@ -225,7 +226,7 @@ int FuseZipData::removeNode(FileNode *node) {
     assert(node != NULL);
     assert(node->parent != NULL);
     node->parent->detachChild (node);
-    node->parent->setCTime (FileNode::currentTime());
+    node->parent->setCTime (currentTime());
     files.erase(node->full_name.c_str());
 
     bool present = node->present_in_zip();
@@ -344,7 +345,7 @@ void FuseZipData::renameNode (FileNode *node, const char *newName, bool
     }
 
     if (reparent && parent1 != parent2) {
-        struct timespec now = FileNode::currentTime();
+        struct timespec now = currentTime();
         parent1->setCTime (now);
         parent2->setCTime (now);
     }

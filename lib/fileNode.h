@@ -47,10 +47,6 @@ private:
     bool m_commentChanged;
 
     void parse_name();
-    void processExtraFields(bool &hasPkWareField);
-    void processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
-            bool mtimeFromTimestamp, bool atimeFromTimestamp, bool highPrecisionTime,
-            int &lastProcessedUnixField);
     int updateExtraFields(bool force_precise_time) const;
     int updateExternalAttributes() const;
 

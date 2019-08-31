@@ -51,16 +51,16 @@ private:
     NodeState _state;
 
     zip_uint64_t _size;
-    bool _has_cretime, _metadataChanged;
+    bool _has_btime, _metadataChanged;
     mode_t _mode;
     dev_t _device;
-    struct timespec _mtime, _atime, _ctime, _cretime;
+    struct timespec _mtime, _atime, _ctime, _btime;
     uid_t _uid;
     gid_t _gid;
 
-    DataNode(zip_uint64_t id, mode_t mode, uid_t uid, gid_t gid, dev_t dev);
+    DataNode(zip_uint64_t id, mode_t mode);
 
-    void processExtraFields(bool &hasPkWareField);
+    void processExtraFields(struct zip *zip, bool &hasPkWareField);
     void processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
             bool mtimeFromTimestamp, bool atimeFromTimestamp, bool highPrecisionTime,
             int &lastProcessedUnixField);
@@ -69,8 +69,7 @@ private:
 
 public:
     static std::shared_ptr<DataNode> createNew(mode_t mode, uid_t uid, gid_t gid, dev_t dev);
-    static std::shared_ptr<DataNode> createExisting(zip_uint64_t id, mode_t mode, uid_t uid, gid_t gid,
-            dev_t dev);
+    static std::shared_ptr<DataNode> createExisting(struct zip *zip, zip_uint64_t id, mode_t mode);
 
     int open(struct zip *zip);
     int read(char *buf, size_t size, size_t offset);
@@ -81,9 +80,12 @@ public:
      * Invoke zip_file_add() or zip_file_replace() for file to save it.
      * Should be called only if item is needed to ba saved into zip file.
      *
+     * @param zip zip structure pointer
+     * @param full_name full file name
+     * @param index file node index (updated if state is NEW)
      * @return 0 if success, != 0 on error
      */
-    int save();
+    int save(struct zip *zip, const char *full_name, zip_int64_t &index);
 
     /**
      * Save file metadata to ZIP
@@ -132,6 +134,8 @@ public:
 
     void setCTime (const timespec &ctime);
 
+    void touchCTime();
+
     inline struct timespec atime() const {
         return _atime;
     }
@@ -140,6 +144,10 @@ public:
     }
     inline struct timespec mtime() const {
         return _mtime;
+    }
+    inline bool has_btime() const { return _has_btime; }
+    inline struct timespec btime() const {
+        return _btime;
     }
 
     /**
@@ -155,8 +163,6 @@ public:
     }
 
     zip_uint64_t size() const;
-
-    static struct timespec currentTime();
 };
 #endif
 

@@ -33,42 +33,62 @@
 
 #include "dataNode.h"
 #include "extraField.h"
+#include "util.h"
 
-DataNode::DataNode(zip_uint64_t id, mode_t mode, uid_t uid, gid_t gid, dev_t dev) {
+DataNode::DataNode(zip_uint64_t id, mode_t mode) {
     _id = id;
     _open_count = 0;
     _size = 0;
 
     _mode = mode;
-    _uid = uid;
-    _gid = gid;
-    _device = dev;
 }
 
 std::shared_ptr<DataNode> DataNode::createNew(mode_t mode, uid_t uid, gid_t gid, dev_t dev) {
-    std::shared_ptr<DataNode> n(new DataNode(FAKE_ID, mode, uid, gid, dev));
+    std::shared_ptr<DataNode> n(new DataNode(FAKE_ID, mode));
 
     n->_state = NodeState::NEW;
     n->_buffer.reset(new BigBuffer());
 
-    n->_has_cretime = true;
+    n->_has_btime = true;
     n->_metadataChanged = true;
-    n->_mtime = n->_atime = n->_ctime = n->_cretime = currentTime();
+    n->_mtime = n->_atime = n->_ctime = n->_btime = currentTime();
+
+    n->_uid = uid;
+    n->_gid = gid;
+    n->_device = dev;
 
     return n;
 }
 
-std::shared_ptr<DataNode> DataNode::createExisting(zip_uint64_t id, mode_t mode, uid_t uid, gid_t gid,
-        dev_t dev) {
-    std::shared_ptr<DataNode> n(new DataNode(id, mode, uid, gid, dev));
+std::shared_ptr<DataNode> DataNode::createExisting(struct zip *zip, zip_uint64_t id, mode_t mode) {
+    std::shared_ptr<DataNode> n(new DataNode(id, mode));
 
     n->_state = NodeState::CLOSED;
-
-    // TODO
-    //n->_has_cretime = true;
     n->_metadataChanged = false;
-    // TODO
-    //n->_mtime = n->_atime = n->_ctime = n->_cretime = currentTime();
+
+    struct zip_stat stat;
+    zip_stat_index(zip, id, 0, &stat);
+    // check that all used fields are valid
+    zip_uint64_t needValid = ZIP_STAT_NAME | ZIP_STAT_INDEX |
+        ZIP_STAT_SIZE | ZIP_STAT_MTIME;
+    // required fields are always valid for existing items or newly added
+    // directories (see zip_stat_index.c from libzip)
+    assert((stat.valid & needValid) == needValid);
+    n->_mtime.tv_sec = n->_atime.tv_sec = n->_ctime.tv_sec = n->_btime.tv_sec = stat.mtime;
+    n->_mtime.tv_nsec = n->_atime.tv_nsec = n->_ctime.tv_nsec = n->_btime.tv_nsec = 0;
+    n->_has_btime = false;
+    n->_size = stat.size;
+
+    bool hasPkWareField;
+    n->processExtraFields(zip, hasPkWareField);
+
+    // InfoZIP may produce FIFO-marked node with content, PkZip - can't.
+    if (S_ISFIFO(n->_mode)) {
+        unsigned int type = S_IFREG;
+        if (n->_size == 0 && hasPkWareField)
+            type = S_IFIFO;
+        n->_mode = (n->_mode & static_cast<unsigned>(~S_IFMT)) | type;
+    }
 
     return n;
 }
@@ -129,14 +149,13 @@ int DataNode::close() {
     return 0;
 }
 
-//int DataNode::save() {
-//    assert (!is_dir);
-//    // index is modified if _state == NEW
-//    assert(zip != NULL);
-//    return _buffer->saveToZip(_mtime.tv_sec, zip, full_name.c_str(),
-//            _state == NodeState::NEW, _id);
-//}
-//
+int DataNode::save(struct zip *zip, const char *full_name, zip_int64_t &index) {
+    assert(zip != NULL);
+    assert(full_name != NULL);
+    return _buffer->saveToZip(_mtime.tv_sec, zip, full_name,
+            _state == NodeState::NEW, index);
+}
+
 //int DataNode::saveMetadata(bool force_precise_time) const {
 //    assert(zip != NULL);
 //    assert(_id >= 0);
@@ -176,288 +195,188 @@ zip_uint64_t DataNode::size() const {
     }
 }
 
-///**
-// * Get timestamp information from extra fields.
-// * Get owner and group information.
-// */
-//void DataNode::processExtraFields (bool &hasPkWareField) {
-//    zip_int16_t count;
-//    // times from timestamp have precedence to UNIX field times
-//    bool mtimeFromTimestamp = false, atimeFromTimestamp = false;
-//    // high-precision timestamps have the highest precedence
-//    bool highPrecisionTime = false;
-//    // UIDs and GIDs from UNIX extra fields with bigger type IDs have
-//    // precedence
-//    int lastProcessedUnixField = 0;
-//
-//    hasPkWareField = false;
-//
-//    assert(_id >= 0);
-//    assert (zip != NULL);
-//
-//    // read central directory
-//    count = zip_file_extra_fields_count (zip, id(), ZIP_FL_CENTRAL);
-//    if (count > 0) {
-//        for (zip_uint16_t i = 0; i < static_cast<zip_uint16_t>(count); ++i) {
-//            struct timespec mt, at, cret;
-//            zip_uint16_t type, len;
-//            const zip_uint8_t *field = zip_file_extra_field_get (zip,
-//                    id(), i, &type, &len, ZIP_FL_CENTRAL);
-//
-//            switch (type) {
-//                case FZ_EF_PKWARE_UNIX:
-//                    hasPkWareField = true;
-//                    processPkWareUnixField(type, len, field,
-//                            mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
-//                            lastProcessedUnixField);
-//                    break;
-//                case FZ_EF_NTFS:
-//                    if (ExtraField::parseNtfsExtraField(len, field, mt, at, cret)) {
-//                        _mtime = mt;
-//                        _atime = at;
-//                        _cretime = cret;
-//                        _has_cretime = true;
-//                        highPrecisionTime = true;
-//                    }
-//                    break;
-//            }
-//        }
-//    }
-//
-//    // read local headers
-//    count = zip_file_extra_fields_count (zip, id(), ZIP_FL_LOCAL);
-//    if (count < 0)
-//        return;
-//    for (zip_uint16_t i = 0; i < static_cast<zip_uint16_t>(count); ++i) {
-//        bool has_mt, has_at, has_cret;
-//        time_t mt, at, cret;
-//        zip_uint16_t type, len;
-//        const zip_uint8_t *field = zip_file_extra_field_get (zip,
-//                id(), i, &type, &len, ZIP_FL_LOCAL);
-//
-//        switch (type) {
-//            case FZ_EF_TIMESTAMP: {
-//                if (ExtraField::parseExtTimeStamp (len, field, has_mt, mt,
-//                            has_at, at, has_cret, cret)) {
-//                    if (has_mt && !highPrecisionTime) {
-//                        _mtime.tv_sec = mt;
-//                        _mtime.tv_nsec = 0;
-//                        mtimeFromTimestamp = true;
-//                    }
-//                    if (has_at && !highPrecisionTime) {
-//                        _atime.tv_sec = at;
-//                        _atime.tv_nsec = 0;
-//                        atimeFromTimestamp = true;
-//                    }
-//                    if (has_cret && !highPrecisionTime) {
-//                        _cretime.tv_sec = cret;
-//                        _cretime.tv_nsec = 0;
-//                        _has_cretime = true;
-//                    }
-//                }
-//                break;
-//            }
-//            case FZ_EF_PKWARE_UNIX:
-//                hasPkWareField = true;
-//                processPkWareUnixField(type, len, field,
-//                        mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
-//                        lastProcessedUnixField);
-//                break;
-//            case FZ_EF_INFOZIP_UNIX1:
-//            {
-//                bool has_uid_gid;
-//                uid_t uid;
-//                gid_t gid;
-//                if (ExtraField::parseSimpleUnixField (type, len, field,
-//                            has_uid_gid, uid, gid, mt, at)) {
-//                    if (has_uid_gid && type >= lastProcessedUnixField) {
-//                        _uid = uid;
-//                        _gid = gid;
-//                        lastProcessedUnixField = type;
-//                    }
-//                    if (!mtimeFromTimestamp && !highPrecisionTime) {
-//                        _mtime.tv_sec = mt;
-//                        _mtime.tv_nsec = 0;
-//                    }
-//                    if (!atimeFromTimestamp && !highPrecisionTime) {
-//                        _atime.tv_sec = at;
-//                        _atime.tv_nsec = 0;
-//                    }
-//                }
-//                break;
-//            }
-//            case FZ_EF_INFOZIP_UNIX2:
-//            case FZ_EF_INFOZIP_UNIXN: {
-//                uid_t uid;
-//                gid_t gid;
-//                if (ExtraField::parseUnixUidGidField (type, len, field, uid, gid)) {
-//                    if (type >= lastProcessedUnixField) {
-//                        _uid = uid;
-//                        _gid = gid;
-//                        lastProcessedUnixField = type;
-//                    }
-//                }
-//                break;
-//            }
-//            case FZ_EF_NTFS: {
-//                struct timespec mts, ats, bts;
-//                if (ExtraField::parseNtfsExtraField(len, field, mts, ats, bts)) {
-//                    _mtime = mts;
-//                    _atime = ats;
-//                    _cretime = bts;
-//                    _has_cretime = true;
-//                    highPrecisionTime = true;
-//                }
-//                break;
-//            }
-//        }
-//    }
-//}
-//
-//void DataNode::processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
-//        bool mtimeFromTimestamp, bool atimeFromTimestamp, bool highPrecisionTime,
-//        int &lastProcessedUnixField) {
-//    time_t mt, at;
-//    uid_t uid;
-//    gid_t gid;
-//    dev_t dev;
-//    const char *link;
-//    uint16_t link_len;
-//    if (!ExtraField::parsePkWareUnixField(len, field, _mode, mt, at,
-//                uid, gid, dev, link, link_len))
-//        return;
-//
-//    if (type >= lastProcessedUnixField) {
-//        _uid = uid;
-//        _gid = gid;
-//        lastProcessedUnixField = type;
-//    }
-//    if (!mtimeFromTimestamp && !highPrecisionTime) {
-//        _mtime.tv_sec = mt;
-//        _mtime.tv_nsec = 0;
-//    }
-//    if (!atimeFromTimestamp && !highPrecisionTime) {
-//        _atime.tv_sec = at;
-//        _atime.tv_nsec = 0;
-//    }
-//    _device = dev;
-//    // use PKWARE link target only if link target in Info-ZIP format is not
-//    // specified (empty file content)
-//    if (S_ISLNK(_mode) && _size == 0 && link_len > 0) {
-//        assert(_state == NodeState::CLOSED || _state == NodeState::VIRTUAL_SYMLINK);
-//        if (_state == NodeState::VIRTUAL_SYMLINK)
-//        {
-//            _state = NodeState::CLOSED;
-//            delete _buffer;
-//        }
-//        _buffer = new BigBuffer();
-//        if (!_buffer)
-//            return;
-//        assert(link != NULL);
-//        _buffer->write(link, link_len, 0);
-//        _state = NodeState::VIRTUAL_SYMLINK;
-//    }
-//    // TODO: hardlinks
-//}
-//
-///**
-// * Save timestamp, owner and group info into extra fields
-// * @return 0 on success
-// */
-//int DataNode::updateExtraFields (bool force_precise_time) const {
-//    static zip_flags_t locations[] = {ZIP_FL_CENTRAL, ZIP_FL_LOCAL};
-//
-//    assert(_id >= 0);
-//    assert (zip != NULL);
-//    for (unsigned int loc = 0; loc < sizeof(locations) / sizeof(locations[0]); ++loc) {
-//        std::unique_ptr<zip_uint8_t[]> ntfs_field;
-//        zip_uint16_t ntfs_field_len;
-//
-//        // remove old extra fields
-//        zip_int16_t count = zip_file_extra_fields_count (zip, id(),
-//                locations[loc]);
-//        const zip_uint8_t *field;
-//        for (zip_int16_t i = count; i >= 0; --i) {
-//            zip_uint16_t type;
-//            zip_uint16_t len;
-//            field = zip_file_extra_field_get (zip, id(), static_cast<zip_uint16_t>(i), &type,
-//                    &len, locations[loc]);
-//            if (field == NULL)
-//                continue;
-//            if (type == FZ_EF_TIMESTAMP ||
-//                        type == FZ_EF_PKWARE_UNIX   ||
-//                        type == FZ_EF_INFOZIP_UNIX1 ||
-//                        type == FZ_EF_INFOZIP_UNIX2 ||
-//                        type == FZ_EF_INFOZIP_UNIXN) {
-//                zip_file_extra_field_delete (zip, id(), static_cast<zip_uint16_t>(i),
-//                        locations[loc]);
-//            }
-//            if (type == FZ_EF_NTFS) {
-//                // back up previous field content
-//                ntfs_field_len = len;
-//                ntfs_field.reset(new zip_uint8_t[len + FZ_EF_NTFS_TIMESTAMP_LENGTH]);
-//                memcpy(ntfs_field.get(), field, len);
-//
-//                zip_file_extra_field_delete (zip, id(), static_cast<zip_uint16_t>(i),
-//                        locations[loc]);
-//            }
-//        }
-//        // add new extra fields
-//        zip_uint16_t len;
-//        int res;
-//        // add special device or FIFO information
-//        if (S_ISBLK(_mode) || S_ISCHR(_mode) || S_ISFIFO(_mode)) {
-//            field = ExtraField::createPkWareUnixField(_mtime.tv_sec, _atime.tv_sec, _mode,
-//                    _uid, _gid, _device, len);
-//            res = zip_file_extra_field_set(zip, id(), FZ_EF_PKWARE_UNIX,
-//                    ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
-//            if (res != 0) {
-//                return res;
-//            }
-//
-//            // PKZIP 14 for Linux doesn't extract device nodes if extra fields
-//            // other than PKWARE UNIX are present in the central directory
-//            if ((S_ISBLK(_mode) || S_ISCHR(_mode)) && locations[loc] == ZIP_FL_CENTRAL)
-//                continue;
-//        }
-//
-//        // add timestamps
-//        field = ExtraField::createExtTimeStamp (locations[loc], _mtime.tv_sec,
-//                _atime.tv_sec, _has_cretime, _cretime.tv_sec, len);
-//        res = zip_file_extra_field_set (zip, id(), FZ_EF_TIMESTAMP,
-//                ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
-//        if (res != 0) {
-//            return res;
-//        }
-//        // PKZIP 14 for Linux doesn't extract symlinks if NTFS extra field
-//        // is present in the central directory
-//        if ((_has_cretime || force_precise_time) &&
-//            (locations[loc] == ZIP_FL_LOCAL || !S_ISLNK(_mode)))
-//        {
-//            // add high-precision timestamps
-//            if (ntfs_field) {
-//                len = ExtraField::editNtfsExtraField(ntfs_field_len, ntfs_field.get(),
-//                        _mtime, _atime, _cretime);
-//                field = ntfs_field.get();
-//            } else {
-//                field = ExtraField::createNtfsExtraField (_mtime, _atime, _cretime, len);
-//            }
-//            res = zip_file_extra_field_set (zip, id(), FZ_EF_NTFS,
-//                    ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
-//            if (res != 0) {
-//                return res;
-//            }
-//        }
-//        // add UNIX owner info
-//        field = ExtraField::createInfoZipNewUnixField (_uid, _gid, len);
-//        res = zip_file_extra_field_set (zip, id(), FZ_EF_INFOZIP_UNIXN,
-//                ZIP_EXTRA_FIELD_NEW, field, len, locations[loc]);
-//        if (res != 0) {
-//            return res;
-//        }
-//    }
-//    return 0;
-//}
+/**
+ * Get timestamp information from extra fields.
+ * Get owner and group information.
+ */
+void DataNode::processExtraFields(struct zip *zip, bool &hasPkWareField) {
+    zip_int16_t count;
+    // times from timestamp have precedence to UNIX field times
+    bool mtimeFromTimestamp = false, atimeFromTimestamp = false;
+    // high-precision timestamps have the highest precedence
+    bool highPrecisionTime = false;
+    // UIDs and GIDs from UNIX extra fields with bigger type IDs have
+    // precedence
+    int lastProcessedUnixField = 0;
+
+    hasPkWareField = false;
+
+    assert(zip != NULL);
+
+    // read central directory
+    count = zip_file_extra_fields_count (zip, _id, ZIP_FL_CENTRAL);
+    if (count > 0) {
+        for (zip_uint16_t i = 0; i < static_cast<zip_uint16_t>(count); ++i) {
+            struct timespec mt, at, cret;
+            zip_uint16_t type, len;
+            const zip_uint8_t *field = zip_file_extra_field_get (zip,
+                    _id, i, &type, &len, ZIP_FL_CENTRAL);
+
+            switch (type) {
+                case FZ_EF_PKWARE_UNIX:
+                    hasPkWareField = true;
+                    processPkWareUnixField(type, len, field,
+                            mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
+                            lastProcessedUnixField);
+                    break;
+                case FZ_EF_NTFS:
+                    if (ExtraField::parseNtfsExtraField(len, field, mt, at, cret)) {
+                        _mtime = mt;
+                        _atime = at;
+                        _btime = cret;
+                        _has_btime = true;
+                        highPrecisionTime = true;
+                    }
+                    break;
+            }
+        }
+    }
+
+    // read local headers
+    count = zip_file_extra_fields_count (zip, _id, ZIP_FL_LOCAL);
+    if (count < 0)
+        return;
+    for (zip_uint16_t i = 0; i < static_cast<zip_uint16_t>(count); ++i) {
+        bool has_mt, has_at, has_cret;
+        time_t mt, at, cret;
+        zip_uint16_t type, len;
+        const zip_uint8_t *field = zip_file_extra_field_get (zip,
+                _id, i, &type, &len, ZIP_FL_LOCAL);
+
+        switch (type) {
+            case FZ_EF_TIMESTAMP: {
+                if (ExtraField::parseExtTimeStamp (len, field, has_mt, mt,
+                            has_at, at, has_cret, cret)) {
+                    if (has_mt && !highPrecisionTime) {
+                        _mtime.tv_sec = mt;
+                        _mtime.tv_nsec = 0;
+                        mtimeFromTimestamp = true;
+                    }
+                    if (has_at && !highPrecisionTime) {
+                        _atime.tv_sec = at;
+                        _atime.tv_nsec = 0;
+                        atimeFromTimestamp = true;
+                    }
+                    if (has_cret && !highPrecisionTime) {
+                        _btime.tv_sec = cret;
+                        _btime.tv_nsec = 0;
+                        _has_btime = true;
+                    }
+                }
+                break;
+            }
+            case FZ_EF_PKWARE_UNIX:
+                hasPkWareField = true;
+                processPkWareUnixField(type, len, field,
+                        mtimeFromTimestamp, atimeFromTimestamp, highPrecisionTime,
+                        lastProcessedUnixField);
+                break;
+            case FZ_EF_INFOZIP_UNIX1:
+            {
+                bool has_uid_gid;
+                uid_t uid;
+                gid_t gid;
+                if (ExtraField::parseSimpleUnixField (type, len, field,
+                            has_uid_gid, uid, gid, mt, at)) {
+                    if (has_uid_gid && type >= lastProcessedUnixField) {
+                        _uid = uid;
+                        _gid = gid;
+                        lastProcessedUnixField = type;
+                    }
+                    if (!mtimeFromTimestamp && !highPrecisionTime) {
+                        _mtime.tv_sec = mt;
+                        _mtime.tv_nsec = 0;
+                    }
+                    if (!atimeFromTimestamp && !highPrecisionTime) {
+                        _atime.tv_sec = at;
+                        _atime.tv_nsec = 0;
+                    }
+                }
+                break;
+            }
+            case FZ_EF_INFOZIP_UNIX2:
+            case FZ_EF_INFOZIP_UNIXN: {
+                uid_t uid;
+                gid_t gid;
+                if (ExtraField::parseUnixUidGidField (type, len, field, uid, gid)) {
+                    if (type >= lastProcessedUnixField) {
+                        _uid = uid;
+                        _gid = gid;
+                        lastProcessedUnixField = type;
+                    }
+                }
+                break;
+            }
+            case FZ_EF_NTFS: {
+                struct timespec mts, ats, bts;
+                if (ExtraField::parseNtfsExtraField(len, field, mts, ats, bts)) {
+                    _mtime = mts;
+                    _atime = ats;
+                    _btime = bts;
+                    _has_btime = true;
+                    highPrecisionTime = true;
+                }
+                break;
+            }
+        }
+    }
+}
+
+void DataNode::processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const zip_uint8_t *field,
+        bool mtimeFromTimestamp, bool atimeFromTimestamp, bool highPrecisionTime,
+        int &lastProcessedUnixField) {
+    time_t mt, at;
+    uid_t uid;
+    gid_t gid;
+    dev_t dev;
+    const char *link;
+    uint16_t link_len;
+    if (!ExtraField::parsePkWareUnixField(len, field, _mode, mt, at,
+                uid, gid, dev, link, link_len))
+        return;
+
+    if (type >= lastProcessedUnixField) {
+        _uid = uid;
+        _gid = gid;
+        lastProcessedUnixField = type;
+    }
+    if (!mtimeFromTimestamp && !highPrecisionTime) {
+        _mtime.tv_sec = mt;
+        _mtime.tv_nsec = 0;
+    }
+    if (!atimeFromTimestamp && !highPrecisionTime) {
+        _atime.tv_sec = at;
+        _atime.tv_nsec = 0;
+    }
+    _device = dev;
+    // use PKWARE link target only if link target in Info-ZIP format is not
+    // specified (empty file content)
+    if (S_ISLNK(_mode) && _size == 0 && link_len > 0) {
+        assert(_state == NodeState::CLOSED || _state == NodeState::VIRTUAL_SYMLINK);
+        if (_state == NodeState::VIRTUAL_SYMLINK)
+        {
+            _state = NodeState::CLOSED;
+            _buffer.reset();
+        }
+        _buffer.reset(new BigBuffer());
+        if (!_buffer)
+            return;
+        assert(link != NULL);
+        _buffer->write(link, link_len, 0);
+        _state = NodeState::VIRTUAL_SYMLINK;
+    }
+    // TODO: hardlinks
+}
 
 void DataNode::chmod (mode_t mode) {
     _mode = (_mode & S_IFMT) | mode;
@@ -474,35 +393,6 @@ void DataNode::setGid (gid_t gid) {
     _gid = gid;
     _metadataChanged = true;
 }
-
-///**
-// * Save OS type and permissions into external attributes
-// * @return 0 on success or libzip error code (ZIP_ER_MEMORY or ZIP_ER_RDONLY)
-// */
-//int DataNode::updateExternalAttributes() const {
-//    assert(_id >= 0);
-//    assert (zip != NULL);
-//    // save UNIX attributes in high word
-//    mode_t mode = _mode << 16;
-//
-//    // save DOS attributes in low byte
-//    // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
-//    // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
-//    if (is_dir) {
-//        // FILE_ATTRIBUTE_DIRECTORY
-//        mode |= 0x10;
-//    }
-//    if (name[0] == '.') {
-//        // FILE_ATTRIBUTE_HIDDEN
-//        mode |= 2;
-//    }
-//    if (!(mode & S_IWUSR)) {
-//        // FILE_ATTRIBUTE_READONLY
-//        mode |= 1;
-//    }
-//    return zip_file_set_external_attributes (zip, id(), 0,
-//            ZIP_OPSYS_UNIX, mode);
-//}
 
 void DataNode::setTimes (const timespec &atime, const timespec &mtime) {
     struct timespec now;
@@ -524,11 +414,6 @@ void DataNode::setCTime (const timespec &ctime) {
     _metadataChanged = true;
 }
 
-struct timespec DataNode::currentTime() {
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
-        ts.tv_sec = time(NULL);
-        ts.tv_nsec = 0;
-    }
-    return ts;
+void DataNode::touchCTime() {
+    _ctime = currentTime();
 }
