@@ -66,6 +66,18 @@ private:
      */
     mode_t getEntryAttributes(zip_uint64_t id, const char *name, bool &isHardlink);
 
+    /**
+     * create and attach file node
+     */
+    void attachNode(zip_int64_t id, const char *name, mode_t mode, bool readonly,
+            bool needPrefix);
+
+    /**
+     * create and attach hardlink node
+     */
+    bool attachHardlink(zip_int64_t id, const char *name, mode_t mode, bool readonly,
+            bool needPrefix);
+
     FileNode *m_root;
     filemap_t files;
 public:

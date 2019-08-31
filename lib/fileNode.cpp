@@ -138,16 +138,21 @@ FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
     }
 
     n->parse_name();
+    n->readComment();
 
-    uint32_t len = 0;
-    n->m_comment = zip_file_get_comment(zip, n->id(), &len, ZIP_FL_ENC_RAW);
-    n->m_commentChanged = false;
-    // RAW comment length can't exceed 16 bits
-    n->m_commentLen = static_cast<uint16_t>(len);
-    if (n->m_comment != NULL && n->m_comment[0] == '\0')
-        n->m_comment = NULL;
-    if (n->m_comment == NULL)
-        n->m_commentLen = 0;
+    return n;
+}
+
+FileNode *FileNode::createHardlink(struct zip *zip,
+            const char *fname, zip_int64_t id, FileNode *target) {
+    assert(id >= 0);
+    FileNode *n = new FileNode(zip, fname, id, target->_data);
+    if (n == NULL) {
+        return NULL;
+    }
+
+    n->parse_name();
+    n->readComment();
 
     return n;
 }
@@ -183,6 +188,18 @@ void FileNode::parse_name() {
         lsl++;
     }
     this->name = lsl;
+}
+
+void FileNode::readComment() {
+    uint32_t len = 0;
+    m_comment = zip_file_get_comment(zip, id(), &len, ZIP_FL_ENC_RAW);
+    m_commentChanged = false;
+    // RAW comment length can't exceed 16 bits
+    m_commentLen = static_cast<uint16_t>(len);
+    if (m_comment != NULL && m_comment[0] == '\0')
+        m_comment = NULL;
+    if (m_comment == NULL)
+        m_commentLen = 0;
 }
 
 void FileNode::appendChild (FileNode *child) {

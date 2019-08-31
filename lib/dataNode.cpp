@@ -374,7 +374,7 @@ void DataNode::processPkWareUnixField(zip_uint16_t type, zip_uint16_t len, const
         _buffer->write(link, link_len, 0);
         _state = NodeState::VIRTUAL_SYMLINK;
     }
-    // TODO: hardlinks
+    // hardlinks are handled in FuseZipData::build_tree
 }
 
 void DataNode::chmod (mode_t mode) {

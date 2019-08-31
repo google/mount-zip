@@ -25,6 +25,7 @@
 #include <stdexcept>
 
 #include "fuseZipData.h"
+#include "extraField.h"
 #include "util.h"
 
 #define FZ_ATTR_HARDLINK (0x800)
@@ -77,28 +78,33 @@ void FuseZipData::build_tree(bool readonly) {
     }
     // add zip entries for all items except hardlinks
     for (zip_int64_t i = 0; i < n; ++i) {
+        zip_uint64_t id = static_cast<zip_uint64_t>(i);
         bool isHardlink;
-        const char *name = zip_get_name(m_zip, static_cast<zip_uint64_t>(i), ZIP_FL_ENC_RAW);
-        mode_t mode = getEntryAttributes(static_cast<zip_uint64_t>(i), name, isHardlink);
+        const char *name = zip_get_name(m_zip, id, ZIP_FL_ENC_RAW);
+        mode_t mode = getEntryAttributes(id, name, isHardlink);
         
         if (isHardlink)
+        {
+            fprintf(stderr, "skip %s\n", name);
             continue;
+        }
 
-        std::string converted;
-        convertFileName(name, readonly, needPrefix, converted);
-        const char *cname = converted.c_str();
-        if (files.find(cname) != files.end()) {
-            syslog(LOG_ERR, "duplicated file name: %s", cname);
-            throw std::runtime_error("duplicate file names");
-        }
-        FileNode *node = FileNode::createNodeForZipEntry(m_zip, cname, i, mode);
-        if (node == NULL) {
-            throw std::bad_alloc();
-        }
-        files[node->full_name.c_str()] = node;
+        attachNode(i, name, mode, readonly, needPrefix);
     }
     // add hardlinks
-    // TODO
+    for (zip_int64_t i = 0; i < n; ++i) {
+        zip_uint64_t id = static_cast<zip_uint64_t>(i);
+        bool isHardlink;
+        const char *name = zip_get_name(m_zip, id, ZIP_FL_ENC_RAW);
+        mode_t mode = getEntryAttributes(id, name, isHardlink);
+
+        if (!isHardlink)
+            continue;
+
+        bool notHLink = !attachHardlink(i, name, mode, readonly, needPrefix);
+        if (notHLink)
+            attachNode(i, name, mode, readonly, needPrefix);
+    }
     // Connect nodes to tree. Missing intermediate nodes created on demand.
     for (filemap_t::const_iterator i = files.begin(); i != files.end(); ++i)
     {
@@ -220,6 +226,90 @@ mode_t FuseZipData::getEntryAttributes(zip_uint64_t id, const char *name, bool &
     }
 
     return mode;
+}
+
+void FuseZipData::attachNode(zip_int64_t id, const char *name, mode_t mode, bool readonly,
+            bool needPrefix)
+{
+    std::string converted;
+    convertFileName(name, readonly, needPrefix, converted);
+    const char *cname = converted.c_str();
+    if (files.find(cname) != files.end()) {
+        syslog(LOG_ERR, "duplicated file name: %s", cname);
+        throw std::runtime_error("duplicate file names");
+    }
+    FileNode *node = FileNode::createNodeForZipEntry(m_zip, cname, id, mode);
+    if (node == NULL) {
+        throw std::bad_alloc();
+    }
+    files[node->full_name.c_str()] = node;
+}
+
+bool FuseZipData::attachHardlink(zip_int64_t sid, const char *name, mode_t mode, bool readonly,
+            bool needPrefix)
+{
+    const zip_uint8_t *field;
+    zip_uint16_t len;
+    zip_uint64_t id = static_cast<zip_uint64_t>(sid);
+    field = zip_file_extra_field_get_by_id(m_zip, id, FZ_EF_PKWARE_UNIX, 0, &len, ZIP_FL_CENTRAL);
+    if (!field)
+        field = zip_file_extra_field_get_by_id(m_zip, id, FZ_EF_PKWARE_UNIX, 0, &len, ZIP_FL_LOCAL);
+    if (!field) {
+        // ignoring hardlink without PKWARE UNIX field
+        syslog(LOG_INFO, "%s: PKWARE UNIX field is absent for hardlink\n", name);
+        return false;
+    }
+
+    time_t mt, at;
+    uid_t uid;
+    gid_t gid;
+    dev_t dev;
+    const char *link;
+    uint16_t link_len;
+    if (!ExtraField::parsePkWareUnixField(len, field, mode, mt, at,
+                uid, gid, dev, link, link_len))
+    {
+        syslog(LOG_WARNING, "%s: unable to parse PKWARE UNIX field\n", name);
+        return false;
+    }
+
+    if (link_len == 0 || !link)
+    {
+        syslog(LOG_ERR, "%s: hard link target is empty\n", name);
+        return true;
+    }
+
+    std::string linkStr(link, link_len);
+
+    //TODO: use original name instead of converted!
+    auto it = files.find(linkStr.c_str());
+    if (it == files.end())
+    {
+        syslog(LOG_ERR, "%s: unable to find link target %s\n", name, linkStr.c_str());
+        return true;
+    }
+
+    if ((it->second->mode() & S_IFMT) != (mode & S_IFMT))
+    {
+        //TODO: hardlinked symlink fails here
+        syslog(LOG_ERR, "%s: file format differs with link target %s\n", name, linkStr.c_str());
+        return true;
+    }
+
+    std::string converted;
+    convertFileName(name, readonly, needPrefix, converted);
+    const char *cname = converted.c_str();
+    if (files.find(cname) != files.end()) {
+        syslog(LOG_ERR, "duplicated file name: %s", cname);
+        throw std::runtime_error("duplicate file names");
+    }
+    FileNode *node = FileNode::createHardlink(m_zip, cname, sid, it->second);
+    if (node == NULL) {
+        throw std::bad_alloc();
+    }
+    files[node->full_name.c_str()] = node;
+
+    return true;
 }
 
 int FuseZipData::removeNode(FileNode *node) {

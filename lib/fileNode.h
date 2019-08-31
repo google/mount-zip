@@ -47,6 +47,7 @@ private:
     bool m_commentChanged;
 
     void parse_name();
+    void readComment();
     int updateExtraFields(bool force_precise_time) const;
     int updateExternalAttributes() const;
 
@@ -80,6 +81,11 @@ public:
      */
     static FileNode *createNodeForZipEntry(struct zip *zip,
             const char *fname, zip_int64_t id, mode_t mode);
+    /**
+     * Create hardlink to another node
+     */
+    static FileNode *createHardlink(struct zip *zip,
+            const char *fname, zip_int64_t id, FileNode *target);
     ~FileNode();
     
     /**
