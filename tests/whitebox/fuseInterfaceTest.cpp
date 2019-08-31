@@ -199,8 +199,8 @@ void test_mknod () {
         assert(fusezip_mknod("/char", S_IFCHR, dev) == 0);
         FileNode *node = data->find("char");
         assert(node != NULL);
-        assert(S_ISCHR(node->m_mode));
-        assert(node->m_device == dev);
+        assert(S_ISCHR(node->mode()));
+        assert(node->device() == dev);
 
         assert(fusezip_unlink("/char") == 0);
     }
@@ -210,8 +210,8 @@ void test_mknod () {
         assert(fusezip_mknod("/block", S_IFBLK, dev) == 0);
         FileNode *node = data->find("block");
         assert(node != NULL);
-        assert(S_ISBLK(node->m_mode));
-        assert(node->m_device == dev);
+        assert(S_ISBLK(node->mode()));
+        assert(node->device() == dev);
 
         assert(fusezip_unlink("/block") == 0);
     }
@@ -220,8 +220,8 @@ void test_mknod () {
         assert(fusezip_mknod("/fifo", S_IFIFO, 0) == 0);
         FileNode *node = data->find("fifo");
         assert(node != NULL);
-        assert(S_ISFIFO(node->m_mode));
-        assert(node->m_size == 0);
+        assert(S_ISFIFO(node->mode()));
+        assert(node->size() == 0);
 
         assert(fusezip_unlink("/fifo") == 0);
     }
@@ -230,7 +230,7 @@ void test_mknod () {
         assert(fusezip_mknod("/socket", S_IFSOCK, 0) == 0);
         FileNode *node = data->find("socket");
         assert(node != NULL);
-        assert(S_ISSOCK(node->m_mode));
+        assert(S_ISSOCK(node->mode()));
 
         assert(fusezip_unlink("/socket") == 0);
     }
