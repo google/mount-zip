@@ -2256,6 +2256,14 @@ namespace eval ::fusezip::test {
     fstest symlink-pkware {Check symlink in PKWARE format} {
         use data/pkware-specials.zip
         mount -r
+        assert {[file type $mountdir/symlink2] eq "link"}
+        assert {[file readlink $mountdir/symlink2] eq "regular"} "invalid link content"
+        umount
+    }
+
+    fstest symlink-pkware-hardlinked {Check symlink in PKWARE format (hardlinked symlink)} {
+        use data/pkware-specials.zip
+        mount -r
         assert {[file type $mountdir/symlink] eq "link"}
         assert {[file readlink $mountdir/symlink] eq "regular"} "invalid link content"
         umount
@@ -2276,7 +2284,7 @@ namespace eval ::fusezip::test {
     }
 
     fstest symlink-pkware-touch {Check PKWARE format symlink metadata update and save} {
-        use data/pkware-specials.zip
+        use data/pkware-symlink.zip
         mount
         exec touch -h -a -t 201908091406 $mountdir/symlink
         umount
