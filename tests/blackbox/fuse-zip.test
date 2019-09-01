@@ -3000,6 +3000,19 @@ namespace eval ::fusezip::test {
         assert {$stat0(ino) == $stat2(ino)} "file and 2nd hardlink inodes must be the same"
     }
 
+    fstest hardlink-rw-mode {Check that hardlinks are supported only in read-only mode} {
+        use data/pkware-specials.zip
+        if {![ catch {mount} err opts ] ||
+                [ dict get $opts -errorcode ] ne "NOTMOUNTED"} {
+            error "Mount error is expected"
+        } else {
+            set msg [ stripValgrindOutput [ join $error \n ] ]
+            if {![ regexp {^fuse-zip: unable to open ZIP file: hard links are supported only in read-only mode$} $msg ]} {
+                error "Invalid error message: $msg"
+            }
+        }
+    }
+
     fstest hardlink-before-target-read {Read support for hardlink before target} {
         # not zupported by PkZip but supported by fuse-zip :)
         use data/hlink-before-target.zip

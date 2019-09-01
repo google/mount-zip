@@ -85,10 +85,7 @@ void FuseZipData::build_tree(bool readonly) {
         mode_t mode = getEntryAttributes(id, name, isHardlink);
         
         if (isHardlink)
-        {
-            fprintf(stderr, "skip %s\n", name);
             continue;
-        }
 
         attachNode(i, name, mode, readonly, needPrefix, origNames);
     }
@@ -105,6 +102,8 @@ void FuseZipData::build_tree(bool readonly) {
         bool notHLink = !attachHardlink(i, name, mode, readonly, needPrefix, origNames);
         if (notHLink)
             attachNode(i, name, mode, readonly, needPrefix, origNames);
+        else if (!readonly)
+            throw std::runtime_error("hard links are supported only in read-only mode");
     }
     // Connect nodes to tree. Missing intermediate nodes created on demand.
     for (filemap_t::const_iterator i = files.begin(); i != files.end(); ++i)
