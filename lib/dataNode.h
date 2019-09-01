@@ -69,6 +69,7 @@ private:
 
 public:
     static std::shared_ptr<DataNode> createNew(mode_t mode, uid_t uid, gid_t gid, dev_t dev);
+    static std::shared_ptr<DataNode> createTmpDir(mode_t mode, uid_t uid, gid_t gid, dev_t dev);
     static std::shared_ptr<DataNode> createExisting(struct zip *zip, zip_uint64_t id, mode_t mode);
 
     int open(struct zip *zip);

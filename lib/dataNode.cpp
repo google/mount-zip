@@ -59,6 +59,19 @@ std::shared_ptr<DataNode> DataNode::createNew(mode_t mode, uid_t uid, gid_t gid,
     return n;
 }
 
+std::shared_ptr<DataNode> DataNode::createTmpDir(mode_t mode, uid_t uid, gid_t gid, dev_t dev) {
+    std::shared_ptr<DataNode> n(new DataNode(FAKE_ID, mode, uid, gid, dev));
+
+    n->_state = NodeState::NEW;
+    n->_buffer.reset(new BigBuffer());
+
+    n->_has_btime = true;
+    n->_metadataChanged = false;
+    n->_mtime = n->_atime = n->_ctime = n->_btime = currentTime();
+
+    return n;
+}
+
 std::shared_ptr<DataNode> DataNode::createExisting(struct zip *zip, zip_uint64_t id, mode_t mode) {
     std::shared_ptr<DataNode> n(new DataNode(id, mode, 0, 0, 0));
 

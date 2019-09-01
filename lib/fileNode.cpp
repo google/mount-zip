@@ -78,7 +78,7 @@ FileNode *FileNode::createSymlink(struct zip *zip, const char *fname) {
  */
 FileNode *FileNode::createIntermediateDir(struct zip *zip,
         const char *fname) {
-    auto data = DataNode::createNew(S_IFDIR | 0755, 0, 0, 0);
+    auto data = DataNode::createTmpDir(S_IFDIR | 0755, 0, 0, 0);
     FileNode *n = new FileNode(zip, fname, TMP_DIR_INDEX, std::move(data));
     if (n == NULL) {
         return NULL;
