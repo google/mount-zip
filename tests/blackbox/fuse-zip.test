@@ -637,6 +637,17 @@ namespace eval ::fusezip::test {
         }
     }
 
+    proc eassert {arg1 oper arg2 {text ""}} {
+        set res [expr "\$arg1 $oper \$arg2"]
+        if {$res} {
+            return
+        }
+        if {$text eq ""} {
+            set text "assertion failed"
+        }
+        error "$text: $arg1 $oper $arg2"
+    }
+
     ############################################################
     # INITIALIZATION
     ############################################################
@@ -2968,7 +2979,7 @@ namespace eval ::fusezip::test {
         assert {[file readlink $tmpdir/extract/symlink2] eq "regular"} "invalid link content"
     } pkzip
 
-    fstest hardlinks-pkzip-read {Read support for PkZip format hardlinks} {
+    fstest hardlink-pkzip-read {Read support hardlinks created by PkZip} {
         use data/pkware-specials.zip
         mount -r -o use_ino
         # two initially hard-linked symlinks
@@ -2987,6 +2998,118 @@ namespace eval ::fusezip::test {
 
         assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
         assert {$stat0(ino) == $stat2(ino)} "file and 2nd hardlink inodes must be the same"
+    }
+
+    fstest hardlink-before-target-read {Read support for hardlink before target} {
+        # not zupported by PkZip but supported by fuse-zip :)
+        use data/hlink-before-target.zip
+        mount -r -o use_ino
+        assert {[file type $mountdir/0hlink]   eq "file"}
+        assert {[file type $mountdir/1regular] eq "file"}
+        file stat          $mountdir/0hlink   stat0
+        file stat          $mountdir/1regular stat1
+        umount
+
+        assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
+    }
+
+    fstest hardlink-chain-read {Read support for hardlink chain} {
+        use data/hlink-chain.zip
+        mount -r -o use_ino
+        assert {[file type $mountdir/0regular] eq "file"}
+        assert {[file type $mountdir/hlink1]   eq "file"}
+        assert {[file type $mountdir/hlink2]   eq "file"}
+        file stat          $mountdir/0regular stat0
+        file stat          $mountdir/hlink1   stat1
+        file stat          $mountdir/hlink2   stat2
+        umount
+
+        assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
+        assert {$stat0(ino) == $stat2(ino)} "file and 2nd hardlink inodes must be the same"
+    }
+
+    fstest hardlink-dir-read {Read support for directory hardlink} {
+        use data/hlink-dir.zip
+        mount -r -o use_ino
+        eassert [file type $mountdir/dir]   eq "directory" "bad dir type"
+        eassert [file type $mountdir/hlink] eq "directory" "bad link type"
+        umount
+    }
+
+    fstest hardlink-recursive-one {Hardlink to self} {
+        use data/hlink-recursive-one.zip
+        mount -r -o use_ino
+        assert {![file exists $mountdir/hlink]}
+        umount
+    }
+
+    fstest hardlink-recursive-two {Recursive hardlink chain} {
+        use data/hlink-recursive-two.zip
+        mount -r -o use_ino
+        assert {![file exists $mountdir/hlink1]}
+        assert {![file exists $mountdir/hlink2]}
+        umount
+    }
+
+    fstest hardlink-without-target {Hardlink without a target} {
+        use data/hlink-without-target.zip
+        mount -r -o use_ino
+        assert {![file exists $mountdir/hlink1]}
+        umount
+    }
+
+    fstest hardlink-special-read {Hardlinks to special files} {
+        use data/hlink-special.zip
+        mount -r -o use_ino
+
+        set file1 0block
+        set file2 hlink-block
+        set type blockSpecial
+        eassert [file type $mountdir/$file1] eq $type
+        eassert [file type $mountdir/$file2] eq $type
+        lassign [exec stat -c "%t %T" $mountdir/$file1] maj min
+        assert {$maj == 8 && $min == "ff"} "$file1: failed block device numbers $maj, $min"
+        lassign [exec stat -c "%t %T" $mountdir/$file2] maj min
+        assert {$maj == 8 && $min == "ff"} "$file2: failed block device numbers $maj, $min"
+
+        set file1 0fifo
+        set file2 hlink-fifo
+        set type fifo
+        eassert [file type $mountdir/$file1] eq $type
+        eassert [file type $mountdir/$file2] eq $type
+        file stat          $mountdir/$file1 stat1
+        file stat          $mountdir/$file2 stat2
+        assert {$stat1(ino) == $stat2(ino)} "$file1 and $file2 inodes must be the same"
+
+        set file1 0socket
+        set file2 hlink-socket
+        set type socket
+        eassert [file type $mountdir/$file1] eq $type
+        eassert [file type $mountdir/$file2] eq $type
+        file stat          $mountdir/$file1 stat1
+        file stat          $mountdir/$file2 stat2
+        assert {$stat1(ino) == $stat2(ino)} "$file1 and $file2 inodes must be the same"
+
+        umount
+    }
+
+    fstest hardlink-symlink-read {Hardlink to symlink} {
+        use data/hlink-symlink.zip
+        mount -r -o use_ino
+
+        eassert [file type $mountdir/0regular] eq file "bad regular file type"
+
+        eassert [file type $mountdir/1symlink] eq "link" "bad symlink type"
+        eassert [file readlink $mountdir/1symlink] eq "0regular" "invalid symlink content"
+        file stat $mountdir/1symlink stat1
+
+        eassert [file type $mountdir/hlink] eq "link" "bad hardlink-symlink type"
+        eassert [file readlink $mountdir/hlink] eq "0regular" "invalid hlink-symlink content"
+        file stat $mountdir/hlink stat2
+
+        umount
+
+        assert {$stat1(ino) == $stat2(ino)} "symlink inodes must be the same"
     }
 
     finalize
