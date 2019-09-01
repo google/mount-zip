@@ -291,9 +291,8 @@ bool FuseZipData::attachHardlink(zip_int64_t sid, const char *name, mode_t mode,
 
     if ((it->second->mode() & S_IFMT) != (mode & S_IFMT))
     {
-        //TODO: hardlinked symlink fails here
         syslog(LOG_ERR, "%s: file format differs with link target %s\n", name, linkStr.c_str());
-        return true;
+        return false;
     }
 
     std::string converted;

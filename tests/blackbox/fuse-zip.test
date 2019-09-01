@@ -2968,6 +2968,27 @@ namespace eval ::fusezip::test {
         assert {[file readlink $tmpdir/extract/symlink2] eq "regular"} "invalid link content"
     } pkzip
 
+    fstest hardlinks-pkzip-read {Read support for PkZip format hardlinks} {
+        use data/pkware-specials.zip
+        mount -r -o use_ino
+        # two initially hard-linked symlinks
+        assert {[file type      $mountdir/symlink]  eq "link"}
+        assert {[file readlink  $mountdir/symlink]  eq "regular"} "invalid link content"
+        assert {[file type      $mountdir/z-hardlink-symlink] eq "link"}
+        assert {[file readlink  $mountdir/z-hardlink-symlink] eq "regular"} "invalid link content"
+        # hard-linked regular files
+        assert {[file type      $mountdir/regular]      eq "file"}
+        assert {[file type      $mountdir/z-hardlink1]  eq "file"}
+        assert {[file type      $mountdir/z-hardlink2]  eq "file"}
+        file stat               $mountdir/regular     stat0
+        file stat               $mountdir/z-hardlink1 stat1
+        file stat               $mountdir/z-hardlink2 stat2
+        umount
+
+        assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
+        assert {$stat0(ino) == $stat2(ino)} "file and 2nd hardlink inodes must be the same"
+    }
+
     finalize
 }
 namespace delete ::fusezip::test

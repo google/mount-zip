@@ -87,6 +87,13 @@ public:
     static FileNode *createHardlink(struct zip *zip,
             const char *fname, zip_int64_t id, FileNode *target);
     ~FileNode();
+
+    /**
+     * return a pointer to data structure
+     */
+    DataNode *data() {
+        return _data.get();
+    }
     
     /**
      * add child node to list
