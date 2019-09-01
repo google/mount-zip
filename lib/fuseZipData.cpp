@@ -77,6 +77,7 @@ void FuseZipData::build_tree(bool readonly) {
         }
     }
     // add zip entries for all items except hardlinks
+    filemap_t origNames;
     for (zip_int64_t i = 0; i < n; ++i) {
         zip_uint64_t id = static_cast<zip_uint64_t>(i);
         bool isHardlink;
@@ -89,7 +90,7 @@ void FuseZipData::build_tree(bool readonly) {
             continue;
         }
 
-        attachNode(i, name, mode, readonly, needPrefix);
+        attachNode(i, name, mode, readonly, needPrefix, origNames);
     }
     // add hardlinks
     for (zip_int64_t i = 0; i < n; ++i) {
@@ -101,9 +102,9 @@ void FuseZipData::build_tree(bool readonly) {
         if (!isHardlink)
             continue;
 
-        bool notHLink = !attachHardlink(i, name, mode, readonly, needPrefix);
+        bool notHLink = !attachHardlink(i, name, mode, readonly, needPrefix, origNames);
         if (notHLink)
-            attachNode(i, name, mode, readonly, needPrefix);
+            attachNode(i, name, mode, readonly, needPrefix, origNames);
     }
     // Connect nodes to tree. Missing intermediate nodes created on demand.
     for (filemap_t::const_iterator i = files.begin(); i != files.end(); ++i)
@@ -229,7 +230,7 @@ mode_t FuseZipData::getEntryAttributes(zip_uint64_t id, const char *name, bool &
 }
 
 void FuseZipData::attachNode(zip_int64_t id, const char *name, mode_t mode, bool readonly,
-            bool needPrefix)
+            bool needPrefix, filemap_t &origNames)
 {
     std::string converted;
     convertFileName(name, readonly, needPrefix, converted);
@@ -243,10 +244,11 @@ void FuseZipData::attachNode(zip_int64_t id, const char *name, mode_t mode, bool
         throw std::bad_alloc();
     }
     files[node->full_name.c_str()] = node;
+    origNames[name] = node;
 }
 
 bool FuseZipData::attachHardlink(zip_int64_t sid, const char *name, mode_t mode, bool readonly,
-            bool needPrefix)
+            bool needPrefix, filemap_t &origNames)
 {
     const zip_uint8_t *field;
     zip_uint16_t len;
@@ -281,9 +283,8 @@ bool FuseZipData::attachHardlink(zip_int64_t sid, const char *name, mode_t mode,
 
     std::string linkStr(link, link_len);
 
-    //TODO: use original name instead of converted!
-    auto it = files.find(linkStr.c_str());
-    if (it == files.end())
+    auto it = origNames.find(linkStr.c_str());
+    if (it == origNames.end())
     {
         syslog(LOG_ERR, "%s: unable to find link target %s\n", name, linkStr.c_str());
         return true;
@@ -307,6 +308,7 @@ bool FuseZipData::attachHardlink(zip_int64_t sid, const char *name, mode_t mode,
         throw std::bad_alloc();
     }
     files[node->full_name.c_str()] = node;
+    origNames[name] = node;
 
     return true;
 }

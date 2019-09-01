@@ -70,13 +70,13 @@ private:
      * create and attach file node
      */
     void attachNode(zip_int64_t id, const char *name, mode_t mode, bool readonly,
-            bool needPrefix);
+            bool needPrefix, filemap_t &origNames);
 
     /**
      * create and attach hardlink node
      */
     bool attachHardlink(zip_int64_t id, const char *name, mode_t mode, bool readonly,
-            bool needPrefix);
+            bool needPrefix, filemap_t &origNames);
 
     FileNode *m_root;
     filemap_t files;

@@ -3112,6 +3112,18 @@ namespace eval ::fusezip::test {
         assert {$stat1(ino) == $stat2(ino)} "symlink inodes must be the same"
     }
 
+    fstest hardlink-relative-read {Hardlink with relative path} {
+        use data/hlink-relative.zip
+        mount -r -o use_ino
+        assert {[file type $mountdir/UP/0regular] eq "file"}
+        assert {[file type $mountdir/UP/hlink]    eq "file"}
+        file stat          $mountdir/UP/0regular stat0
+        file stat          $mountdir/UP/hlink    stat1
+        umount
+
+        assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
+    }
+
     finalize
 }
 namespace delete ::fusezip::test
