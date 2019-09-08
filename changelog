@@ -1,3 +1,19 @@
+2019-09-08 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.7.0:
+	- PKWARE NTFS extra field support. Support high-precision timestamps
+	via this extension.
+	- PKWARE NTFS extra field: preserve 'reserved' field and unknown tags.
+	- Full read support for PKWARE UNIX extra field features. Write
+	support for all PKWARE UNIX features except hard links.
+	- Full support for block/character devices, sockets and FIFOs.
+	- Read only support for hard links.
+	- Support for file and archive comments.
+	- Work-around for PKWARE's interpretation of 'version made by' field.
+	- Support FUSE 2.9.
+	- Update ctime on rename.
+	- Now requires C++11-compilant compiler to build.
+
 2019-08-03 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.6.2:
