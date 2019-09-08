@@ -37,63 +37,41 @@
 
 const zip_int64_t FileNode::ROOT_NODE_INDEX = -1;
 const zip_int64_t FileNode::NEW_NODE_INDEX = -2;
+const zip_int64_t FileNode::TMP_DIR_INDEX = -2;
 
-FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id_) {
+FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id,
+        std::shared_ptr<DataNode> data) {
     zip = zip_;
-    metadataChanged = false;
     full_name = fname;
-    _id = id_;
-    m_size = 0;
-    m_uid = 0;
-    m_gid = 0;
+    _id = id;
+    _data = std::move(data);
     m_comment = NULL;
     m_commentLen = 0;
     m_commentChanged = true;
-    m_device = 0;
 }
 
 FileNode *FileNode::createFile (struct zip *zip, const char *fname, 
         uid_t owner, gid_t group, mode_t mode, dev_t dev) {
-    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX);
+    auto data = DataNode::createNew(mode, owner, group, dev);
+    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX, std::move(data));
     if (n == NULL) {
         return NULL;
     }
-    n->state = NEW;
     n->is_dir = false;
-    n->buffer = new BigBuffer();
-    if (!n->buffer) {
-        delete n;
-        return NULL;
-    }
-    n->has_cretime = true;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
-
     n->parse_name();
-    n->m_mode = mode;
-    n->m_uid = owner;
-    n->m_gid = group;
-    n->m_device = dev;
 
     return n;
 }
 
 FileNode *FileNode::createSymlink(struct zip *zip, const char *fname) {
-    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX);
+    // TODO: current uid and gid
+    auto data = DataNode::createNew(S_IFLNK | 0777, 0, 0, 0);
+    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX, std::move(data));
     if (n == NULL) {
         return NULL;
     }
-    n->state = NEW;
     n->is_dir = false;
-    n->buffer = new BigBuffer();
-    if (!n->buffer) {
-        delete n;
-        return NULL;
-    }
-    n->has_cretime = true;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
-
     n->parse_name();
-    n->m_mode = S_IFLNK | 0777;
 
     return n;
 }
@@ -103,18 +81,13 @@ FileNode *FileNode::createSymlink(struct zip *zip, const char *fname) {
  */
 FileNode *FileNode::createIntermediateDir(struct zip *zip,
         const char *fname) {
-    FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX);
+    auto data = DataNode::createNew(S_IFDIR | 0755, 0, 0, 0);
+    FileNode *n = new FileNode(zip, fname, TMP_DIR_INDEX, std::move(data));
     if (n == NULL) {
         return NULL;
     }
-    n->state = NEW_DIR;
-    n->is_dir = true;
-    n->has_cretime = true;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
-    n->m_size = 0;
-    n->m_mode = S_IFDIR | 0775;
     n->m_commentChanged = false;
-
+    n->is_dir = true;
     n->parse_name();
 
     return n;
@@ -124,31 +97,26 @@ FileNode *FileNode::createDir(struct zip *zip, const char *fname,
         zip_int64_t id, uid_t owner, gid_t group, mode_t mode) {
     assert(id >= 0);
     // FUSE does not pass S_IFDIR bit here
-    FileNode *n = createNodeForZipEntry(zip, fname, id, S_IFDIR | mode);
+    auto data = DataNode::createNew(S_IFDIR | mode, owner, group, 0);
+    FileNode *n = new FileNode(zip, fname, id, std::move(data));
     if (n == NULL) {
         return NULL;
     }
-    n->state = CLOSED;
-    n->has_cretime = true;
-    n->m_cretime = n->m_mtime;
-    n->m_uid = owner;
-    n->m_gid = group;
+    n->m_commentChanged = false;
     n->is_dir = true;
+    n->parse_name();
+
     return n;
 }
 
 FileNode *FileNode::createRootNode(struct zip *zip) {
-    FileNode *n = new FileNode(zip, "", ROOT_NODE_INDEX);
+    auto data = DataNode::createNew(S_IFDIR | 0755, 0, 0, 0);
+    FileNode *n = new FileNode(zip, "", ROOT_NODE_INDEX, std::move(data));
     if (n == NULL) {
         return NULL;
     }
     n->is_dir = true;
-    n->state = NEW_DIR;
-    n->m_mtime = n->m_atime = n->m_ctime = n->m_cretime = currentTime();
-    n->has_cretime = true;
-    n->m_size = 0;
     n->name = n->full_name.c_str();
-    n->m_mode = S_IFDIR | 0775;
 
     int len = 0;
     n->m_comment = zip_get_archive_comment(zip, &len, ZIP_FL_ENC_RAW);
@@ -169,13 +137,13 @@ FileNode *FileNode::createRootNode(struct zip *zip) {
 FileNode *FileNode::createNodeForZipEntry(struct zip *zip,
         const char *fname, zip_int64_t id, mode_t mode) {
     assert(id >= 0);
-    FileNode *n = new FileNode(zip, fname, id);
+    // TODO: uid, gid, dev
+    auto data = DataNode::createExisting(static_cast<zip_uint64_t>(id), mode, 0, 0, 0);
+    FileNode *n = new FileNode(zip, fname, id, data);
     if (n == NULL) {
         return NULL;
     }
     n->is_dir = false;
-    n->open_count = 0;
-    n->state = CLOSED;
 
     struct zip_stat stat;
     zip_stat_index(zip, n->id(), 0, &stat);
@@ -269,59 +237,22 @@ void FileNode::rename(const char *new_name) {
 }
 
 int FileNode::open() {
-    if (state == NEW || state == VIRTUAL_SYMLINK) {
-        return 0;
-    }
-    if (state == OPENED) {
-        if (open_count == INT_MAX) {
-            return -EMFILE;
-        } else {
-            ++open_count;
-        }
-    }
-    if (state == CLOSED) {
-        open_count = 1;
-        try {
-            assert (zip != NULL);
-            if (m_size > std::numeric_limits<size_t>::max()) {
-                syslog(LOG_WARNING, "file %s is too big for your system :)", full_name.c_str());
-                return -ENOMEM;
-            }
-            buffer = new BigBuffer(zip, id(), static_cast<size_t>(m_size));
-            state = OPENED;
-        }
-        catch (std::bad_alloc&) {
-            return -ENOMEM;
-        }
-        catch (std::exception&) {
-            return -EIO;
-        }
-    }
-    return 0;
+    assert(_data);
+    return _data->open(zip, _id);
 }
 
 int FileNode::read(char *buf, size_t sz, size_t offset) {
-    m_atime = currentTime();
-    return buffer->read(buf, sz, offset);
+    assert(_data);
+    return _data->read(buf, sz, offset);
 }
 
 int FileNode::write(const char *buf, size_t sz, size_t offset) {
-    assert(state != VIRTUAL_SYMLINK);
-    if (state == OPENED) {
-        state = CHANGED;
-    }
-    m_mtime = currentTime();
-    metadataChanged = true;
-    return buffer->write(buf, sz, offset);
+    assert(_data);
+    return _data->write(buf, sz, offset);
 }
 
 int FileNode::close() {
-    m_size = buffer->len;
-    if (state == OPENED && --open_count == 0) {
-        delete buffer;
-        state = CLOSED;
-    }
-    return 0;
+    return _data->close()
 }
 
 int FileNode::save() {
@@ -350,23 +281,8 @@ int FileNode::saveComment() const {
 }
 
 int FileNode::truncate(size_t offset) {
-    assert(state != VIRTUAL_SYMLINK);
-    if (state != CLOSED) {
-        if (state != NEW) {
-            state = CHANGED;
-        }
-        try {
-            buffer->truncate(offset);
-            return 0;
-        }
-        catch (const std::bad_alloc &) {
-            return EIO;
-        }
-        m_mtime = currentTime();
-        metadataChanged = true;
-    } else {
-        return EBADF;
-    }
+    assert(_data);
+    return _data->truncate(offset);
 }
 
 zip_uint64_t FileNode::size() const {
@@ -661,19 +577,15 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
 }
 
 void FileNode::chmod (mode_t mode) {
-    m_mode = (m_mode & S_IFMT) | mode;
-    m_ctime = currentTime();
-    metadataChanged = true;
+    _data->chmod(mode);
 }
 
 void FileNode::setUid (uid_t uid) {
-    m_uid = uid;
-    metadataChanged = true;
+    _data->setUid(uid);
 }
 
 void FileNode::setGid (gid_t gid) {
-    m_gid = gid;
-    metadataChanged = true;
+    _data->setGid(uid);
 }
 
 /**
@@ -706,23 +618,11 @@ int FileNode::updateExternalAttributes() const {
 }
 
 void FileNode::setTimes (const timespec &atime, const timespec &mtime) {
-    struct timespec now;
-    if (atime.tv_nsec == UTIME_NOW || mtime.tv_nsec == UTIME_NOW)
-        now = currentTime();
-    if (atime.tv_nsec == UTIME_NOW)
-        m_atime = now;
-    else if (atime.tv_nsec != UTIME_OMIT)
-        m_atime = atime;
-    if (mtime.tv_nsec == UTIME_NOW)
-        m_mtime = now;
-    else if (mtime.tv_nsec != UTIME_OMIT)
-        m_mtime = mtime;
-    metadataChanged = true;
+    _data->setTimes(atime, mtime);
 }
 
 void FileNode::setCTime (const timespec &ctime) {
-    m_ctime = ctime;
-    metadataChanged = true;
+    _data->setCTime(ctime);
 }
 
 struct timespec FileNode::currentTime() {
