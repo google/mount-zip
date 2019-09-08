@@ -7,6 +7,40 @@ With fuse-zip you really can work with ZIP archives as real directories.
 Unlike KIO or Gnome VFS, it can be used in any application without
 modifications.
 
+* File system features:
+    * Read-only and read-write modes.
+    * Transparent packing and unpacking.
+    * File types:
+        * regular files, sockets, symbolic links, block and character devices, FIFOs;
+        * hard links (read-only mode).
+    * Create/edit/rename/delete files and directories.
+    * Read/modify/save file access modes and owner/group information.
+    * Sparse files.
+    * Relative and absolute paths (read-only mode).
+    * File name encoding conversion on the fly (using iconv module).
+    * Access to file and archive comments via extended attribute "user.comment".
+    * File creation/modification/access/change times with nanosecond resolution.
+    * Time stamp precision:
+        * at least 1 s resolution for all files;
+        * 100 ns resolution for all created files or files with NTFS extra field (see also force\_precise\_time option);
+        * Note: high-resolution time stamps for symbolic links, block and character devices are saved in local directory only.
+* ZIP file format features:
+    * ZIP64: support for more than 65535 files in archive, support for files bigger than 4 Gb.
+    * Compression methods: store (no compression), deflate, bzip2.
+    * Time fields: creation, modify and access time.
+    * UNIX permissions: variable-length UID and GID, file access modes.
+    * DOS file permissions.
+    * File and archive comments.
+* Supported ZIP format extensions:
+    * 000A PKWARE NTFS Extra Field - high-precision timestamps;
+    * 000D PKWARE UNIX Extra Field:
+        * regular files, sockets, symbolic links, block and character devices, FIFOs;
+        * hard links (read-only mode);
+    * 5455 extended timestamp;
+    * 5855 Info-ZIP UNIX extra field (type 1);
+    * 7855 Info-ZIP Unix Extra Field (type 2);
+    * 7875 Info-ZIP New Unix Extra Field - variable-length UIDs and GIDs.
+
 Since version 0.3.0 fuse-zip has support for absolute and parent-relative paths
 in file names, but only in read-only mode (-r command line switch). Absolute
 paths are displayed under "ROOT" directory, every ".." in path replaced by "UP"
@@ -21,6 +55,11 @@ High-precision time stamps (with 100 ns resolution) are supported since version
 files or files with known creation time. You can force high-precision time
 saving by specifying '-o force\_precise\_time' option. In this case creation time
 will be equal to a first known file modification time.
+
+Release 0.7.0 adds read and write support for all UNIX special file types:
+symbolic links, block and character devices, sockets and FIFOs. Hard links are
+supported in read-only mode. Note that block/character devices, sockets and FIFOs
+are not supported by Info-Zip tools such as unzip.
 
 Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
 archives. Also, fuse-zip is faster than all known implementations on large
