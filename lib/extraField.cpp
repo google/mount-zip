@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2014-2019 by Alexander Galanin                          //
+//  Copyright (C) 2014-2020 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -20,7 +20,10 @@
 #include "extraField.h"
 
 #include <sys/stat.h>
-#include <sys/sysmacros.h>
+
+#if ! __APPLE__
+#   include <sys/sysmacros.h>
+#endif // !__APPLE__
 
 #include <cassert>
 #include <cstring>

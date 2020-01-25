@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2019 by Alexander Galanin                          //
+//  Copyright (C) 2008-2020 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -154,9 +154,15 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     stbuf->st_ino = reinterpret_cast<unsigned long>(node->data());
     stbuf->st_blocks = static_cast<blkcnt_t>((node->size() + STANDARD_BLOCK_SIZE - 1) / STANDARD_BLOCK_SIZE);
     stbuf->st_size = static_cast<off_t>(node->size());
+#if __APPLE__
+    stbuf->st_atimespec = node->atime();
+    stbuf->st_mtimespec = node->mtime();
+    stbuf->st_ctimespec = node->ctime();
+#else // __APPLE__
     stbuf->st_atim = node->atime();
     stbuf->st_mtim = node->mtime();
     stbuf->st_ctim = node->ctime();
+#endif // __APPLE__
     stbuf->st_uid = node->uid();
     stbuf->st_gid = node->gid();
     stbuf->st_rdev = node->device();
