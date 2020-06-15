@@ -1,145 +1,754 @@
-# ABOUT #
+---
+title: MOUNT-ZIP
+section: 1
+header: User Manual
+footer: mount-zip 1.0
+date: November 2021
+---
+# NAME
 
-fuse-zip is a FUSE file system to navigate, extract, create and modify ZIP and
-ZIP64 archives based on libzip implemented in C++.
+**mount-zip** - Mount a ZIP archive as a FUSE filesystem.
 
-With fuse-zip you really can work with ZIP archives as real directories.
-Unlike KIO or Gnome VFS, it can be used in any application without
-modifications.
+# SYNOPSIS
 
-* File system features:
-    * Read-only and read-write modes.
-    * Transparent packing and unpacking.
-    * File types:
-        * regular files, sockets, symbolic links, block and character devices, FIFOs;
-        * hard links (read-only mode).
-    * Create/edit/rename/delete files and directories.
-    * Read/modify/save file access modes and owner/group information.
-    * Sparse files.
-    * Relative and absolute paths (read-only mode).
-    * File name encoding conversion on the fly (using iconv module).
-    * Access to file and archive comments via extended attribute "user.comment".
-    * File creation/modification/access/change times with nanosecond resolution.
-    * Time stamp precision:
-        * at least 1 s resolution for all files;
-        * 100 ns resolution for all created files or files with NTFS extra field (see also force\_precise\_time option);
-        * Note: high-resolution time stamps for symbolic links, block and character devices are saved in local directory only.
-* ZIP file format features:
-    * ZIP64: support for more than 65535 files in archive, support for files bigger than 4 Gb.
-    * Compression methods: store (no compression), deflate, bzip2.
-    * Time fields: creation, modify and access time.
-    * UNIX permissions: variable-length UID and GID, file access modes.
-    * DOS file permissions.
-    * File and archive comments.
-* Supported ZIP format extensions:
-    * 000A PKWARE NTFS Extra Field - high-precision timestamps;
-    * 000D PKWARE UNIX Extra Field:
-        * regular files, sockets, symbolic links, block and character devices, FIFOs;
-        * hard links (read-only mode);
-    * 5455 extended timestamp;
-    * 5855 Info-ZIP UNIX extra field (type 1);
-    * 7855 Info-ZIP Unix Extra Field (type 2);
-    * 7875 Info-ZIP New Unix Extra Field - variable-length UIDs and GIDs.
-* Distribution:
-    * [Debian](http://packages.debian.org/fuse-zip)
-    * [Ubuntu](http://packages.ubuntu.com/fuse-zip)
-    * [Fedora](https://apps.fedoraproject.org/packages/fuse-zip)
-    * [ArchLinux](https://aur.archlinux.org/packages/fuse-zip/)
-    * [Gentoo](http://packages.gentoo.org/package/sys-fs/fuse-zip)
-    * Mac OS X: [Fink](http://www.finkports.info/ports/utils/fuse-zip.html) and [Homebrew](http://brewformulas.org/FuseZip)
-    * [FreeBSD](https://www.freshports.org/sysutils/fusefs-zip/)
-    * [OpenBSD](http://openports.se/archivers/fuse-zip)
-* Used in:
-    * Chrome OS: [zip archive mounter](https://chromium.googlesource.com/chromiumos/platform2/+/a28315e35e1bed980c93740b8acdf1557552a744%5E%21/cros-disks/zip_manager.cc)
-    * [vifm](https://vifm.info/)
+**mount-zip** [*options*] *zip-file* [*mount-point*]
 
-Since version 0.3.0 fuse-zip has support for absolute and parent-relative paths
-in file names, but only in read-only mode (-r command line switch). Absolute
-paths are displayed under "ROOT" directory, every ".." in path replaced by "UP"
-in directory name and "normal" files are placed under "CUR" directory.
+# DESCRIPTION
 
-File/archive comments are supported since version 0.7.0. To read/modify file
-comment use extended attribute "user.comment". Archive comment is accessible
-via mount point's extended attribute.
+**mount-zip** is a tool allowing to open, explore and extract ZIP archives.
 
-High-precision time stamps (with 100 ns resolution) are supported since version
-0.7.0. By default high precision timestamp is saved to archive only for new
-files or files with known creation time. You can force high-precision time
-saving by specifying '-o force\_precise\_time' option. In this case creation time
-will be equal to a first known file modification time.
+**mount-zip** mounts a ZIP archive as a read-only
+[FUSE file system](https://en.wikipedia.org/wiki/Filesystem_in_Userspace), which
+can then be explored and read by any application.
 
-Release 0.7.0 adds read and write support for all UNIX special file types:
-symbolic links, block and character devices, sockets and FIFOs. Hard links are
-supported in read-only mode. Note that block/character devices, sockets and FIFOs
-are not supported by Info-Zip tools such as unzip.
+The mount point should be an empty directory. If the mount point doesn't exist
+yet, **mount-zip** tries to create it first.
 
-Unlike other FUSE filesystems, _only_ fuse-zip provides write support to ZIP
-archives. Also, fuse-zip is faster than all known implementations on large
-archives with many files.
+If no mount point is provided, **mount-zip** tries to create one in the same
+directory as the ZIP archive.
 
-You can download fuse-zip at https://bitbucket.org/agalanin/fuse-zip
+# OPTIONS
 
-Repository mirror: http://galanin.nnov.ru/hg/fuse-zip
+**-\-help** **-h**
+:   print help
 
-# AUTHOR #
+**-\-version**
+:   print version
 
-Alexander Galanin
+**-\-quiet** **-q**
+:   print fewer log messages
 
-  * E-mail:     al@galanin.nnov.ru
-  * Home page:  http://galanin.nnov.ru/~al/
+**-\-verbose**
+:   print more log messages
 
-# LICENSE #
+**-\-redact**
+:   redact file names from log messages
 
-fuse-zip are licensed under GNU GPL v3 or later.
+**-\-force**
+:   mount ZIP even if password is wrong
 
-# USAGE #
+**-\-encoding=CHARSET**
+:   original encoding of file names
+
+**-o nospecials**
+:   hide special files (FIFOs, sockets, devices)
+
+**-o nosymlinks**
+:   hide symbolic links
+
+**-o nohardlinks**
+:   hide hard links
+
+# USAGE
+
+Mount a ZIP archive:
 
 ```
-$ mkdir /tmp/zipArchive
-$ fuse-zip foobar.zip /tmp/zipArchive
-(do something with the mounted file system)
-$ fusermount -u /tmp/zipArchive
+$ mount-zip foobar.zip mnt
 ```
 
-If ZIP file does not exists, it will be created after filesystem unmounting.
+The ZIP archive can now be explored and read via the mounted file system:
 
-Be patient. Wait for fuse-zip process finish after unmounting especially on
-a big archives.
+```
+$ tree mnt
+mnt
+└── foo
 
-If you want to specify character set conversion for file names in archive,
-use the following fusermount options:
+0 directories, 1 file
 
-    -omodules=iconv,from_code=$charset1,to_code=$charset2
+$ cat mnt/foo
+bar
+```
 
-Those Russian who uses archives from the "other OS" should use CP866 as
-'charset1' and locale charset as 'charset2'.
+When finished, unmount the file system:
 
-See FUSE documentation for details.
+```
+$ fusermount -u mnt
+```
 
-Look at /var/log/user.log in case of any errors.
+# FEATURES
 
-# PERFORMANCE #
+*   Read-only view
+*   Instant mounting, even with big ZIP archives
+*   Compression methods: deflate, bzip2
+*   Encryption methods: AES and legacy ZIP encryption
+*   Asks for decryption password if necessary
+*   Detects file name encoding
+*   Converts file names to Unicode UTF-8
+*   Deduplicates files in case of name collisions
+*   Unpacks files when reading them (lazy decompression)
+*   Supports all file types, including named sockets, FIFOs, block and character
+    devices, symbolic links and hard links
+*   Supports UNIX access modes and DOS file permissions
+*   Supports owner and group information (UID and GID)
+*   Supports relative and absolute paths
+*   Supports high precision time stamps
+*   Works on 32-bit and 64-bit devices
+*   Supports ZIP64 extensions, even on 32-bit devices:
+    *   Supports ZIP archives containing more than 65,535 files
+    *   Supports ZIP archives and files bigger than 4 GB
+*   Supports ZIP format extensions:
+    *   000A PKWARE NTFS Extra Field: High-precision timestamps
+    *   000D PKWARE UNIX Extra Field: File type
+    *   5455 Extended Timestamp
+    *   5855 Info-ZIP Unix Extra Field (type 1)
+    *   7855 Info-ZIP Unix Extra Field (type 2)
+    *   7875 Info-ZIP New Unix Extra Field: Variable-length UIDs and GIDs
 
-On a small archives fuse-zip have the same performance with commonly used
-virtual filesystems like KIO, Gnome GVFS, mc vfs, unpackfs, avfs, fuse-j-zip.
-But on large archives with many file (like zipped Linux kernel sources)
-fuse-zip have the greatest speed.
-You can download test suite from the web-site and make sure that it is true.
+## File Name Encoding
 
-# PERMISSIONS #
+**mount-zip** is fully Unicode compliant. It converts the file names stored in
+the ZIP archive from their original encoding to UTF-8.
 
-Support for UNIX file permissions and owner information has been added in
-version 0.4. Note that access check will not be performed unless
-'-o default\_permissions' mount option is given.
+In order to interpret these file names correctly, **mount-zip** needs to
+determine their original encoding. By default **mount-zip** tries to guess this
+encoding using the detection feature provided by the ICU library. It can
+automatically recognize the following encodings:
 
-# HINTS #
+*   UTF-8
+*   CP437
+*   Shift JIS
+*   Big5
+*   EUC-JP
+*   EUC-KR
+*   GB18030
+*   ISO-2022-CN
+*   ISO-2022-JP
+*   ISO-2022-KR
+*   KOI8-R
 
-* Added/changed files resides into memory until you unmount file system.
-* Adding/unpacking very big files(more than one half of available memory) may
-  cause your system swapping. It is a good idea to use zip/unzip in that case
-  :)
-* After adding/modifying files in archive it will be repacked at filesystem
-  unmount. Hence, your file system must have enough space to keep temporary
-  files.
-* Wait until fuse-zip process is finished after unmount before using archive
-  file.
+For example, when mounting a ZIP containing a Shift JIS-encoded file name, the
+encoding is correctly detected:
+
+```
+$ mount-zip sjis-filename.zip mnt
+
+$ tree mnt
+mnt
+└── 新しいテキスト ドキュメント.txt
+
+0 directories, 1 file
+```
+
+This system is not foolproof, and doesn't recognize a number of popular
+encodings. For example, when mounting a ZIP containing file names encoded in
+CP866, they are interpreted as CP437 and rendered as
+[Mojibake](https://en.wikipedia.org/wiki/Mojibake):
+
+```
+$ mount-zip cp866.zip mnt
+
+$ tree mnt
+mnt
+├── äáΓá
+└── ÆÑ¬ßΓ«óδ⌐ ñ«¬π¼Ñ¡Γ.txt
+
+0 directories, 2 files
+```
+
+In this case, the user needs to explicitly specify the original file name
+encoding using the `-o encoding` mount option:
+
+```
+$ mount-zip -o encoding=cp866 cp866.zip mnt
+
+$ tree mnt
+mnt
+├── Дата
+└── Текстовый документ.txt
+
+0 directories, 2 files
+```
+
+## Name Deduplication
+
+In case of name collision, **mount-zip** adds a number to deduplicate the
+conflicting file name:
+
+```
+$ unzip -l file-dir-same-name.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       25  2021-10-29 14:22   pet/cat
+       21  2021-10-29 14:22   pet
+       30  2021-10-29 14:22   pet/cat/fish
+        0  2021-10-29 14:22   pet/cat/fish/
+       26  2021-10-29 14:22   pet/cat
+       22  2021-10-29 14:22   pet
+       31  2021-10-29 14:22   pet/cat/fish
+---------                     -------
+      155                     7 files
+
+$ mount-zip file-dir-same-name.zip mnt
+
+$ tree -F mnt
+mnt
+├── pet/
+│   ├── cat/
+│   │   ├── fish/
+│   │   ├── fish (1)
+│   │   └── fish (2)
+│   ├── cat (1)
+│   └── cat (2)
+├── pet (1)
+└── pet (2)
+
+3 directories, 6 files
+```
+
+## Encrypted Archives
+
+**mount-zip** supports encrypted ZIP archives.
+
+When **mount-zip** finds an encrypted file while mounting a ZIP archive, it asks
+for a password. If the given password doesn't allow to decrypt the file, then
+**mount-zip** refuses to mount the ZIP archive and returns an error:
+
+```
+$ unzip -l different-encryptions.zip
+Archive:  different-encryptions.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       23  2020-08-28 15:22   ClearText.txt
+       32  2020-08-28 15:23   Encrypted AES-128.txt
+       32  2020-08-28 15:23   Encrypted AES-192.txt
+       32  2020-08-28 15:23   Encrypted AES-256.txt
+       34  2020-08-28 15:23   Encrypted ZipCrypto.txt
+---------                     -------
+      153                     5 files
+
+$ mount-zip different-encryptions.zip mnt
+Need password for File [1] '/Encrypted AES-128.txt'
+Password > Got it!
+Use the --force option to mount an encrypted ZIP with a wrong password
+Cannot open File [1] '/Encrypted AES-128.txt': Wrong password provided
+```
+
+Providing the correct password allows **mount-zip** to mount the ZIP archive and
+decrypt the files:
+
+```
+$ mount-zip different-encryptions.zip mnt
+Need password for File [1] '/Encrypted AES-128.txt'
+Password > Got it!
+Password is Ok
+
+$ tree mnt
+mnt
+├── ClearText.txt
+├── Encrypted AES-128.txt
+├── Encrypted AES-192.txt
+├── Encrypted AES-256.txt
+└── Encrypted ZipCrypto.txt
+
+0 directories, 5 files
+
+$ md5sum mnt/*
+7a542815e2c51837b3d8a8b2ebf36490  mnt/ClearText.txt
+07c4edd2a55c9d5614457a21fb40aa56  mnt/Encrypted AES-128.txt
+e48d57930ef96ff2ad45867202d3250d  mnt/Encrypted AES-192.txt
+ca5e064a0835d186f2f6326f88a7078f  mnt/Encrypted AES-256.txt
+275e8c5aed7e7ce2f32dd1e5e9ee4a5b  mnt/Encrypted ZipCrypto.txt
+
+$ cat mnt/*
+This is not encrypted.
+This is encrypted with AES-128.
+This is encrypted with AES-192.
+This is encrypted with AES-256.
+This is encrypted with ZipCrypto.
+```
+
+You can force **mount-zip** to mount an encrypted ZIP even without providing the
+right password by using the `--force` option:
+
+```
+$ mount-zip --force different-encryptions.zip mnt
+Need password for File [1] '/Encrypted AES-128.txt'
+Password > Got it!
+Continuing despite wrong password because of --force option
+```
+
+In this case, the files can be listed, but trying to open an encrypted file for
+which the given password doesn't work results in an I/O error:
+
+```
+$ tree mnt
+mnt
+├── ClearText.txt
+├── Encrypted AES-128.txt
+├── Encrypted AES-192.txt
+├── Encrypted AES-256.txt
+└── Encrypted ZipCrypto.txt
+
+0 directories, 5 files
+
+$ md5sum mnt/*
+7a542815e2c51837b3d8a8b2ebf36490  mnt/ClearText.txt
+md5sum: 'mnt/Encrypted AES-128.txt': Input/output error
+md5sum: 'mnt/Encrypted AES-192.txt': Input/output error
+md5sum: 'mnt/Encrypted AES-256.txt': Input/output error
+md5sum: 'mnt/Encrypted ZipCrypto.txt': Input/output error
+
+$ cat mnt/*
+This is not encrypted.
+cat: 'mnt/Encrypted AES-128.txt': Input/output error
+cat: 'mnt/Encrypted AES-192.txt': Input/output error
+cat: 'mnt/Encrypted AES-256.txt': Input/output error
+cat: 'mnt/Encrypted ZipCrypto.txt': Input/output error
+```
+
+For security reasons, **mount-zip** doesn't allow to specify the password on the
+command line. However, it is possible to pipe the password to **mount-zip**'s
+standard input:
+
+```
+$ echo password | mount-zip different-encryptions.zip mnt
+Need password for File [1] '/Encrypted AES-128.txt'
+Password is Ok
+```
+
+## Symbolic links
+
+**mount-zip** shows symbolic links recorded in the ZIP archive:
+
+```
+$ mount-zip symlink.zip mnt
+
+$ tree mnt
+mnt
+├── date
+└── symlink -> ../tmp/date
+```
+
+Note that symbolic links can refer to files located outside the mounted ZIP
+archive. In some circumstances, these links could pose a security risk.
+
+Symbolic links can be suppressed with the `-o nosymlinks` option:
+
+```
+$ mount-zip -o nosymlinks symlink.zip mnt
+Skipped Symlink [1] '/symlink'
+
+2021-10-28 20:05:01 laptop ~/mount-zip/tests/blackbox/data (intrusive)
+$ tree mnt
+mnt
+└── date
+
+0 directories, 1 file
+```
+
+## Special Files
+
+**mount-zip** shows special files (sockets, FIFOs or pipes, character and block
+devices) recorded in the ZIP archive:
+
+```
+$ mount-zip pkware-specials.zip mnt
+
+$ ls -n mnt
+brw-rw---- 1    0    6 8, 1 Aug  3  2019 block
+crw--w---- 1    0    5 4, 0 Aug  3  2019 char
+prw-r--r-- 1 1000 1000    0 Aug 15  2019 fifo
+-rw-r--r-- 3 1000 1000   32 Aug  9  2019 regular
+srw------- 1 1000 1000    0 Aug  3  2019 socket
+lrwxrwxrwx 1 1000 1000    7 Aug  3  2019 symlink -> regular
+lrwxrwxrwx 1 1000 1000    7 Aug 25  2019 symlink2 -> regular
+-rw-r--r-- 3 1000 1000   32 Aug  9  2019 z-hardlink1
+-rw-r--r-- 3 1000 1000   32 Aug  9  2019 z-hardlink2
+brw-rw---- 1    0    6 8, 1 Aug  3  2019 z-hardlink-block
+crw--w---- 1    0    5 4, 0 Aug  3  2019 z-hardlink-char
+prw-r--r-- 1 1000 1000    0 Aug 15  2019 z-hardlink-fifo
+srw------- 1 1000 1000    0 Aug  3  2019 z-hardlink-socket
+lrwxrwxrwx 1 1000 1000    7 Aug  3  2019 z-hardlink-symlink -> regular
+```
+
+Special files can be suppressed with the `-o nospecials` option:
+
+```
+$ mount-zip -o nospecials pkware-specials.zip mnt
+Skipped Block Device [0] '/block'
+Skipped Character Device [1] '/char'
+Skipped Pipe [2] '/fifo'
+Skipped Socket [4] '/socket'
+Skipped Block Device [7] '/z-hardlink-block'
+Skipped Character Device [8] '/z-hardlink-char'
+Skipped Pipe [9] '/z-hardlink-fifo'
+Skipped Socket [10] '/z-hardlink-socket'
+
+$ ls -n mnt
+-rw-r--r-- 3 1000 1000 32 Aug  9  2019 regular
+lrwxrwxrwx 1 1000 1000  7 Aug  3  2019 symlink -> regular
+lrwxrwxrwx 1 1000 1000  7 Aug 25  2019 symlink2 -> regular
+-rw-r--r-- 3 1000 1000 32 Aug  9  2019 z-hardlink1
+-rw-r--r-- 3 1000 1000 32 Aug  9  2019 z-hardlink2
+lrwxrwxrwx 1 1000 1000  7 Aug  3  2019 z-hardlink-symlink -> regular
+```
+
+## Hard Links
+
+**mount-zip** shows hard links recorded in the ZIP archive.
+
+In this example, the three file entries `0regular`, `hlink1` and `hlink2` point
+to the same inode number (2) and their reference count is 3:
+
+```
+$ mount-zip -o use_ino hlink-chain.zip mnt
+
+$ ls -ni mnt
+2 -rw-r----- 3 0 0 10 Aug 14  2019 0regular
+2 -rw-r----- 3 0 0 10 Aug 14  2019 hlink1
+2 -rw-r----- 3 0 0 10 Aug 14  2019 hlink2
+
+$ md5sum mnt/*
+e09c80c42fda55f9d992e59ca6b3307d  mnt/0regular
+e09c80c42fda55f9d992e59ca6b3307d  mnt/hlink1
+e09c80c42fda55f9d992e59ca6b3307d  mnt/hlink2
+```
+
+Some tools can use the inode number to detect duplicated hard links. In this
+example, `du` only counts the size of the inode (2) once, even though there are
+three file entries pointing to it, and only reports 10 bytes instead of 30
+bytes:
+
+```
+$ du -b mnt
+10      mnt
+```
+
+Duplicated hard links can be suppressed with the `-o nohardlinks` option:
+
+```
+$ mount-zip -o nohardlinks hlink-chain.zip mnt
+Skipped File [1]: Hardlinks are ignored
+Skipped File [2]: Hardlinks are ignored
+
+$ ls -ni mnt
+2 -rw-r----- 1 0 0 10 Aug 14  2019 0regular
+```
+
+## File Permissions
+
+**mount-zip** shows the Unix file permissions and ownership (UIDs and GIDs) as
+recorded in the ZIP archive:
+
+```
+$ mount-zip unix-perm.zip mnt
+
+$ ls -n mnt
+-rw-r----- 1 1000 1000 0 Jan  5  2014 640
+-rw-r---w- 1 1000 1000 0 Jan  5  2014 642
+-rw-rw-rw- 1 1000 1000 0 Jan  5  2014 666
+-rwsrwsr-x 1 1000 1000 0 Jan  5  2014 6775
+-rwxrwxrwx 1 1000 1000 0 Jan  5  2014 777
+```
+
+Note that these access permissions are not enforced by default. In this example,
+I am able to read the file `640` even though I don't own it and I don't have the
+read permission:
+
+```
+$ md5sum mnt/*
+d41d8cd98f00b204e9800998ecf8427e  mnt/640
+d41d8cd98f00b204e9800998ecf8427e  mnt/642
+d41d8cd98f00b204e9800998ecf8427e  mnt/666
+d41d8cd98f00b204e9800998ecf8427e  mnt/6775
+d41d8cd98f00b204e9800998ecf8427e  mnt/777
+```
+
+To enforce the access permission check, use the `-o default_permissions` mount
+option:
+
+```
+$ mount-zip -o default_permissions unix-perm.zip mnt
+
+$ md5sum mnt/*
+md5sum: mnt/640: Permission denied
+md5sum: mnt/642: Permission denied
+d41d8cd98f00b204e9800998ecf8427e  mnt/666
+d41d8cd98f00b204e9800998ecf8427e  mnt/6775
+d41d8cd98f00b204e9800998ecf8427e  mnt/777
+```
+
+## Absolute and Parent-Relative Paths
+
+**mount-zip** supports absolute and parent-relative paths in file names.
+Absolute paths are displayed under the `ROOT` directory. For parent-relative
+paths, every `..` is replaced by `UP`. Finally, ordinary relative paths are
+placed under the `CUR` directory:
+
+```
+$ unzip -l mixed-paths.zip
+ Length      Date    Time   Name
+--------  ---------- -----  ----
+      49  2021-11-02 13:55  normal.txt
+      29  2021-11-02 13:55  ../up-1.txt
+      30  2021-11-02 13:55  ../../up-2.txt
+      40  2021-11-02 13:55  /top.txt
+      45  2021-11-02 13:55  /../over-the-top.txt
+--------                    -------
+     193                    5 files
+
+$ mount-zip mixed-paths.zip mnt
+mount-zip[2886935]: Bad file name: '/../over-the-top.txt'
+mount-zip[2886935]: Skipped File [4]: Cannot normalize path
+
+$ tree mnt
+mnt
+├── CUR
+│   └── normal.txt
+├── ROOT
+│   └── top.txt
+├── UP
+│   └── up-1.txt
+└── UPUP
+    └── up-2.txt
+
+4 directories, 4 files
+```
+
+# PERFORMANCE
+
+On small archives **mount-zip** has the same performance as commonly used
+virtual filesystems such as KIO, Gnome GVFS, mc vfs, unpackfs, avfs and
+fuse-j-zip. But on large archives containing many files, **mount-zip** is pretty
+quick.
+
+For example on my laptop, a ZIP archive containing more than 70,000 files is
+mounted in half a second:
+
+```
+$ ls -lh linux-5.14.15.zip
+-rw-r--r-- 1 fdegros primarygroup 231M Oct 28 15:48 linux-5.14.15.zip
+
+$ time mount-zip linux-5.14.15.zip mnt
+
+real    0m0.561s
+user    0m0.344s
+sys     0m0.212s
+
+$ tree mnt
+mnt
+└── linux-5.14.15
+    ├── arch
+...
+
+4817 directories, 72539 files
+
+$ du -sh mnt
+1.1G    mnt
+```
+
+The full contents of this mounted ZIP, totalling 1.1 GB, can be extracted with
+`cp -R` in 14 seconds:
+
+```
+$ time cp -R mnt out
+
+real    0m13.810s
+user    0m0.605s
+sys     0m5.356s
+```
+
+For comparison, `unzip` extracts the contents of the same ZIP in 8.5 seconds:
+
+```
+$ time unzip -q -d out linux-5.14.15.zip
+
+real    0m8.411s
+user    0m6.067s
+sys     0m2.270s
+```
+
+Mounting an 8-GB ZIP containing only a few files is instantaneous:
+
+```
+$ ls -lh bru.zip
+-rw-r----- 1 fdegros primarygroup 7.9G Sep  2 22:37 bru.zip
+
+$ time mount-zip bru.zip mnt
+
+real    0m0.033s
+user    0m0.018s
+sys     0m0.011s
+
+$ tree -h mnt
+mnt
+├── [2.0M]  bios
+├── [ 25G]  disk
+└── [ 64M]  tools
+
+0 directories, 3 files
+```
+
+Decompressing and reading the 25-GB file from this mounted ZIP takes less than
+two minutes:
+
+```
+$ dd if=mnt/disk of=/dev/null status=progress
+26843545600 bytes (27 GB, 25 GiB) copied, 104.586 s, 257 MB/s
+```
+
+There is no lag when opening and reading the file, and only a moderate amount of
+memory is used. The file is getting lazily decompressed by **mount-zip** as it
+is getting read by `dd`.
+
+# LOG MESSAGES
+
+**mount-zip** records log messages into `/var/log/user.log`. They can help
+troubleshooting issues, especially if you are facing I/O errors when reading
+files from the mounted ZIP.
+
+To read **mount-zip**'s log messages:
+
+```
+$ grep mount-zip /var/log/user.log | less -S
+```
+
+To follow **mount-zip**'s log messages are they are being written:
+
+```
+$ tail -F /var/log/user.log | grep mount-zip
+```
+
+By default, **mount-zip** writes INFO and ERROR messages. You can decrease the
+logging level to just ERROR messages with the `--quiet` option. Or you can
+increase the logging level to include DEBUG messages with the `--verbose`
+option:
+
+```
+$ mount-zip -f --verbose foobar.zip mnt
+Indexing 'foobar.zip'...
+Allocating 16 buckets
+Detected encoding UTF-8 with 15% confidence
+Indexed 'foobar.zip' in 0 ms
+Mounted 'foobar.zip' on 'mnt' in 2 ms
+Reader 1: Opened File [0]
+Reader 1: Closed
+Unmounting 'foobar.zip' from 'mnt'...
+Unmounted 'foobar.zip' in 0 ms
+```
+
+To prevent file names from being recorded in **mount-zip**'s log messages, use
+the `--redact` option:
+
+```
+$ mount-zip -f --verbose --redact bad-crc.zip mnt
+Indexing (redacted)...
+Allocating 16 buckets
+Indexed (redacted) in 0 ms
+Mounted (redacted) on (redacted) in 2 ms
+Reader 1: Opened File [0]
+Cannot read (redacted): Cannot read file: CRC error
+Reader 1: Closed
+Unmounting (redacted) from (redacted)...
+Unmounted (redacted) in 0 ms
+```
+
+# RETURN VALUE
+
+**mount-zip** returns distinct error codes for different error conditions
+related the ZIP archive itself:
+
+0
+:   Success.
+
+1
+:   Generic error code for: missing argument, unknown option, unknown file name
+    encoding, mount point cannot be created, mount point is not empty, etc.
+
+11
+:   The archive is a multipart ZIP.
+
+15
+:   **mount-zip** cannot read the ZIP archive.
+
+19
+:   **mount-zip** cannot find the ZIP archive.
+
+21
+:   **mount-zip** cannot open the ZIP archive.
+
+23
+:   Zlib data error. This is probably the sign of a wrong password. Use
+    `--force` to bypass the password verification.
+
+29
+:   The archive is not recognized as a valid ZIP.
+
+31
+:   The ZIP archive has an inconsistent structure.
+
+36
+:   The ZIP archive contains an encrypted file, but no password was provided.
+    Use `--force` to bypass the password verification.
+
+37
+:   The ZIP archive contains an encrypted file, and the provided password does
+    not allow to decrypt it. Use `--force` to bypass the password verification.
+
+# PROJECT HISTORY
+
+**mount-zip** started as a fork of **fuse-zip**.
+
+The original **fuse-zip** project was created in 2008 by
+[Alexander Galanin](http://galanin.nnov.ru/~al/) and is available on
+[Bitbucket](https://bitbucket.org/agalanin/fuse-zip).
+
+The **mount-zip** project was then forked from **fuse-zip** in 2021 and further
+developed by [François Degros](https://github.com/fdegros). The ability to write
+and modify ZIP archives has been removed, but a number of optimisations and
+features have been added:
+
+Feature                      | mount-zip | fuse-zip
+:--------------------------- | :-------: | :------:
+Read-Write Mode              | ❌         | ✅
+Read-Only Mode               | ✅         | ✅
+Shows Symbolic Links         | ✅         | ✅
+Shows Hard Links             | ✅         | ✅
+Shows Special Files          | ✅         | ✅
+Shows Precise Timestamps     | ✅         | ✅
+Allows Random Access         | ✅         | ✅
+Decompresses Lazily          | ✅         | ❌
+Decrypts Encrypted Files     | ✅         | ❌
+Detects Name Encoding        | ✅         | ❌
+Deduplicates Names           | ✅         | ❌
+Reads Huge Files             | ✅         | ❌
+Can Hide Symlinks            | ✅         | ❌
+Can Hide Hard Links          | ✅         | ❌
+Can Hide Special Files       | ✅         | ❌
+Can Redact Log Messages      | ✅         | ❌
+Returns Distinct Error Codes | ✅         | ❌
+
+# AUTHORS
+
+*   [François Degros](https://github.com/fdegros)
+*   [Alexander Galanin](http://galanin.nnov.ru/~al/)
+
+# LICENSE
+
+**mount-zip** is released under the GNU General Public License Version 3 or
+later.
+
+# SEE ALSO
+
+fusermount(1), fuse(8), umount(8)

@@ -1,1 +1,14 @@
-.hgignore
+syntax: glob
+
+# ignore generated files
+*.o
+mount-zip
+mount-zip.1
+lib/*.a
+
+# tests
+tests/whitebox/*.x
+
+# utils
+utils/dump-extrafld
+utils/create-content-size

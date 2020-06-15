@@ -1,3 +1,26 @@
+2021-11-19 François Degros <fdegros@chromium.org>
+
+	* Forked mount-zip 1.0 from fuse-zip 0.7.2:
+	- Read-only mode (no read-write mode anymore)
+	- Decompresses lazily when reading file (Reader class)
+	- Supports encrypted files (ZipCrypto and AES)
+	- Detects file name encoding thanks to ICU
+	- Deduplicates file names
+	- Reads huge files, even on 32-bit devices
+	- Can hide symlinks (-o nosymlinks)
+	- Can hide hard links (-o nohardlinks)
+	- Can hide special files (-o nospecials)
+	- Can redact log messages (--redact)
+	- Returns distinct error codes for different error conditions
+	- Uses Boost Intrusive collections for internal tree
+	- Uses C++20
+	- Fixed hard link count for directories and files
+	- Fixed inode number for hard links
+	- Rewrote black-box test in Python 3
+	- Renamed and formatted source files to Chromium's style
+	- Enhanced README
+	- Man page generated from README
+	
 2021-01-31 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.7.2:

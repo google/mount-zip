@@ -1,48 +1,6 @@
-Test suite for black box testing of fuse-zip.
+# Test suite for black-box testing of mount-zip
 
-You need the following programs and libraries:
-Tcl >= 8.5
-tcllib >= 1.10
-BLT
-Tclx
-attr
-diff
-socat
-sudo (optional)
-valgrind
-unzip
-zip
-zipinfo
+You need Python 3.8 to run the test suite:
 
-To run testsuite invoke command
-$ ./fuse-zip.test
-or
-$ ./fuse-zip.test -valgrind
-to check memory errors with valgrind.
-
-Some tests require root access. To run them use -sudo flag and configure
-sudoers in NOPASSWD mode (don't do this unless you are really know all security
-impacts!):
-    user ALL=(ALL:ALL) NOPASSWD: /bin/mknod /tmp/fuse-zip-tests-[0-9]*/mountPoint-special-device-create/block b 8 255
-    user ALL=(ALL:ALL) NOPASSWD: /bin/mknod /tmp/fuse-zip-tests-[0-9]*/mountPoint-special-device-create/char c 4 63
-    user ALL=(ALL:ALL) NOPASSWD: /bin/chmod -R u+w /tmp/fuse-zip-tests-[0-9]*
-    user ALL=(ALL:ALL) NOPASSWD: /bin/rm -rf /tmp/fuse-zip-tests-[0-9]*
-and enable user_allow_other option in /etc/fuse.conf.
-
-In order to test pkzip compatibility you need to install pkzipc and configure sudo:
-    user ALL=(ALL:ALL) NOPASSWD: /path/to/pkzipc -extract -filetype=all /tmp/fuse-zip-tests-[0-9]*/test.zip
-    user ALL=(ALL:ALL) NOPASSWD: /bin/rm -rf /tmp/fuse-zip-tests-[0-9]*/extract
-    user ALL=(ALL:ALL) NOPASSWD: /bin/chown 0:0 /tmp/fuse-zip-tests-[0-9]*/regular
-
-Additional options can be passed to valgrind using VALGRIND_ARGS environment
-variable. For example, you can ask valgrind to generate suppressions (that can
-be added to file valgrind.supp) by specifying the following variable value:
-VALGRIND_ARGS="--gen-suppressions=all"
-
-To get list of all tests use -list switch.
-
-To run only interected tests instead of full test suite, pass test identifier
-patterns (glob-like) to testsuite script.
-For example:
-$ ./fuse-zip.test 'truncate-*' 'rename-*'
+$ python3 test.py
 
