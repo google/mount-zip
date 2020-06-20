@@ -1,3 +1,8 @@
+2020-06-20 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.7.1:
+	- Issue #67: treat file nodes with zero file type bits as regular files.
+
 2019-09-08 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.7.0:

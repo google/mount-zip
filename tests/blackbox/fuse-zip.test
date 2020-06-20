@@ -3137,6 +3137,18 @@ namespace eval ::fusezip::test {
         assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
     }
 
+    fstest treat-empty-type-as-regular-file {Treat files with empty type as regular (issue #67)} {
+        file copy data/issue-67-empty-file-type.zip $tmpdir/issue-67.zip
+        set fname $tmpdir/issue-67.zip
+        mount -r
+        eassert [file type $mountdir/Hi.txt] eq "file"
+        set f [open $mountdir/Hi.txt r]
+        set data [read $f]
+        close $f
+        eassert $data eq "Hi there!\n"
+        umount
+    }
+
     finalize
 }
 namespace delete ::fusezip::test

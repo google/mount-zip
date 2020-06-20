@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-//  Copyright (C) 2008-2019 by Alexander Galanin                          //
+//  Copyright (C) 2008-2020 by Alexander Galanin                          //
 //  al@galanin.nnov.ru                                                    //
 //  http://galanin.nnov.ru/~al                                            //
 //                                                                        //
@@ -161,8 +161,14 @@ mode_t FuseZipData::getEntryAttributes(zip_uint64_t id, const char *name, bool &
             // force is_dir value
             if (is_dir) {
                 mode = (mode & static_cast<unsigned>(~S_IFMT)) | S_IFDIR;
-            } else if ((mode & S_IFMT) == S_IFDIR) {
-                mode = (mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
+            } else {
+                if ((mode & S_IFMT) == S_IFDIR) {
+                    mode = (mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
+                }
+                if ((mode & S_IFMT) == 0) {
+                    // treat unknown file types as regular
+                    mode = (mode & static_cast<unsigned>(~S_IFMT)) | S_IFREG;
+                }
             }
             isHardlink = (attr & FZ_ATTR_HARDLINK) != 0;
             if (isHardlink) {
