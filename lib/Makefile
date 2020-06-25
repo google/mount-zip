@@ -1,9 +1,10 @@
 DEST=libfusezip.a
-LIBS=$(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
+PKG_CONFIG?=pkg-config
+LIBS=$(shell $(PKG_CONFIG) fuse --libs) $(shell $(PKG_CONFIG) libzip --libs)
 CXXFLAGS=-g -O0 -Wall -Wextra -Wconversion -Wsign-conversion -Wlogical-op -Wshadow -pedantic -Werror -std=c++11
 RELEASE_CXXFLAGS=-O2 -Wall -Wextra -Wconversion -Wsign-conversion -Wlogical-op -Wshadow -pedantic -Werror -std=c++11
-FUSEFLAGS=$(shell pkg-config fuse --cflags)
-ZIPFLAGS=$(shell pkg-config libzip --cflags)
+FUSEFLAGS=$(shell $(PKG_CONFIG) fuse --cflags)
+ZIPFLAGS=$(shell $(PKG_CONFIG) libzip --cflags)
 SOURCES=$(sort $(wildcard *.cpp))
 OBJECTS=$(SOURCES:.cpp=.o)
 CLEANFILES=$(OBJECTS) $(DEST)

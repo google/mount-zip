@@ -7,12 +7,13 @@ docdir=$(datarootdir)/doc/$(DEST)
 mandir=$(datarootdir)/man
 man1dir=$(mandir)/man1
 manext=.1
-LIBS=-Llib -lfusezip $(shell pkg-config fuse --libs) $(shell pkg-config libzip --libs)
+LIBS=-Llib -lfusezip $(shell $(PKG_CONFIG) fuse --libs) $(shell $(PKG_CONFIG) libzip --libs)
 LIB=lib/libfusezip.a
 CXXFLAGS=-g -O0 -Wall -Wextra -Wconversion -Wsign-conversion -Wlogical-op -Wshadow -pedantic -Werror -std=c++11
 RELEASE_CXXFLAGS=-O2 -Wall -Wextra -Wconversion -Wsign-conversion -Wlogical-op -Wshadow -pedantic -Werror -std=c++11
-FUSEFLAGS=$(shell pkg-config fuse --cflags)
-ZIPFLAGS=$(shell pkg-config libzip --cflags)
+PKG_CONFIG?=pkg-config
+FUSEFLAGS=$(shell $(PKG_CONFIG) fuse --cflags)
+ZIPFLAGS=$(shell $(PKG_CONFIG) libzip --cflags)
 SOURCES=main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 MANSRC=fuse-zip.1

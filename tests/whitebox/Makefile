@@ -1,6 +1,7 @@
 CXXFLAGS=-g -O2 -Wall -Wextra -Werror -std=c++11
-FUSEFLAGS=$(shell pkg-config fuse --cflags)
-ZIPFLAGS=$(shell pkg-config libzip --cflags)
+PKG_CONFIG?=pkg-config
+FUSEFLAGS=$(shell $(PKG_CONFIG) fuse --cflags)
+ZIPFLAGS=$(shell $(PKG_CONFIG) libzip --cflags)
 VALGRIND=valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33
 LIB=../../lib/libfusezip.a
 

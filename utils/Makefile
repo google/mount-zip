@@ -1,6 +1,7 @@
-LIBS=-L../lib -lfusezip $(shell pkg-config libzip --libs)
+PKG_CONFIG?=pkg-config
+LIBS=-L../lib -lfusezip $(shell $(PKG_CONFIG) libzip --libs)
 CXXFLAGS=-g -O0 -Wall -Wextra -Wlogical-op -Wshadow -pedantic -Werror
-ZIPFLAGS=$(shell pkg-config libzip --cflags)
+ZIPFLAGS=$(shell $(PKG_CONFIG) libzip --cflags)
 
 all: dump-extrafld create-content-size
 
