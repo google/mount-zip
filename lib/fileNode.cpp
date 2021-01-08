@@ -286,7 +286,7 @@ int FileNode::updateExtraFields (bool force_precise_time) const {
 
     for (unsigned int loc = 0; loc < sizeof(locations) / sizeof(locations[0]); ++loc) {
         std::unique_ptr<zip_uint8_t[]> ntfs_field;
-        zip_uint16_t ntfs_field_len;
+        zip_uint16_t ntfs_field_len = 0;
 
         // remove old extra fields
         zip_int16_t count = zip_file_extra_fields_count (zip, id(),
