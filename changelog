@@ -1,3 +1,10 @@
+2021-01-31 Alexander Galanin <al@galanin.nnov.ru>
+
+	* Released 0.7.2:
+	- Allow pkg-config binary override (patch from François Degros).
+	- Fix compiler warning (patch from thanhminhmr).
+	- Add .gitignore since BitBucket repository are now in git format.
+
 2020-06-20 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.7.1:
