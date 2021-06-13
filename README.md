@@ -40,6 +40,18 @@ modifications.
     * 5855 Info-ZIP UNIX extra field (type 1);
     * 7855 Info-ZIP Unix Extra Field (type 2);
     * 7875 Info-ZIP New Unix Extra Field - variable-length UIDs and GIDs.
+* Distribution:
+    * [Debian](http://packages.debian.org/fuse-zip)
+    * [Ubuntu](http://packages.ubuntu.com/fuse-zip)
+    * [Fedora](https://apps.fedoraproject.org/packages/fuse-zip)
+    * [ArchLinux](https://aur.archlinux.org/packages/fuse-zip/)
+    * [Gentoo](http://packages.gentoo.org/package/sys-fs/fuse-zip)
+    * Mac OS X: [Fink](http://www.finkports.info/ports/utils/fuse-zip.html) and [Homebrew](http://brewformulas.org/FuseZip)
+    * [FreeBSD](https://www.freshports.org/sysutils/fusefs-zip/)
+    * [OpenBSD](http://openports.se/archivers/fuse-zip)
+* Used in:
+    * Chrome OS: [zip archive mounter](https://chromium.googlesource.com/chromiumos/platform2/+/a28315e35e1bed980c93740b8acdf1557552a744%5E%21/cros-disks/zip_manager.cc)
+    * [vifm](https://vifm.info/)
 
 Since version 0.3.0 fuse-zip has support for absolute and parent-relative paths
 in file names, but only in read-only mode (-r command line switch). Absolute
