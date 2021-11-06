@@ -143,7 +143,7 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
         return -ENOENT;
     }
     if (node->is_dir()) {
-        stbuf->st_nlink = 2 + node->childs.size();
+        stbuf->st_nlink = 2 + node->num_dir_links();
     } else {
         stbuf->st_nlink = static_cast<nlink_t>(node->use_count());
     }

@@ -3172,6 +3172,33 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest dir-nlink {Check st_nlink for directories} {
+        create {
+            no-subdir/1 1
+            1-subdir/subdir/2 2
+            2-subdirs/subdir1/3 3
+            2-subdirs/subdir2/4 4
+        }
+        mount
+
+        file stat $mountdir/no-subdir stat
+        eassert $stat(nlink) == 2 "must be 2 links for 0 subdirs"
+        file stat $mountdir/1-subdir stat
+        eassert $stat(nlink) == 3 "must be 3 links for 1 subdir"
+        file stat $mountdir/2-subdirs stat
+        eassert $stat(nlink) == 4 "must be 4 links for 2 subdirs"
+
+        file mkdir $mountdir/no-subdir/new-subdir
+        file stat $mountdir/no-subdir stat
+        eassert $stat(nlink) == 3 "must be 3 links for 1 subdir (after creation)"
+
+        file delete -force $mountdir/1-subdir/subdir
+        file stat $mountdir/1-subdir stat
+        eassert $stat(nlink) == 2 "must be 2 links for 0 subdirs (after removal)"
+
+        umount
+    }
+
     finalize
 }
 namespace delete ::fusezip::test

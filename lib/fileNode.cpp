@@ -50,7 +50,7 @@ FileNode::FileNode(struct zip *zip_, const char *fname, zip_int64_t id,
     m_commentChanged = true;
 }
 
-FileNode *FileNode::createFile (struct zip *zip, const char *fname, 
+FileNode *FileNode::createFile (struct zip *zip, const char *fname,
         uid_t owner, gid_t group, mode_t mode, dev_t dev) {
     auto data = DataNode::createNew(mode, owner, group, dev);
     FileNode *n = new FileNode(zip, fname, NEW_NODE_INDEX, std::move(data));
@@ -204,10 +204,14 @@ void FileNode::readComment() {
 
 void FileNode::appendChild (FileNode *child) {
     childs.push_back (child);
+    if (child->is_dir())
+        ++_numDirLinks;
 }
 
 void FileNode::detachChild (FileNode *child) {
     childs.remove (child);
+    if (child->is_dir())
+        --_numDirLinks;
 }
 
 void FileNode::rename(const char *new_name) {

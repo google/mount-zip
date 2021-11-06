@@ -39,6 +39,7 @@ private:
 
     zip_int64_t _id;
     std::shared_ptr<DataNode> _data;
+    nlink_t _numDirLinks = 0;
 
     struct zip *zip;
 
@@ -224,6 +225,7 @@ public:
 
     bool is_dir() const;
     long use_count() const { return _data.use_count(); }
+    nlink_t num_dir_links() const { return _numDirLinks; }
 
     bool hasComment() const { return m_comment != NULL; }
     bool isCommentChanged() const { return m_commentChanged; }
