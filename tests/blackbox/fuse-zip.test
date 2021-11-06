@@ -2455,6 +2455,9 @@ namespace eval ::fusezip::test {
         assert {$stat1(ino) != $stat4(ino)} "all inodes must be different, 2"
         assert {$stat2(ino) != $stat3(ino)} "all inodes must be different, 3"
         assert {$stat2(ino) != $stat4(ino)} "all inodes must be different, 4"
+
+        eassert $stat1(nlink) == 1 "must be 1 link for non-hardlinked file"
+        eassert $stat2(nlink) == 1 "must be 1 link for non-hardlinked file"
     }
 
     fstest comment-read-ascii {read archive and file ASCII comments} {
@@ -3016,6 +3019,7 @@ namespace eval ::fusezip::test {
 
         assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
         assert {$stat0(ino) == $stat2(ino)} "file and 2nd hardlink inodes must be the same"
+        eassert $stat0(nlink) == 3 "must be 3 links for double-hardlinked file"
     }
 
     fstest hardlink-rw-mode {Check that hardlinks are supported only in read-only mode} {
@@ -3057,6 +3061,7 @@ namespace eval ::fusezip::test {
 
         assert {$stat0(ino) == $stat1(ino)} "file and 1st hardlink inodes must be the same"
         assert {$stat0(ino) == $stat2(ino)} "file and 2nd hardlink inodes must be the same"
+        eassert $stat0(nlink) == 3 "must be 3 links for double-hardlinked file"
     }
 
     fstest hardlink-dir-read {Read support for directory hardlink} {

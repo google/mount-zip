@@ -59,7 +59,7 @@ FuseZipData *initFuseZip(const char *program, const char *fileName,
     FuseZipData *data = NULL;
     int err;
     struct zip *zip_file;
-    
+
     int flags = (readonly) ? ZIP_RDONLY : ZIP_CREATE;
     if ((zip_file = zip_open(fileName, flags, &err)) == NULL) {
         zip_error_t error;
@@ -145,7 +145,7 @@ int fusezip_getattr(const char *path, struct stat *stbuf) {
     if (node->is_dir()) {
         stbuf->st_nlink = 2 + node->childs.size();
     } else {
-        stbuf->st_nlink = 1;
+        stbuf->st_nlink = static_cast<nlink_t>(node->use_count());
     }
     stbuf->st_mode = node->mode();
     stbuf->st_blksize = STANDARD_BLOCK_SIZE;
@@ -436,7 +436,7 @@ int fusezip_rename(const char *path, const char *new_path) {
                     }
                     // changing child list may cause loop iterator corruption
                     get_data()->renameNode (nn, name, false);
-                    
+
                     free(name);
                 }
             }

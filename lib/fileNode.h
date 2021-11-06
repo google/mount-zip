@@ -94,7 +94,7 @@ public:
     DataNode *data() {
         return _data.get();
     }
-    
+
     /**
      * add child node to list
      */
@@ -223,6 +223,7 @@ public:
     }
 
     bool is_dir() const;
+    long use_count() const { return _data.use_count(); }
 
     bool hasComment() const { return m_comment != NULL; }
     bool isCommentChanged() const { return m_commentChanged; }
