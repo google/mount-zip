@@ -1,4 +1,22 @@
 #!/bin/sh
+############################################################################
+##  Copyright (C) 2010-2021 by Alexander Galanin                          ##
+##  al@galanin.nnov.ru                                                    ##
+##  http://galanin.nnov.ru/~al                                            ##
+##                                                                        ##
+##  This program is free software: you can redistribute it and/or modify  ##
+##  it under the terms of the GNU General Public License as published by  ##
+##  the Free Software Foundation, either version 3 of the License, or     ##
+##  (at your option) any later version.                                   ##
+##                                                                        ##
+##  This program is distributed in the hope that it will be useful,       ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of        ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         ##
+##  GNU General Public License for more details.                          ##
+##                                                                        ##
+##  You should have received a copy of the GNU General Public License     ##
+##  along with this program.  If not, see <https://www.gnu.org/licenses/>.##
+############################################################################
 # \
 exec tclsh "$0" "$@"
 
@@ -50,7 +68,7 @@ namespace eval ::fusezip::test {
             {sudo       "Enable tests that require sudo"}
             {-help      "Print this message"}
         }
-        
+
         if {[ catch {
             array set p [ ::cmdline::getKnownOptions argv $options ]
         } msg ]} {
@@ -277,7 +295,7 @@ namespace eval ::fusezip::test {
     }
 
     # umount --
-    # 
+    #
     #   Unmount filesystem.
     #   Firstly try to umount FS in a standard way via fusermount -uz.
     #   If file system is not unmounted in a specified timeout, kill filesystem
@@ -333,13 +351,13 @@ namespace eval ::fusezip::test {
     proc forceumount {} {
         variable mountdir
         variable status
-        
+
         catch {exec fusermount -u $mountdir}
         set [ namespace current ]::status FORCE-KILLED
         catch {exec fusermount -uz $mountdir}
     }
 
-    # create -- 
+    # create --
     #
     #   Create specified list of files and directories in specified directory
     #   (relative to tmpdir).
@@ -357,7 +375,7 @@ namespace eval ::fusezip::test {
 
         file delete -force $tmpdir/$dir
         file mkdir $tmpdir/$dir
-        
+
         set pos 0
         while {$pos < [ llength $files ]} {
             set name [ lindex $files $pos ]
@@ -371,7 +389,7 @@ namespace eval ::fusezip::test {
         }
     }
 
-    # create -- 
+    # create --
     #
     #   Create archive for tests containing specified list of files and
     #   directories and set it name to variable fname in caller context.
@@ -651,7 +669,7 @@ namespace eval ::fusezip::test {
     ############################################################
     # INITIALIZATION
     ############################################################
-    
+
     parseArgs
 
     signal trap {HUP INT TERM} "puts stderr Interrupt; ::[ namespace current ]::finalize"
@@ -1859,7 +1877,7 @@ namespace eval ::fusezip::test {
         file mkdir $mountdir/foo
         file delete $mountdir/foo
         umount
-        
+
         check {
             a b
         }
@@ -1874,7 +1892,7 @@ namespace eval ::fusezip::test {
         mount
         file delete $mountdir/foo
         umount
-        
+
         check {
             a b
         }
@@ -2305,7 +2323,7 @@ namespace eval ::fusezip::test {
         assert {[file type $tmpdir/extract/symlink] eq "link"}
         assert {[file readlink $tmpdir/extract/symlink] eq "regular"} "invalid link content"
     }
-    
+
     fstest no-owner-info {Check that default owner:group is root:root} {
         use data/no-owner-info.zip
         mount -r

@@ -1,3 +1,22 @@
+////////////////////////////////////////////////////////////////////////////
+//  Copyright (C) 2019-2021 by Alexander Galanin                          //
+//  al@galanin.nnov.ru                                                    //
+//  http://galanin.nnov.ru/~al                                            //
+//                                                                        //
+//  This program is free software: you can redistribute it and/or modify  //
+//  it under the terms of the GNU General Public License as published by  //
+//  the Free Software Foundation, either version 3 of the License, or     //
+//  (at your option) any later version.                                   //
+//                                                                        //
+//  This program is distributed in the hope that it will be useful,       //
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+//  GNU General Public License for more details.                          //
+//                                                                        //
+//  You should have received a copy of the GNU General Public License     //
+//  along with this program.  If not, see <https://www.gnu.org/licenses/>.//
+////////////////////////////////////////////////////////////////////////////
+
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
@@ -381,37 +400,37 @@ int main(int argc, char **argv) {
                 case 0:
                     method = "none";
                     break;
-                case 0x6601: 
+                case 0x6601:
                     method = "DES";
                     break;
-                case 0x6602: 
+                case 0x6602:
                     method = "RC2 (version needed to extract < 5.2)";
                     break;
-                case 0x6603: 
+                case 0x6603:
                     method = "3DES 168";
                     break;
-                case 0x6609: 
+                case 0x6609:
                     method = "3DES 112";
                     break;
-                case 0x660E: 
+                case 0x660E:
                     method = "AES 128 ";
                     break;
-                case 0x660F: 
+                case 0x660F:
                     method = "AES 192 ";
                     break;
-                case 0x6610: 
+                case 0x6610:
                     method = "AES 256 ";
                     break;
-                case 0x6702: 
+                case 0x6702:
                     method = "RC2 (version needed to extract >= 5.2)";
                     break;
-                case 0x6720: 
+                case 0x6720:
                     method = "Blowfish";
                     break;
-                case 0x6721: 
+                case 0x6721:
                     method = "Twofish";
                     break;
-                case 0x6801: 
+                case 0x6801:
                     method = "RC4";
                     break;
                 default:

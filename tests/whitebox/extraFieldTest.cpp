@@ -1,3 +1,22 @@
+////////////////////////////////////////////////////////////////////////////
+//  Copyright (C) 2014-2021 by Alexander Galanin                          //
+//  al@galanin.nnov.ru                                                    //
+//  http://galanin.nnov.ru/~al                                            //
+//                                                                        //
+//  This program is free software: you can redistribute it and/or modify  //
+//  it under the terms of the GNU General Public License as published by  //
+//  the Free Software Foundation, either version 3 of the License, or     //
+//  (at your option) any later version.                                   //
+//                                                                        //
+//  This program is distributed in the hope that it will be useful,       //
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+//  GNU General Public License for more details.                          //
+//                                                                        //
+//  You should have received a copy of the GNU General Public License     //
+//  along with this program.  If not, see <https://www.gnu.org/licenses/>.//
+////////////////////////////////////////////////////////////////////////////
+
 #include "../config.h"
 
 #include <cassert>
@@ -91,7 +110,7 @@ void timestamp_create_central () {
     data = ExtraField::createExtTimeStamp(ZIP_FL_CENTRAL, 0x01020304, 0x05060708, false, 0, len);
     assert(data != NULL);
     assert(len == sizeof(expected));
-    
+
     for (int i = 0; i < len; ++i) {
         assert(data[i] == expected[i]);
     }
@@ -108,7 +127,7 @@ void timestamp_create_local () {
     data = ExtraField::createExtTimeStamp(ZIP_FL_LOCAL, 0x01020304, 0x05060708, false, 0, len);
     assert(data != NULL);
     assert(len == sizeof(expected));
-    
+
     for (int i = 0; i < len; ++i) {
         assert(data[i] == expected[i]);
     }
@@ -125,7 +144,7 @@ void timestamp_create_local_cretime () {
     data = ExtraField::createExtTimeStamp(ZIP_FL_LOCAL, 0x01020304, 0x05060708, true, 0x090A0B0C, len);
     assert(data != NULL);
     assert(len == sizeof(expected));
-    
+
     for (int i = 0; i < len; ++i) {
         assert(data[i] == expected[i]);
     }
@@ -358,7 +377,7 @@ void infozip_unix_new_create () {
     data = ExtraField::createInfoZipNewUnixField (0x0102, 0x0304, len);
     assert(data != NULL);
     assert(len == sizeof(expected));
-    
+
     for (unsigned int i = 0; i < sizeof(expected); ++i) {
         assert(data[i] == expected[i]);
     }
