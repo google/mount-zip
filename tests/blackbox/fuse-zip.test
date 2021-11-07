@@ -632,6 +632,41 @@ namespace eval ::fusezip::test {
         return $res
     }
 
+    proc getZipItemInfo {fname itemname} {
+        set res {
+            unix_perms  unknown
+            dos_perms   unknown
+            comp_size   -1
+            orig_size   -1
+            method      unknown
+        }
+        foreach line [split [exec zipinfo -v $fname $itemname] \n] {
+            switch -regex -matchvar match $line {
+                {^ *compression method: *([a-z0-9]+)( \(.*\))?$} {
+                    lassign $match _ method
+                    dict set res method $method
+                }
+                {^ *compressed size: *([0-9]+) bytes$} {
+                    lassign $match _ size
+                    dict set res comp_size $size
+                }
+                {^ *uncompressed size: *([0-9]+) bytes$} {
+                    lassign $match _ size
+                    dict set res orig_size $size
+                }
+                {^ *Unix file attributes \(([0-7]{6,6}) octal\):} {
+                    lassign $match _ attr
+                    dict set res unix_perms $attr
+                }
+                {^ *MS-DOS file attributes \(([0-9a-fA-F]{2,2}) hex\):} {
+                    lassign $match _ attr
+                    dict set res dos_perms $attr
+                }
+            }
+        }
+        return $res
+    }
+
     proc pkzipExtract {{sudo {}}} {
         upvar fname fname
         variable tmpdir
@@ -2220,6 +2255,39 @@ namespace eval ::fusezip::test {
         umount
     }
 
+    fstest check-zip-permissions {Check permissions in output ZIP archive} {
+        mount
+        makeFile ABC regular  $mountdir
+        makeFile DEF readonly $mountdir
+        file attributes $mountdir/readonly -permissions ug=r,o=
+        makeFile GHI .hidden  $mountdir
+        makeFile JKL altered  $mountdir
+        file attributes $mountdir/altered -permissions 01234
+        file mkdir $mountdir/dir
+        umount
+
+        set regular  [getZipItemInfo $fname regular]
+        set readonly [getZipItemInfo $fname readonly]
+        set hidden   [getZipItemInfo $fname .hidden]
+        set altered  [getZipItemInfo $fname altered]
+        set dir      [getZipItemInfo $fname dir/]
+
+        eassert [dict get $regular  unix_perms] eq 100664 "regular file UNIX permissions"
+        eassert [dict get $regular  dos_perms]  eq 00     "regular file DOS permissions"
+
+        eassert [dict get $readonly unix_perms] eq 100440 "read-only file UNIX permissions"
+        eassert [dict get $readonly dos_perms]  eq 01     "read-only file DOS permissions"
+
+        eassert [dict get $hidden   unix_perms] eq 100664 "hidden file UNIX permissions"
+        eassert [dict get $hidden   dos_perms]  eq 02     "hidden file DOS permissions"
+
+        eassert [dict get $altered  unix_perms] eq 101234 "altered file UNIX permissions"
+        eassert [dict get $altered  dos_perms]  eq 00     "altered file DOS permissions"
+
+        eassert [dict get $dir      unix_perms] eq 040775 "directory UNIX permissions"
+        eassert [dict get $dir      dos_perms]  eq 10     "directory DOS permissions"
+    }
+
     fstest chmod-file {Check chmod() for file} {
         create {
             cat meow
@@ -2234,6 +2302,10 @@ namespace eval ::fusezip::test {
         file attributes $n -permissions 0444
         assert {[file attributes $n -permissions] == 0444} "should be a=r"
         umount
+
+        set info [getZipItemInfo $fname cat]
+        eassert [dict get $info unix_perms] eq 100444 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 01     "bad DOS permissions"
 
         mount
         assert {[file attributes $n -permissions] == 0444} "permissions not persist"
@@ -2252,6 +2324,10 @@ namespace eval ::fusezip::test {
         assert {[file attributes $n -permissions] == 0444} "should be a=r"
         umount
 
+        set info [getZipItemInfo $fname cat]
+        eassert [dict get $info unix_perms] eq 100444 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 01     "bad DOS permissions"
+
         mount
         assert {[file attributes $n -permissions] == 0444} "permissions not persist"
         umount
@@ -2268,6 +2344,10 @@ namespace eval ::fusezip::test {
         file attributes $n -permissions 0555
         assert {([file attributes $n -permissions] & 0777) == 0555} "should be a=rx"
         umount
+
+        set info [getZipItemInfo $fname cat/]
+        eassert [dict get $info unix_perms] eq 040555 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 11     "bad DOS permissions"
 
         mount
         assert {([file attributes $n -permissions] & 0777) == 0555} "permissions not persist"
@@ -2306,6 +2386,10 @@ namespace eval ::fusezip::test {
         file link -symbolic $mountdir/symlink /dev/null
         assert {[file readlink $mountdir/symlink] eq "/dev/null"} "invalid link content"
         umount
+
+        set info [getZipItemInfo $fname symlink]
+        eassert [dict get $info unix_perms] eq 120777 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 00     "bad DOS permissions"
 
         mount
         assert {[file readlink $mountdir/symlink] eq "/dev/null"} "invalid link content after umount"
@@ -2833,6 +2917,10 @@ namespace eval ::fusezip::test {
         assert {[file type $mountdir/fifo] eq "fifo"} "bad created node type"
         umount
 
+        set info [getZipItemInfo $fname fifo]
+        eassert [dict get $info unix_perms] eq 010664 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 00     "bad DOS permissions"
+
         mount
         assert {[file type $mountdir/fifo] eq "fifo"} "reopen: bad node type"
         umount
@@ -2869,6 +2957,14 @@ namespace eval ::fusezip::test {
 
         umount
 
+        set info [getZipItemInfo $fname block]
+        eassert [dict get $info unix_perms] eq 060664 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 00     "bad DOS permissions"
+
+        set info [getZipItemInfo $fname char]
+        eassert [dict get $info unix_perms] eq 020664 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 00     "bad DOS permissions"
+
         mount
 
         assert {[file type $mountdir/block] eq "blockSpecial"}
@@ -2902,6 +2998,10 @@ namespace eval ::fusezip::test {
         assert {[file type $mountdir/socket] eq "socket"} "socket not created"
 
         umount
+
+        set info [getZipItemInfo $fname socket]
+        eassert [dict get $info unix_perms] eq 140775 "bad UNIX permissions"
+        eassert [dict get $info dos_perms]  eq 00     "bad DOS permissions"
 
         mount
         assert {[file type $mountdir/socket] eq "socket"} "socket not read"

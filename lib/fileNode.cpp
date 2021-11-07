@@ -398,7 +398,8 @@ int FileNode::updateExternalAttributes() const {
     assert(_id >= 0);
     assert (zip != NULL);
     // save UNIX attributes in high word
-    mode_t mode = _data->mode() << 16;
+    mode_t unix_mode = _data->mode();
+    mode_t mode = unix_mode << 16;
 
     // save DOS attributes in low byte
     // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
@@ -411,7 +412,7 @@ int FileNode::updateExternalAttributes() const {
         // FILE_ATTRIBUTE_HIDDEN
         mode |= 2;
     }
-    if (!(mode & S_IWUSR)) {
+    if (!(unix_mode & S_IWUSR)) {
         // FILE_ATTRIBUTE_READONLY
         mode |= 1;
     }

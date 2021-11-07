@@ -10,7 +10,9 @@ diff
 socat
 sudo (optional)
 valgrind
+unzip
 zip
+zipinfo
 
 To run testsuite invoke command
 $ ./fuse-zip.test
