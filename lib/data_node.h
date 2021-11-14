@@ -64,6 +64,7 @@ struct DataNode {
   timespec atime = mtime;
   timespec ctime = mtime;
   std::string target;  // Link target
+  mutable Reader::Ptr cached_reader;
 
   // Get attributes.
   using Stat = struct stat;

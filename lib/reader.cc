@@ -16,11 +16,20 @@
 #include "reader.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <system_error>
+#include <utility>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "error.h"
+#include "path.h"
 
 zip_int64_t Reader::reader_count_ = 0;
 
@@ -81,44 +90,178 @@ char* UnbufferedReader::Read(char* dest, char* dest_end, off_t offset) {
   return dest;
 }
 
-void BufferedReader::AllocateBuffer(ssize_t buffer_size) {
-  LimitSize(&buffer_size, expected_size_);
-
-  const ssize_t min_size = 1024;
-  if (buffer_size < min_size)
-    buffer_size = min_size;
-
-  if (buffer_size == buffer_size_) {
-    assert(buffer_);
-    // Already got a buffer of the right size.
-    return;
+// A scoped file descriptor.
+class ScopedFile {
+ public:
+  ~ScopedFile() {
+    if (fd_ >= 0 && close(fd_) < 0)
+      Log(LOG_ERR, "Error while closing file descriptor ", fd_, ": ",
+          strerror(errno));
   }
 
-  buffer_.reset();
-  buffer_size_ = 0;
+  explicit ScopedFile(int fd) noexcept : fd_(fd) {}
+  ScopedFile(ScopedFile&& other) noexcept : fd_(std::exchange(other.fd_, -1)) {}
 
-  while (true) {
-    // Try to allocate buffer.
-    try {
-      buffer_.reset(new char[buffer_size]);
-      buffer_size_ = buffer_size;
-      Log(LOG_DEBUG, *this, ": Allocated a ", buffer_size_ >> 10, " KB buffer");
-      return;
-    } catch (const std::bad_alloc& error) {
-      // Probably too big.
-      Log(LOG_ERR, *this, ": Cannot allocate a ", buffer_size >> 10,
-          " KB buffer: ", error.what());
+  ScopedFile& operator=(ScopedFile other) noexcept {
+    std::swap(fd_, other.fd_);
+    return *this;
+  }
 
-      // If we couldn't even allocate 1KB, we ran out of memory or of
-      // addressable space. Simply propagate the error.
-      if (buffer_size <= min_size)
-        throw;
+  explicit operator bool() const { return fd_ >= 0; }
 
-      // Try a smaller buffer.
-      buffer_size >>= 1;
+  int fd() const { return fd_; }
+
+ private:
+  int fd_;
+};
+
+// Reader used for compressed files. It features a decompression engine and it
+// caches the decompressed bytes in a cache file.
+class CacheFileReader : public UnbufferedReader {
+ public:
+  CacheFileReader(zip_t* const zip,
+                  const zip_int64_t file_id,
+                  const off_t expected_size)
+      : UnbufferedReader(zip, file_id, expected_size) {}
+
+ private:
+  // Creates a new, empty and hidden cache file.
+  // Throws std::runtime_error in case of error.
+  static ScopedFile CreateCacheFile() {
+    char name[] = "/tmp/XXXXXX";
+
+    // Create cache file.
+    ScopedFile file(mkstemp(name));
+    if (!file)
+      throw std::system_error(errno, std::system_category(),
+                              StrCat("Cannot create cache file ", Path(name)));
+
+    Log(LOG_DEBUG, "Created cache file ", Path(name));
+
+    // Unlink cache file.
+    if (unlink(name) < 0)
+      throw std::system_error(errno, std::system_category(),
+                              StrCat("Cannot unlink cache file ", Path(name)));
+
+    // Assert that the cache file doesn't have any links to it.
+    struct stat st;
+    if (fstat(file.fd(), &st) < 0)
+      throw std::system_error(errno, std::system_category(),
+                              StrCat("Cannot stat cache file ", Path(name)));
+
+    if (st.st_nlink != 0)
+      throw std::runtime_error(
+          StrCat("Cache file ", Path(name), " has ", st.st_nlink, " links"));
+
+    if (st.st_size != 0)
+      throw std::runtime_error(
+          StrCat("Cache file ", Path(name), " is not empty"));
+
+    return file;
+  }
+
+  // Gets the file descriptor to the global cache file.
+  // Creates this cache file if necessary.
+  // Throws std::runtime_error in case of error.
+  static int GetCacheFile() {
+    static const ScopedFile file = CreateCacheFile();
+    return file.fd();
+  }
+
+  // Reserves space in the cache file.
+  // Returns the start position of the reserved space.
+  off_t ReserveSpace() const {
+    // Get current cache file size.
+    struct stat st;
+    if (fstat(cache_file_, &st) < 0)
+      throw std::system_error(errno, std::system_category(),
+                              StrCat("Cannot stat cache file ", cache_file_));
+
+    // Extend cache file.
+    const off_t offset = st.st_size;
+    if (const int err = posix_fallocate(cache_file_, offset, expected_size_))
+      throw std::system_error(
+          err, std::system_category(),
+          StrCat("Cannot reserve ", expected_size_, " bytes in cache file ",
+                 cache_file_, " at offset ", offset));
+
+    Log(LOG_DEBUG, "Reserved ", expected_size_,
+        " bytes in cache file at offset ", offset);
+    return offset;
+  }
+
+  // Writes data to the global cache file.
+  // Throws std::runtime_error in case of error.
+  void WriteToCacheFile(const char* buf, ssize_t count, off_t offset) const {
+    assert(buf);
+    assert(count >= 0);
+    assert(offset >= 0);
+
+    while (count > 0) {
+      const ssize_t n = pwrite(cache_file_, buf, count, offset);
+      if (n < 0)
+        throw std::system_error(
+            errno, std::system_category(),
+            StrCat("Cannot write ", count, " bytes into cache file at offset ",
+                   offset));
+      buf += n;
+      count -= n;
+      offset += n;
     }
   }
-}
+
+  // Ensures the decompressed data is cached at least up to the given offset.
+  void EnsureCachedUpTo(const off_t offset) {
+    const ssize_t buf_size = 64 * 1024;
+    char buf[buf_size];
+
+    while (pos_ < offset) {
+      const off_t store_offset = start_offset_ + pos_;
+      const ssize_t n = ReadAtCurrentPosition(buf, buf_size);
+      if (n == 0)
+        break;
+
+      WriteToCacheFile(buf, n, store_offset);
+    }
+  }
+
+  char* Read(char* dest, char* const dest_end, off_t offset) override {
+    if (expected_size_ <= offset)
+      return dest;
+
+    ssize_t count = dest_end - dest;
+    LimitSize(&count, expected_size_ - offset);
+
+    if (pos_ < offset)
+      Log(LOG_DEBUG, *this, ": Jump ", offset - pos_, " from ", pos_, " to ",
+          offset);
+
+    EnsureCachedUpTo(offset + count);
+
+    offset += start_offset_;
+    const ssize_t n = pread(cache_file_, dest, count, offset);
+    if (n < 0)
+      throw std::system_error(
+          errno, std::system_category(),
+          StrCat("Cannot read ", count, " bytes from cache file at offset ",
+                 offset));
+
+    return dest + n;
+  }
+
+  // Cache file descriptor.
+  const int cache_file_ = GetCacheFile();
+
+  // Position at which the decompressed data is stored in the cache file.
+  const off_t start_offset_ = ReserveSpace();
+};
+
+// Exception thrown by BufferedReader::Advance() when the decompression engine
+// has to jump too far and a cached reader is reader to be used instead.
+class TooFar : public std::exception {
+ public:
+  const char* what() const noexcept override { return "Too far"; }
+};
 
 void BufferedReader::Restart() {
   Log(LOG_DEBUG, *this, ": Rewind");
@@ -127,10 +270,22 @@ void BufferedReader::Restart() {
   file_ = Open(zip_, file_id_);
   pos_ = 0;
   buffer_start_ = 0;
+}
 
-  // Allocate a possibly bigger buffer. We have to be careful on 32-bit
-  // devices, since they have a limited addressable space.
-  AllocateBuffer((std::numeric_limits<ssize_t>::max() >> 1) + 1);
+bool BufferedReader::CreateCachedReader() const noexcept {
+  if (cached_reader_) {
+    Log(LOG_DEBUG, *this, ": Switched to Cached ", *cached_reader_);
+    return true;
+  }
+
+  try {
+    cached_reader_.reset(new CacheFileReader(zip_, file_id_, expected_size_));
+    Log(LOG_DEBUG, *this, ": Created Cached ", *cached_reader_);
+    return true;
+  } catch (const std::exception& e) {
+    Log(LOG_ERR, *this, ": Cannot create cached reader: ", e.what());
+    return false;
+  }
 }
 
 void BufferedReader::Advance(off_t jump) {
@@ -138,6 +293,9 @@ void BufferedReader::Advance(off_t jump) {
 
   if (jump <= 0)
     return;
+
+  if (jump > buffer_size_ && CreateCachedReader())
+    throw TooFar();
 
   const Timer timer;
   const off_t start_pos = pos_;
@@ -216,16 +374,12 @@ char* BufferedReader::ReadFromBufferAndAdvance(char* dest,
 
 char* BufferedReader::Read(char* dest,
                            char* const dest_end,
-                           const off_t offset) {
+                           const off_t offset) try {
   if (dest == dest_end)
     return dest;
 
-  // If we don't have a buffer, then we don't have enough memory.
-  if (!buffer_)
-    throw std::bad_alloc();
-
-  assert(buffer_);
-  assert(buffer_size_ > 0);
+  if (use_cached_reader_)
+    return cached_reader_->Read(dest, dest_end, offset);
 
   // Read data from buffer if possible.
   dest = ReadFromBufferAndAdvance(dest, dest_end, offset);
@@ -243,4 +397,8 @@ char* BufferedReader::Read(char* dest,
   }
 
   return dest;
+} catch (const TooFar&) {
+  assert(cached_reader_);
+  use_cached_reader_ = true;
+  return cached_reader_->Read(dest, dest_end, offset);
 }

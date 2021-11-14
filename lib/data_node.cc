@@ -255,6 +255,11 @@ DataNode DataNode::Make(zip_t* const zip,
 }
 
 Reader::Ptr DataNode::GetReader(zip_t* zip) const {
+  if (cached_reader) {
+    Log(LOG_DEBUG, *cached_reader, ": Reused for File [", id, "]");
+    return cached_reader->AddRef();
+  }
+
   if (!target.empty())
     return Reader::Ptr(new StringReader(target));
 
@@ -270,7 +275,7 @@ Reader::Ptr DataNode::GetReader(zip_t* zip) const {
   const bool seekable =
       (st.valid & ZIP_STAT_COMP_METHOD) != 0 && st.comp_method == ZIP_CM_STORE;
   return Reader::Ptr(seekable ? new UnbufferedReader(zip, id, st.size)
-                              : new BufferedReader(zip, id, st.size));
+                              : new BufferedReader(zip, id, st.size, &cached_reader));
 }
 
 timespec DataNode::Now() {

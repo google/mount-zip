@@ -526,6 +526,57 @@ mnt
 4 directories, 4 files
 ```
 
+## Smart Caching
+
+**mount-zip** generally avoids caching decompressed data. If you read a
+compressed file several times, it is getting decompressed each time:
+
+```
+$ mount-zip 'Big One.zip' mnt
+
+$ dd if='mnt/Big One.txt' of=/dev/null status=progress
+6777995272 bytes (6.8 GB, 6.3 GiB) copied, 24.9395 s, 272 MB/s
+
+$ dd if='mnt/Big One.txt' of=/dev/null status=progress
+6777995272 bytes (6.8 GB, 6.3 GiB) copied, 24.961 s, 272 MB/s
+```
+
+But **mount-zip** will start caching a file if it detects that this file is
+getting read in a non-sequential way (ie the reading application starts jumping
+to different positions of the file).
+
+For example, `tail` jumps to the end of the file. The first time this happens,
+**mount-zip** decompresses the whole file and caches the decompressed data in
+about 13 seconds:
+
+```
+$ time tail -1 'mnt/Big One.txt'
+The End
+
+real    0m12.631s
+user    0m0.024s
+sys     0m0.656s
+```
+
+A subsequent call to `tail` is instantaneous, because **mount-zip** has now
+cached the decompressed data:
+
+```
+$ time tail -1 'mnt/Big One.txt'
+The End
+
+real    0m0.032s
+user    0m0.018s
+sys     0m0.018s
+```
+
+Decompressed data is cached in a cache file located in the `/tmp` directory.
+This cache file is only created if necessary, and automatically deleted when the
+ZIP is unmounted.
+
+If **mount-zip** cannot create the cache file, it will do its best caching data
+in memory.
+
 # PERFORMANCE
 
 On small archives **mount-zip** has the same performance as commonly used
@@ -733,6 +784,7 @@ Decrypts Encrypted Files     | ✅         | ❌
 Detects Name Encoding        | ✅         | ❌
 Deduplicates Names           | ✅         | ❌
 Reads Huge Files             | ✅         | ❌
+Smart Caching                | ✅         | ❌
 Can Hide Symlinks            | ✅         | ❌
 Can Hide Hard Links          | ✅         | ❌
 Can Hide Special Files       | ✅         | ❌

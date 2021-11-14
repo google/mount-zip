@@ -16,6 +16,7 @@
 #ifndef READER_H
 #define READER_H
 
+#include <cassert>
 #include <memory>
 #include <ostream>
 #include <string_view>
@@ -34,12 +35,26 @@ using ZipFile = std::unique_ptr<zip_file_t, ZipClose>;
 // file stored or compressed in a ZIP archive.
 class Reader {
  public:
-  virtual ~Reader() = default;
   Reader() = default;
   Reader(const Reader&) = delete;
   Reader& operator=(const Reader&) = delete;
 
-  using Ptr = std::unique_ptr<Reader>;
+  struct RemoveRef {
+    void operator()(Reader* const reader) const {
+      assert(reader);
+      assert(reader->ref_count_ > 0);
+      if (--reader->ref_count_ == 0)
+        delete reader;
+    }
+  };
+
+  using Ptr = std::unique_ptr<Reader, RemoveRef>;
+
+  Ptr AddRef() {
+    assert(ref_count_ > 0);
+    ++ref_count_;
+    return Ptr(this);
+  }
 
   // Reads |dest_end - dest| bytes at the given file |offset| and stores them
   // into |dest|. Tries to fill the |dest| buffer, and only returns a "short
@@ -55,11 +70,16 @@ class Reader {
   }
 
  protected:
+  virtual ~Reader() = default;
+
   // Number of created Reader objects.
   static zip_int64_t reader_count_;
 
   // ID of this Reader (for debug traces).
   const zip_int64_t reader_id_ = ++reader_count_;
+
+  // Reference count.
+  int ref_count_ = 1;
 };
 
 // Reader taking its data from a string_view.
@@ -120,41 +140,40 @@ class UnbufferedReader : public Reader {
 };
 
 // Reader used for compressed files. It features a decompression engine and a
-// rolling buffer holding the latest decompressed bytes.
+// rolling buffer of 256 KB holding the latest decompressed bytes.
 //
-// During the first decompression pass, the rolling buffer contains 500KB (or
-// less if the |expected_size| is smaller). This is usually enough to
-// accommodate the possible out-of-order read operations due to the kernel's
-// readahead optimization.
+// This is usually enough to accommodate the possible out-of-order read
+// operations due to the kernel's readahead optimization.
 //
 // If a read operation starts at an offset located before the start of the
 // rolling buffer, then this BufferedReader restarts decompressing the file from
-// the beginning, but for this second pass it will use a rolling buffer as big
-// as possible (as big as |expected_size| if there is enough addressable space).
+// the beginning.
 class BufferedReader : public UnbufferedReader {
  public:
   BufferedReader(zip_t* const zip,
                  const zip_int64_t file_id,
-                 const off_t expected_size)
-      : UnbufferedReader(zip, file_id, expected_size), zip_(zip) {
-    AllocateBuffer(500 << 10);  // 500KB
+                 const off_t expected_size,
+                 Reader::Ptr* const cached_reader)
+      : UnbufferedReader(zip, file_id, expected_size),
+        zip_(zip),
+        cached_reader_(*cached_reader) {
+    assert(cached_reader);
+    assert(!cached_reader_);
   }
 
   char* Read(char* dest, char* dest_end, off_t offset) override;
 
  protected:
-  // Allocates a rolling buffer up to |buffer_size| or the |expected_size|
-  // passed to the constructor, whichever is smaller.
-  // Throws std::bad_alloc in case of memory allocation error.
-  void AllocateBuffer(ssize_t buffer_size);
+  // Create cached reader if necessary.
+  bool CreateCachedReader() const noexcept;
 
-  // Allocates a bigger buffer and restarts decompressing from the beginning.
-  // Throws std::bad_alloc in case of memory allocation error.
+  // Restarts decompressing from the beginning.
   // Throws a ZipError in case of error.
   void Restart();
 
   // Advances the position of the decompression engine by |jump| bytes.
   // Throws a ZipError in case of error.
+  // Throws a TooFar if |jump| to too big and cached reader is ready.
   // Precondition: the buffer is allocated.
   // Precondition: |jump >= 0|
   void Advance(off_t jump);
@@ -172,20 +191,23 @@ class BufferedReader : public UnbufferedReader {
   // pass.
   zip_t* const zip_;
 
+  // Pointer to the shared cached reader.
+  Reader::Ptr& cached_reader_;
+
+  // Should use the shared cached reader?
+  bool use_cached_reader_ = false;
+
   // Index of the rolling buffer where the oldest byte is currently stored
   // (and where the next decompressed byte at the file position |pos_| will be
   // stored).
-  // Invariant: 0 <= buffer_start_ < buffer_size_ once the buffer is
-  // allocated.
+  // Invariant: 0 <= buffer_start_ < buffer_size_
   ssize_t buffer_start_ = 0;
 
   // Size of the rolling buffer.
-  // Invariant: 0 < buffer_size_ once the buffer is allocated.
-  ssize_t buffer_size_ = 0;
+  static const ssize_t buffer_size_ = 256 * 1024;
 
   // Rolling buffer.
-  // Invariant: buffer_ != nullptr once the buffer is allocated.
-  std::unique_ptr<char[]> buffer_;
+  char buffer_[buffer_size_];
 };
 
 #endif
