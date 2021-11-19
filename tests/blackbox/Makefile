@@ -15,8 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-all:
+all: data/big.zip
 	python3 test.py
+
+data/big.zip: make_big_zip.py
+	python3 make_big_zip.py
 
 rebuild:
 	make -C ../../lib all

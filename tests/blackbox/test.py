@@ -19,6 +19,7 @@ import hashlib
 import logging
 import os
 import pprint
+import random
 import stat
 import subprocess
 import sys
@@ -30,7 +31,7 @@ import tempfile
 # Throws OSError if the file cannot be read.
 def md5(path):
     h = hashlib.md5()
-    with open(path, "rb") as f:
+    with open(path, 'rb') as f:
         while chunk := f.read(4096):
             h.update(chunk)
     return h.hexdigest()
@@ -1441,6 +1442,49 @@ def TestBigZip():
                          use_md5=False)
 
 
+# Tests that a big file can be accessed in random order.
+def TestBigZip2():
+    zip_name = 'big.zip'
+    logging.info(f'Checking {zip_name!r}...')
+    with tempfile.TemporaryDirectory() as mount_point:
+        zip_path = os.path.join(script_dir, 'data', zip_name)
+        logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
+        subprocess.run([mount_program, zip_path, mount_point],
+                       check=True,
+                       capture_output=True,
+                       input='',
+                       encoding='UTF-8')
+        try:
+            logging.debug(f'Mounted ZIP {zip_path!r} on {mount_point!r}')
+            tree = GetTree(mount_point, use_md5=False)
+            fd = os.open(os.path.join(mount_point, 'big.txt'), os.O_RDONLY)
+            try:
+                random.seed()
+                n = 100000000
+                for j in [random.randrange(n)
+                          for i in range(100)] + [n - 1, 0, n - 1]:
+                    logging.debug(f'Getting line {j}...')
+                    want_line = b'%08d The quick brown fox jumps over the lazy dog.\n' % j
+                    got_line = os.pread(fd, len(want_line), j * len(want_line))
+                    if (got_line != want_line):
+                        LogError(
+                            f'Want line: {want_line!r}, Got line: {got_line!r}'
+                        )
+                got_line = os.pread(fd, 100, j * len(want_line))
+                if (got_line != want_line):
+                    LogError(
+                        f'Want line: {want_line!r}, Got line: {got_line!r}')
+                got_line = os.pread(fd, 100, n * len(want_line))
+                if (got_line):
+                    LogError(f'Want empty line, Got line: {got_line!r}')
+            finally:
+                os.close(fd)
+        finally:
+            logging.debug(f'Unmounting {zip_path!r} from {mount_point!r}...')
+            subprocess.run(['fusermount', '-u', '-z', mount_point], check=True)
+            logging.debug(f'Unmounted {zip_path!r} from {mount_point!r}')
+
+
 # Tests encrypted ZIP.
 def TestEncryptedZip():
     zip_name = 'different-encryptions.zip'
@@ -2095,6 +2139,7 @@ TestZipWithSpecialFiles()
 TestEncryptedZip()
 TestInvalidZip()
 TestBigZip()
+TestBigZip2()
 
 if error_count:
     LogError(f'There were {error_count} errors')

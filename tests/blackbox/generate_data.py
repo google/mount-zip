@@ -20,12 +20,6 @@ import os.path
 
 dir = os.path.dirname(os.path.realpath(__file__))
 
-def MakeBigZip():
-    with ZipFile(os.path.join(dir, 'data', 'big.zip'), 'w', compression=ZIP_DEFLATED, allowZip64=True) as z:
-        with z.open('big.txt', mode='w', force_zip64=True) as f:
-            for i in range(100000000):
-                f.write(b'%09d The quick brown fox jumps over the lazy dog.\n' % i)
-
 def MakeZipWithManySmallFiles():
     with ZipFile(os.path.join(dir, 'data', '100000-files.zip'), 'w', allowZip64=True) as z:
         for i in range(100000):
@@ -57,6 +51,5 @@ def MakeOtherZips():
         z.writestr('/top.txt', 'This file is in the top root directory.\n')
         z.writestr('/../over-the-top.txt', 'This file is "above" the top root directory.\n')
 
-#MakeBigZip()
 MakeZipWithManySmallFiles()
 MakeOtherZips()
