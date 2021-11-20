@@ -219,7 +219,7 @@ mnt
 ```
 
 Directories are never renamed. If a file name is colliding with a directory
-name, the files is the one getting renamed.
+name, the file is the one getting renamed.
 
 ## Encrypted Archives
 

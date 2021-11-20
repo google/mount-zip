@@ -1,6 +1,7 @@
-2021-11-19 François Degros <fdegros@chromium.org>
+2021-11-20 François Degros <fdegros@chromium.org>
 
-	* Forked mount-zip 1.0 from fuse-zip 0.7.2:
+	* Released mount-zip 1.0.0:
+	- Forked from fuse-zip 0.7.2
 	- Read-only mode (no read-write mode anymore)
 	- Decompresses lazily when reading file (Reader class)
 	- Supports encrypted files (ZipCrypto and AES)
