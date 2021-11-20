@@ -21,11 +21,13 @@ date: November 2021
 [FUSE file system](https://en.wikipedia.org/wiki/Filesystem_in_Userspace), which
 can then be explored and read by any application.
 
-The mount point should be an empty directory. If the mount point doesn't exist
-yet, **mount-zip** tries to create it first.
+**mount-zip** aspires to be an excellent ZIP mounter. It starts quickly, uses
+little memory, decodes encrypted files, and provides on-the-go decompression and
+caching for maximum efficiency.
 
-If no mount point is provided, **mount-zip** tries to create one in the same
-directory as the ZIP archive.
+The mount point should be an empty directory. If the mount point doesn't exist
+yet, **mount-zip** creates it first. If no mount point is provided,
+**mount-zip** creates one in the same directory as the ZIP archive.
 
 # OPTIONS
 
@@ -67,7 +69,7 @@ Mount a ZIP archive:
 $ mount-zip foobar.zip mnt
 ```
 
-The ZIP archive can now be explored and read via the mounted file system:
+The mounted ZIP archive can be explored and read using any application:
 
 ```
 $ tree mnt
@@ -96,7 +98,7 @@ $ fusermount -u mnt
 *   Detects file name encoding
 *   Converts file names to Unicode UTF-8
 *   Deduplicates files in case of name collisions
-*   Unpacks files when reading them (lazy decompression)
+*   Unpacks files when reading them (on-the-go decompression)
 *   Supports all file types, including named sockets, FIFOs, block and character
     devices, symbolic links and hard links
 *   Supports UNIX access modes and DOS file permissions
@@ -216,9 +218,13 @@ mnt
 3 directories, 6 files
 ```
 
+Directories are never renamed. If a file name is colliding with a directory
+name, the files is the one getting renamed.
+
 ## Encrypted Archives
 
-**mount-zip** supports encrypted ZIP archives.
+**mount-zip** supports encrypted ZIP archives. It understand both the legacy ZIP
+encryption scheme, and the more recent AES encryption schemes.
 
 When **mount-zip** finds an encrypted file while mounting a ZIP archive, it asks
 for a password. If the given password doesn't allow to decrypt the file, then
@@ -245,7 +251,7 @@ Cannot open File [1] '/Encrypted AES-128.txt': Wrong password provided
 ```
 
 Providing the correct password allows **mount-zip** to mount the ZIP archive and
-decrypt the files:
+decode the files:
 
 ```
 $ mount-zip different-encryptions.zip mnt
