@@ -30,14 +30,18 @@
 #include <vector>
 
 #include <termios.h>
+#include <unicode/putil.h>
+#include <unicode/uclean.h>
 #include <unicode/ucnv.h>
 #include <unicode/ucsdet.h>
+#include <unicode/udata.h>
 #include <unistd.h>
 #include <zip.h>
 
 #include "error.h"
 #include "extra_field.h"
 #include "log.h"
+#include "scoped_file.h"
 
 // Temporarily suppresses the echo on the terminal.
 // Used when waiting for password to be typed.
@@ -100,6 +104,33 @@ bool Tree::ReadPasswordFromStdIn() {
 }
 
 namespace {
+
+// Initializes and cleans up the ICU library.
+class IcuGuard {
+ public:
+  // Initializes the ICU library with the given ICU data file.
+  // Throws an runtime_error in case of error.
+  IcuGuard(const char* const data_file) : mapped_file_(data_file) {
+    UErrorCode error = U_ZERO_ERROR;
+    udata_setCommonData(mapped_file_.data(), &error);
+    udata_setFileAccess(UDATA_ONLY_PACKAGES, &error);
+    u_init(&error);
+    if (U_FAILURE(error))
+      throw std::runtime_error(
+          StrCat("Cannot initialize ICU: ", u_errorName(error)));
+  }
+
+  // Cleans up the ICU library.
+  ~IcuGuard() { u_cleanup(); }
+
+  // No copy.
+  IcuGuard(const IcuGuard&) = delete;
+  IcuGuard& operator=(const IcuGuard&) = delete;
+
+ private:
+  // Memory-mapped ICU data file.
+  const FileMapping mapped_file_;
+};
 
 struct Closer {
   void operator()(UConverter* const conv) const { ucnv_close(conv); }
