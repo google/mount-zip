@@ -534,12 +534,34 @@ mnt
 
 ## Smart Caching
 
-**mount-zip** generally avoids caching decompressed data. If you read a
-compressed file several times, it is getting decompressed each time:
+**mount-zip** only does the minimum amount of work required to serve the
+requested data. When reading a compressed file, **mount-zip** only decompresses
+enough data to serve the reading application. This is called *lazy* or
+*on-the-go* decompression.
+
+Accessing the beginning of a big compressed file is therefore instantaneous:
 
 ```
 $ mount-zip 'Big One.zip' mnt
 
+$ ls -lh mnt/
+-rw-rw-r-- 1 root root 6.4G Mar 26  2020 'Big One.txt'
+
+$ time head -4 'mnt/Big One.txt'
+We're going on a bear hunt.
+We're going to catch a big one.
+What a beautiful day!
+We're not scared.
+
+real    0m0.030s
+user    0m0.015s
+sys     0m0.014s
+```
+
+**mount-zip** generally avoids caching decompressed data. If you read a
+compressed file several times, it is getting decompressed each time:
+
+```
 $ dd if='mnt/Big One.txt' of=/dev/null status=progress
 6777995272 bytes (6.8 GB, 6.3 GiB) copied, 24.9395 s, 272 MB/s
 
@@ -552,8 +574,8 @@ getting read in a non-sequential way (ie the reading application starts jumping
 to different positions of the file).
 
 For example, `tail` jumps to the end of the file. The first time this happens,
-**mount-zip** decompresses the whole file and caches the decompressed data in
-about 13 seconds:
+**mount-zip** decompresses the whole file and caches the decompressed data (in
+about 13 seconds in this instance):
 
 ```
 $ time tail -1 'mnt/Big One.txt'
@@ -667,7 +689,7 @@ $ dd if=mnt/disk of=/dev/null status=progress
 
 There is no lag when opening and reading the file, and only a moderate amount of
 memory is used. The file is getting lazily decompressed by **mount-zip** as it
-is getting read by `dd`.
+is getting read by the `dd` program.
 
 # LOG MESSAGES
 
