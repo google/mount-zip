@@ -29,6 +29,7 @@
 
 #include "error.h"
 #include "path.h"
+#include "scoped_file.h"
 
 zip_int64_t Reader::reader_count_ = 0;
 
@@ -88,30 +89,6 @@ char* UnbufferedReader::Read(char* dest, char* dest_end, off_t offset) {
 
   return dest;
 }
-
-// A scoped file descriptor.
-class ScopedFile {
- public:
-  ~ScopedFile() {
-    if (IsValid() && close(fd_) < 0)
-      Log(LOG_ERR, "Error while closing file descriptor ", fd_, ": ",
-          strerror(errno));
-  }
-
-  explicit ScopedFile(int fd) noexcept : fd_(fd) {}
-  ScopedFile(ScopedFile&& other) noexcept : fd_(std::exchange(other.fd_, -1)) {}
-
-  ScopedFile& operator=(ScopedFile other) noexcept {
-    std::swap(fd_, other.fd_);
-    return *this;
-  }
-
-  bool IsValid() const { return fd_ >= 0; }
-  int GetDescriptor() const { return fd_; }
-
- private:
-  int fd_;
-};
 
 // Reader used for compressed files. It features a decompression engine and it
 // caches the decompressed bytes in a cache file.
