@@ -18,20 +18,13 @@
 
 #include <utility>
 
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "log.h"
+#include <sys/types.h>
 
 // A scoped file descriptor.
 class ScopedFile {
  public:
-  ~ScopedFile() {
-    if (IsValid() && close(fd_) < 0)
-      Log(LOG_ERR, "Error while closing file descriptor ", fd_, ": ",
-          strerror(errno));
-  }
+  // Closes the file descriptor if it is valid.
+  ~ScopedFile();
 
   explicit ScopedFile(int fd) noexcept : fd_(fd) {}
   ScopedFile(ScopedFile&& other) noexcept : fd_(std::exchange(other.fd_, -1)) {}
@@ -45,7 +38,30 @@ class ScopedFile {
   int GetDescriptor() const { return fd_; }
 
  private:
+  // File descriptor.
   int fd_;
+};
+
+// A file mapping to memory.
+class FileMapping {
+ public:
+  // Removes the memory mapping.
+  ~FileMapping();
+
+  // Maps a file to memory in read-only mode.
+  // Throws a system_error in case of error.
+  explicit FileMapping(const char* path);
+
+  // No copy.
+  FileMapping(const FileMapping&) = delete;
+  FileMapping& operator=(const FileMapping&) = delete;
+
+  // Start of the memory mapping.
+  const void* data() const { return data_; }
+
+ private:
+  void* data_;
+  size_t size_;
 };
 
 #endif  // SCOPED_FILE_H
