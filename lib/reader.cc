@@ -20,7 +20,6 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
-#include <system_error>
 #include <utility>
 
 #include <fcntl.h>
@@ -94,7 +93,7 @@ char* UnbufferedReader::Read(char* dest, char* dest_end, off_t offset) {
 class ScopedFile {
  public:
   ~ScopedFile() {
-    if (fd_ >= 0 && close(fd_) < 0)
+    if (IsValid() && close(fd_) < 0)
       Log(LOG_ERR, "Error while closing file descriptor ", fd_, ": ",
           strerror(errno));
   }
@@ -107,9 +106,8 @@ class ScopedFile {
     return *this;
   }
 
-  explicit operator bool() const { return fd_ >= 0; }
-
-  int fd() const { return fd_; }
+  bool IsValid() const { return fd_ >= 0; }
+  int GetDescriptor() const { return fd_; }
 
  private:
   int fd_;
@@ -132,22 +130,19 @@ class CacheFileReader : public UnbufferedReader {
 
     // Create cache file.
     ScopedFile file(mkstemp(name));
-    if (!file)
-      throw std::system_error(errno, std::system_category(),
-                              StrCat("Cannot create cache file ", Path(name)));
+    if (!file.IsValid())
+      ThrowSystemError("Cannot create cache file ", Path(name));
 
     Log(LOG_DEBUG, "Created cache file ", Path(name));
 
     // Unlink cache file.
     if (unlink(name) < 0)
-      throw std::system_error(errno, std::system_category(),
-                              StrCat("Cannot unlink cache file ", Path(name)));
+      ThrowSystemError("Cannot unlink cache file ", Path(name));
 
     // Assert that the cache file doesn't have any links to it.
     struct stat st;
-    if (fstat(file.fd(), &st) < 0)
-      throw std::system_error(errno, std::system_category(),
-                              StrCat("Cannot stat cache file ", Path(name)));
+    if (fstat(file.GetDescriptor(), &st) < 0)
+      ThrowSystemError("Cannot stat cache file ", Path(name));
 
     if (st.st_nlink != 0)
       throw std::runtime_error(
@@ -165,7 +160,7 @@ class CacheFileReader : public UnbufferedReader {
   // Throws std::runtime_error in case of error.
   static int GetCacheFile() {
     static const ScopedFile file = CreateCacheFile();
-    return file.fd();
+    return file.GetDescriptor();
   }
 
   // Reserves space in the cache file.
@@ -174,16 +169,16 @@ class CacheFileReader : public UnbufferedReader {
     // Get current cache file size.
     struct stat st;
     if (fstat(cache_file_, &st) < 0)
-      throw std::system_error(errno, std::system_category(),
-                              StrCat("Cannot stat cache file ", cache_file_));
+      ThrowSystemError("Cannot stat cache file ", cache_file_);
 
     // Extend cache file.
     const off_t offset = st.st_size;
-    if (const int err = posix_fallocate(cache_file_, offset, expected_size_))
-      throw std::system_error(
-          err, std::system_category(),
-          StrCat("Cannot reserve ", expected_size_, " bytes in cache file ",
-                 cache_file_, " at offset ", offset));
+    if (const int err = posix_fallocate(cache_file_, offset, expected_size_)) {
+      errno = err;  // posix_fallocate doesn't set errno
+      ThrowSystemError("Cannot reserve ", expected_size_,
+                       " bytes in cache file ", cache_file_, " at offset ",
+                       offset);
+    }
 
     Log(LOG_DEBUG, "Reserved ", expected_size_,
         " bytes in cache file at offset ", offset);
@@ -200,10 +195,8 @@ class CacheFileReader : public UnbufferedReader {
     while (count > 0) {
       const ssize_t n = pwrite(cache_file_, buf, count, offset);
       if (n < 0)
-        throw std::system_error(
-            errno, std::system_category(),
-            StrCat("Cannot write ", count, " bytes into cache file at offset ",
-                   offset));
+        ThrowSystemError("Cannot write ", count,
+                         " bytes into cache file at offset ", offset);
       buf += n;
       count -= n;
       offset += n;
@@ -241,10 +234,8 @@ class CacheFileReader : public UnbufferedReader {
     offset += start_offset_;
     const ssize_t n = pread(cache_file_, dest, count, offset);
     if (n < 0)
-      throw std::system_error(
-          errno, std::system_category(),
-          StrCat("Cannot read ", count, " bytes from cache file at offset ",
-                 offset));
+      ThrowSystemError("Cannot read ", count,
+                       " bytes from cache file at offset ", offset);
 
     return dest + n;
   }

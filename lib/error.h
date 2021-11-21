@@ -18,9 +18,12 @@
 
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <utility>
 
 #include <zip.h>
+
+#include "log.h"
 
 // An exception carrying a libzip error code.
 class ZipError : public std::runtime_error {
@@ -65,5 +68,13 @@ class ZipError : public std::runtime_error {
   // libzip error code
   const int code_;
 };
+
+// Throws an std::system_error with the current errno.
+template <typename... Args>
+[[noreturn]] void ThrowSystemError(Args&&... args) {
+  const int err = errno;
+  throw std::system_error(err, std::system_category(),
+                          StrCat(std::forward<Args>(args)...));
+}
 
 #endif  // ERROR_H
