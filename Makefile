@@ -15,39 +15,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-DEST=mount-zip
-prefix=/usr
-exec_prefix=$(prefix)
-bindir=$(exec_prefix)/bin
+DEST = mount-zip
+prefix = /usr
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
 PKG_CONFIG ?= pkg-config
-PC_DEPS = fuse libzip icu-uc icu-i18n
-PC_CFLAGS := $(shell $(PKG_CONFIG) --cflags $(PC_DEPS))
-LIBS := -Llib -lfusezip $(shell $(PKG_CONFIG) --libs $(PC_DEPS))
-COMMON_CXXFLAGS = -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
-CXXFLAGS = -g -O0 $(COMMON_CXXFLAGS)
-RELEASE_CXXFLAGS = -O2 $(COMMON_CXXFLAGS) -DNDEBUG
-LIB=lib/libfusezip.a
-SOURCES=main.cc
-OBJECTS=$(SOURCES:.cc=.o)
-MAN=$(DEST).1
-MANDIR=$(prefix)/share/man/man1
-CLEANFILES=$(OBJECTS) $(DEST) $(MAN)
-INSTALL=install -D
-INSTALL_PROGRAM=$(INSTALL)
-INSTALL_DATA=$(INSTALL) -m 644
+DEPS = fuse libzip icu-uc icu-i18n
+LIBS := -Llib -lfusezip $(shell $(PKG_CONFIG) --libs $(DEPS))
+LIBS += -Llib -lfusezip
+CXXFLAGS := $(shell $(PKG_CONFIG) --cflags $(DEPS))
+CXXFLAGS += -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
+ifeq ($(DEBUG), 1)
+CXXFLAGS += -O0 -g
+else
+CXXFLAGS += -O2 -DNDEBUG
+endif
+LIB = lib/libfusezip.a
+SOURCES = main.cc
+OBJECTS = $(SOURCES:.cc=.o)
+MAN = $(DEST).1
+MANDIR = $(prefix)/share/man/man1
+CLEANFILES = $(OBJECTS) $(DEST) $(MAN)
+INSTALL = install -D
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA = $(INSTALL) -m 644
 
 all: $(DEST)
 
 doc: $(MAN)
 
 $(DEST): $(OBJECTS) $(LIB)
-	$(CXX) $(OBJECTS) $(LDFLAGS) $(LIBS) \
-	    -o $@
+	$(CXX) $(OBJECTS) $(LDFLAGS) $(LIBS) -o $@
 
 main.o: main.cc
-	$(CXX) -c $(CXXFLAGS) $(PC_CFLAGS) $< \
-	    -Ilib \
-	    -o $@
+	$(CXX) -Ilib -c $(CXXFLAGS) $< -o $@
 
 $(LIB):
 	$(MAKE) -C lib
@@ -73,11 +74,10 @@ install-strip:
 uninstall:
 	rm "$(DESTDIR)$(bindir)/$(DEST)" "$(DESTDIR)$(MANDIR)/$(MAN)"
 
-release:
-	$(MAKE) CXXFLAGS="$(RELEASE_CXXFLAGS)" all doc
+debug:
+	$(MAKE) DEBUG=1 all
 
-check: $(DEST)
+check: debug
 	$(MAKE) -C tests
 
-.PHONY: all doc release clean all-clean lib-clean check-clean install uninstall check $(LIB)
-
+.PHONY: all doc debug clean all-clean lib-clean check-clean install uninstall check

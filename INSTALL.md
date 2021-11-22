@@ -34,7 +34,7 @@ The following tools are required for running the black-box tests:
 To build **mount-zip**:
 
 ```sh
-$ make release
+$ make
 ```
 
 To run **mount-zip**'s tests:

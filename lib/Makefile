@@ -15,30 +15,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-DEST=libfusezip.a
+DEST = libfusezip.a
 PKG_CONFIG ?= pkg-config
-PC_DEPS = fuse libzip icu-uc icu-i18n
-PC_CFLAGS := $(shell $(PKG_CONFIG) --cflags $(PC_DEPS))
-COMMON_CXXFLAGS = -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
-CXXFLAGS = -g -O0 $(COMMON_CXXFLAGS)
-RELEASE_CXXFLAGS = -O2 $(COMMON_CXXFLAGS) -DNDEBUG
-SOURCES=$(sort $(wildcard *.cc))
-OBJECTS=$(SOURCES:.cc=.o)
-CLEANFILES=$(OBJECTS) $(DEST)
+DEPS = fuse libzip icu-uc icu-i18n
+CXXFLAGS := $(shell $(PKG_CONFIG) --cflags $(DEPS))
+CXXFLAGS += -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
+ifeq ($(DEBUG), 1)
+CXXFLAGS += -O0 -g
+else
+CXXFLAGS += -O2 -DNDEBUG
+endif
+SOURCES = $(sort $(wildcard *.cc))
+OBJECTS = $(SOURCES:.cc=.o)
+CLEANFILES = $(OBJECTS) $(DEST)
 
 all: $(DEST)
 
-release:
-	$(MAKE) CXXFLAGS="$(RELEASE_CXXFLAGS)" all
+debug:
+	$(MAKE) DEBUG=1 all
 
 $(DEST): $(OBJECTS)
 	$(AR) -cr $@ $(OBJECTS)
 
 .cc.o:
-	$(CXX) -c $(CXXFLAGS) $(PC_CFLAGS) $< -o $@
+	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 clean:
 	rm -f $(DEST) $(OBJECTS)
 
-.PHONY: all clean
-
+.PHONY: all clean debug
