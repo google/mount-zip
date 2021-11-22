@@ -17,7 +17,9 @@
 
 DEST = libmountzip.a
 PKG_CONFIG ?= pkg-config
-DEPS = libzip icu-uc icu-i18n
+DEPS = libzip
+CXXFLAGS += -I"$(SYSROOT)/usr/include/icu-chrome/common"
+CXXFLAGS += -I"$(SYSROOT)/usr/include/icu-chrome/i18n"
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
 CXXFLAGS += -Wall -Wextra -Wno-nullability-extension -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
 CXXFLAGS += -D_FILE_OFFSET_BITS=64 

@@ -20,7 +20,7 @@ PREFIX = $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
 PKG_CONFIG ?= pkg-config
 
-FUSE_MAJOR_VERSION ?= 3
+FUSE_MAJOR_VERSION ?= 2
 ifeq ($(FUSE_MAJOR_VERSION), 3)
 DEPS = fuse3
 CXXFLAGS += -DFUSE_USE_VERSION=30
@@ -29,7 +29,8 @@ DEPS = fuse
 CXXFLAGS += -DFUSE_USE_VERSION=26
 endif
 
-DEPS += libzip icu-uc icu-i18n
+DEPS += libzip
+LDFLAGS += -licui18n-chrome -licuuc-chrome
 LDFLAGS += -Llib -lmountzip
 LDFLAGS += $(shell $(PKG_CONFIG) --libs $(DEPS))
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
@@ -75,7 +76,6 @@ $(MAN): README.md
 
 install: $(DEST)
 	$(INSTALL) -D "$(DEST)" "$(BINDIR)/$(DEST)"
-	$(INSTALL) -D -m 644 $(MAN) "$(MANDIR)/$(MAN)"
 
 install-strip: $(DEST)
 	$(INSTALL) -D -s "$(DEST)" "$(BINDIR)/$(DEST)"

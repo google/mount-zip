@@ -64,7 +64,7 @@ class Tree {
     bool merge = true;
 
     // Trim top level if possible?
-    bool trim = true;
+    bool trim = false;
   };
 
   // Opens ZIP archives and constructs the internal tree structure.
