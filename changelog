@@ -1,3 +1,10 @@
+2021-11-23 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.2:
+	- No functional change
+	- Cleaned up Makefiles
+	- Build with optimizations by default
+
 2021-11-22 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.1:
