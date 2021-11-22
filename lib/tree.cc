@@ -354,6 +354,9 @@ void Tree::BuildTree() {
   Log(LOG_DEBUG, "Total uncompressed size = ", total_uncompressed_size,
       " bytes");
 
+  // Initialize ICU library and ensure it will be cleaned up.
+  const IcuGuard guard("/opt/google/chrome/icudtl.dat");
+
   // Detect filename encoding.
   std::string encoding;
   if (opts_.encoding)
