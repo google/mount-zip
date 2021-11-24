@@ -80,4 +80,4 @@ debug:
 check: debug
 	$(MAKE) -C tests
 
-.PHONY: all doc debug clean all-clean lib-clean check-clean install uninstall check
+.PHONY: all doc debug clean all-clean lib-clean check-clean install uninstall check $(LIB)
