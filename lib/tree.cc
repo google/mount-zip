@@ -229,6 +229,23 @@ std::string DetectEncoding(const std::string_view bytes) {
   return std::string();
 }
 
+struct Beat {
+  using Clock = std::chrono::steady_clock;
+  using TimePoint = Clock::time_point;
+  using Duration = Clock::duration;
+
+  const Duration period = std::chrono::milliseconds(100);
+  TimePoint next = Clock::now() + period;
+
+  explicit operator bool() {
+    const TimePoint now = Clock::now();
+    if (now < next)
+      return false;
+    next = now + period;
+    return true;
+  }
+};
+
 }  // namespace
 
 Tree::~Tree() {
@@ -329,9 +346,13 @@ void Tree::BuildTree() {
 
   std::vector<Hardlink> hardlinks;
   std::string path;
+  Beat should_display_progress;
 
   // Add zip entries for all items except hardlinks
   for (zip_int64_t id = 0; id < n; ++id) {
+    if (should_display_progress)
+      Log(LOG_DEBUG, "Indexing... ", 100 * id / n, "%");
+
     if (zip_stat_index(zip_, id, zipFlags, &sb) < 0)
       throw ZipError(StrCat("Cannot read entry #", id), zip_);
 
