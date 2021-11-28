@@ -69,4 +69,36 @@ struct Timer {
   }
 };
 
+// Generates a regular beat for logging of lengthy operations.
+class Beat {
+ private:
+  using Clock = std::chrono::steady_clock;
+  using TimePoint = Clock::time_point;
+  using Duration = Clock::duration;
+
+  // Beat period.
+  const Duration period_ = std::chrono::milliseconds(100);
+
+  // Next beat time.
+  TimePoint next_ = Clock::now() + period_;
+
+  // Number of produced beats.
+  int count_ = 0;
+
+ public:
+  // Is it time for the next beat?
+  explicit operator bool() {
+    const TimePoint now = Clock::now();
+    if (now < next_)
+      return false;
+
+    count_ += 1;
+    next_ += period_;
+    return true;
+  }
+
+  // Gets the number of produced beats.
+  int Count() const { return count_; }
+};
+
 #endif  // LOG_H

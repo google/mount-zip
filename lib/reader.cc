@@ -182,10 +182,18 @@ class CacheFileReader : public UnbufferedReader {
 
   // Ensures the decompressed data is cached at least up to the given offset.
   void EnsureCachedUpTo(const off_t offset) {
-    const ssize_t buf_size = 64 * 1024;
-    char buf[buf_size];
+    const off_t start_pos = pos_;
+    const off_t total_to_cache = offset - pos_;
+    const Timer timer;
+    Beat should_log_progress;
 
     while (pos_ < offset) {
+      if (should_log_progress)
+        Log(LOG_DEBUG, "Caching ", total_to_cache, " bytes... ",
+            100 * (pos_ - start_pos) / total_to_cache, "%");
+
+      const ssize_t buf_size = 64 * 1024;
+      char buf[buf_size];
       const off_t store_offset = start_offset_ + pos_;
       const ssize_t n = ReadAtCurrentPosition(buf, buf_size);
       if (n == 0)
@@ -193,6 +201,10 @@ class CacheFileReader : public UnbufferedReader {
 
       WriteToCacheFile(buf, n, store_offset);
     }
+
+    if (should_log_progress.Count())
+      Log(LOG_DEBUG, "Cached ", pos_ - start_pos, " bytes from ", start_pos,
+          " to ", pos_, " in ", timer);
   }
 
   char* Read(char* dest, char* const dest_end, off_t offset) override {
@@ -265,10 +277,16 @@ void BufferedReader::Advance(off_t jump) {
   if (jump > buffer_size_ && CreateCachedReader())
     throw TooFar();
 
-  const Timer timer;
   const off_t start_pos = pos_;
+  const off_t total_to_cache = jump;
+  const Timer timer;
+  Beat should_log_progress;
 
   do {
+    if (should_log_progress)
+      Log(LOG_DEBUG, "Skipping ", total_to_cache, " bytes... ",
+          100 * (pos_ - start_pos) / total_to_cache, "%");
+
     ssize_t count = buffer_size_ - buffer_start_;
     LimitSize(&count, jump);
 
@@ -286,8 +304,9 @@ void BufferedReader::Advance(off_t jump) {
     jump -= count;
   } while (jump > 0);
 
-  Log(LOG_DEBUG, *this, ": Skipped ", pos_ - start_pos, " bytes from ",
-      start_pos, " to ", pos_, " in ", timer);
+  if (should_log_progress.Count())
+    Log(LOG_DEBUG, *this, ": Skipped ", pos_ - start_pos, " bytes from ",
+        start_pos, " to ", pos_, " in ", timer);
 }
 
 char* BufferedReader::ReadFromBufferAndAdvance(char* dest,

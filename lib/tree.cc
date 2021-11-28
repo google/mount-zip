@@ -229,23 +229,6 @@ std::string DetectEncoding(const std::string_view bytes) {
   return std::string();
 }
 
-struct Beat {
-  using Clock = std::chrono::steady_clock;
-  using TimePoint = Clock::time_point;
-  using Duration = Clock::duration;
-
-  const Duration period = std::chrono::milliseconds(100);
-  TimePoint next = Clock::now() + period;
-
-  explicit operator bool() {
-    const TimePoint now = Clock::now();
-    if (now < next)
-      return false;
-    next = now + period;
-    return true;
-  }
-};
-
 }  // namespace
 
 Tree::~Tree() {
