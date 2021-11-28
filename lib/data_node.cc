@@ -272,10 +272,13 @@ Reader::Ptr DataNode::GetReader(zip_t* zip) const {
   // TODO Use zip_file_is_seekable once it is available
   // https://github.com/nih-at/libzip/issues/259
   // https://github.com/nih-at/libzip/commit/547d98ce0810f6529716b1810a003fab9f9189b4
-  const bool seekable =
-      (st.valid & ZIP_STAT_COMP_METHOD) != 0 && st.comp_method == ZIP_CM_STORE;
-  return Reader::Ptr(seekable ? new UnbufferedReader(zip, id, st.size)
-                              : new BufferedReader(zip, id, st.size, &cached_reader));
+  const bool seekable = (st.valid & ZIP_STAT_COMP_METHOD) != 0 &&
+                        st.comp_method == ZIP_CM_STORE &&
+                        (st.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
+                        st.encryption_method == ZIP_EM_NONE;
+  return Reader::Ptr(
+      seekable ? new UnbufferedReader(zip, id, st.size)
+               : new BufferedReader(zip, id, st.size, &cached_reader));
 }
 
 timespec DataNode::Now() {
