@@ -444,32 +444,7 @@ int main(int argc, char* argv[]) try {
   // Single-threaded operation.
   fuse_opt_add_arg(&args, "-s");
 
-  char* absolute_mount_point;
-  int multithreaded;
-  timer.Reset();
-  struct fuse* const fuse =
-      fuse_setup(args.argc, args.argv, &operations, sizeof(operations),
-                 &absolute_mount_point, &multithreaded, tree.get());
-
-  if (!fuse)
-    throw std::runtime_error(StrCat("Cannot mount ", Path(param.filename),
-                                    " on ", Path(param.mount_point)));
-
-  Log(LOG_DEBUG, "Mounted ", Path(param.filename), " on ",
-      Path(param.mount_point), " in ", timer);
-  Log(LOG_DEBUG, "When finished, run: fusermount -u ",
-      Path(absolute_mount_point));
-
-  assert(!multithreaded);
-  const int res = fuse_loop(fuse);
-
-  Log(LOG_DEBUG, "Unmounting ", Path(param.filename), " from ",
-      Path(param.mount_point), "...");
-  timer.Reset();
-  fuse_teardown(fuse, absolute_mount_point);
-  Log(LOG_DEBUG, "Unmounted ", Path(param.filename), " in ", timer);
-
-  return res;
+  return fuse_main(args.argc, args.argv, &operations, tree.get());
 } catch (const ZipError& e) {
   Log(LOG_ERR, e.what());
   // Shift libzip error codes in order to avoid collision with FUSE errors.
