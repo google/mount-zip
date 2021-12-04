@@ -18,7 +18,9 @@
 #include "extra_field.h"
 
 #include <sys/stat.h>
+#ifdef __Linux__
 #include <sys/sysmacros.h>
+#endif
 
 #include <cassert>
 #include <cstring>
