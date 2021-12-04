@@ -893,8 +893,85 @@ def TestZipWithDefaultOptions():
             }
         },
         'mixed-paths.zip': {
+            'CUR/Empty': {
+                'ino': 18,
+                'mode': 'drwxrwxr-x',
+                'nlink': 2,
+                'uid': 0,
+                'gid': 0
+            },
+            'CUR/Square [].txt': {
+                'ino': 16,
+                'mode': '-rw-------',
+                'nlink': 1,
+                'uid': 0,
+                'gid': 0,
+                'size': 30,
+                'md5': 'a3c0f4c806fd09aed3820f4cd04a5c17'
+            },
+            'CUR/Angle <>.txt': {
+                'ino': 15,
+                'mode': '-rw-------',
+                'nlink': 1,
+                'uid': 0,
+                'gid': 0,
+                'size': 29,
+                'md5': '3275b321cca4963642cf083bbcc0cf2d'
+            },
+            'CUR/Backslash (\\).txt': {
+                'ino': 14,
+                'mode': '-rw-------',
+                'nlink': 1,
+                'uid': 0,
+                'gid': 0,
+                'size': 23,
+                'md5': '1c5360ba1d4f1698941d2ef7ccc722d8'
+            },
+            'CUR/Double quote (").txt': {
+                'ino': 13,
+                'mode': '-rw-------',
+                'nlink': 1,
+                'uid': 0,
+                'gid': 0,
+                'size': 26,
+                'md5': 'b4d1ac0f736d863e0cead53f96c7d314'
+            },
+            "CUR/Quote (').txt": {
+                'ino': 12,
+                'mode': '-rw-------',
+                'nlink': 1,
+                'uid': 0,
+                'gid': 0,
+                'size': 19,
+                'md5': '7d27cb02785c9c7a939889104544de82'
+            },
+            'CUR/Question (?).txt': {
+                'ino': 11,
+                'mode': '-rw-------',
+                'nlink': 1,
+                'uid': 0,
+                'gid': 0,
+                'size': 27,
+                'md5': '6449d2e0a6ac10b9d763347208e4a347'
+            },
+            'CUR/Star (*).txt': {
+                'ino': 10,
+                'mode': '-rw-------',
+                'nlink': 1,
+                'uid': 0,
+                'gid': 0,
+                'size': 18,
+                'md5': 'fd26a5799726c278ede65ab2298a513a'
+            },
             'ROOT': {
                 'mode': 'drwxr-xr-x',
+                'nlink': 3,
+                'uid': 0,
+                'gid': 0
+            },
+            'ROOT/Empty': {
+                'ino': 20,
+                'mode': 'drwxrwxr-x',
                 'nlink': 2,
                 'uid': 0,
                 'gid': 0
@@ -904,9 +981,6 @@ def TestZipWithDefaultOptions():
                 'nlink': 1,
                 'uid': 0,
                 'gid': 0,
-                'atime': 1635821702000000000,
-                'mtime': 1635821702000000000,
-                'ctime': 1635821702000000000,
                 'size': 40,
                 'md5': '153d090308be772d55ab57269cc03377'
             },
@@ -921,9 +995,6 @@ def TestZipWithDefaultOptions():
                 'nlink': 1,
                 'uid': 0,
                 'gid': 0,
-                'atime': 1635821702000000000,
-                'mtime': 1635821702000000000,
-                'ctime': 1635821702000000000,
                 'size': 30,
                 'md5': 'd0fa0ae6a603cb14fdecc0f2ec45ca71'
             },
@@ -938,15 +1009,12 @@ def TestZipWithDefaultOptions():
                 'nlink': 1,
                 'uid': 0,
                 'gid': 0,
-                'atime': 1635821702000000000,
-                'mtime': 1635821702000000000,
-                'ctime': 1635821702000000000,
                 'size': 29,
                 'md5': '4d7835d420f48238d0e95d3271f31273'
             },
             'CUR': {
                 'mode': 'drwxr-xr-x',
-                'nlink': 2,
+                'nlink': 3,
                 'uid': 0,
                 'gid': 0
             },
@@ -955,9 +1023,6 @@ def TestZipWithDefaultOptions():
                 'nlink': 1,
                 'uid': 0,
                 'gid': 0,
-                'atime': 1635821702000000000,
-                'mtime': 1635821702000000000,
-                'ctime': 1635821702000000000,
                 'size': 49,
                 'md5': 'd1f99c5bd5af5898c9ef8829dfbbcfd6'
             }
