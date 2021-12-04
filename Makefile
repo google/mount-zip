@@ -48,7 +48,7 @@ $(DEST): $(OBJECTS) $(LIB)
 	$(CXX) $(OBJECTS) $(LDFLAGS) $(LIBS) -o $@
 
 main.o: main.cc
-	$(CXX) -Ilib -c $(CXXFLAGS) $< -o $@
+	$(CXX) -Ilib -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 $(LIB):
 	$(MAKE) -C lib
