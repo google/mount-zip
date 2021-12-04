@@ -46,6 +46,10 @@
 #error "libzip >= 1.0 is required!"
 #endif
 
+#ifndef O_PATH
+#define O_PATH 0
+#endif
+
 // Prints usage information.
 void print_usage() {
   fprintf(
