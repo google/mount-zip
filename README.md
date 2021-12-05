@@ -703,7 +703,7 @@ To read **mount-zip**'s log messages:
 $ grep mount-zip /var/log/user.log | less -S
 ```
 
-To follow **mount-zip**'s log messages are they are being written:
+To follow **mount-zip**'s log messages as they are being written:
 
 ```
 $ tail -F /var/log/user.log | grep mount-zip
