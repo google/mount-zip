@@ -748,40 +748,40 @@ Unmounted (redacted) in 0 ms
 **mount-zip** returns distinct error codes for different error conditions
 related the ZIP archive itself:
 
-0
+**0**
 :   Success.
 
-1
+**1**
 :   Generic error code for: missing argument, unknown option, unknown file name
     encoding, mount point cannot be created, mount point is not empty, etc.
 
-11
+**11**
 :   The archive is a multipart ZIP.
 
-15
+**15**
 :   **mount-zip** cannot read the ZIP archive.
 
-19
+**19**
 :   **mount-zip** cannot find the ZIP archive.
 
-21
+**21**
 :   **mount-zip** cannot open the ZIP archive.
 
-23
+**23**
 :   Zlib data error. This is probably the sign of a wrong password. Use
     `--force` to bypass the password verification.
 
-29
+**29**
 :   The archive is not recognized as a valid ZIP.
 
-31
+**31**
 :   The ZIP archive has an inconsistent structure.
 
-36
+**36**
 :   The ZIP archive contains an encrypted file, but no password was provided.
     Use `--force` to bypass the password verification.
 
-37
+**37**
 :   The ZIP archive contains an encrypted file, and the provided password does
     not allow to decrypt it. Use `--force` to bypass the password verification.
 
