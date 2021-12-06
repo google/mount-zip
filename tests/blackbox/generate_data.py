@@ -20,13 +20,18 @@ import os.path
 
 dir = os.path.dirname(os.path.realpath(__file__))
 
+
 def MakeZipWithManySmallFiles():
-    with ZipFile(os.path.join(dir, 'data', '100000-files.zip'), 'w', allowZip64=True) as z:
+    with ZipFile(os.path.join(dir, 'data', '100000-files.zip'),
+                 'w',
+                 allowZip64=True) as z:
         for i in range(100000):
             z.writestr('%06d.txt' % i, 'This is file %06d.\n' % i)
 
+
 def MakeOtherZips():
-    with ZipFile(os.path.join(dir, 'data', 'file-dir-same-name.zip'), 'w') as z:
+    with ZipFile(os.path.join(dir, 'data', 'file-dir-same-name.zip'),
+                 'w') as z:
         z.writestr('pet/cat', 'This is my first pet cat\n')
         z.writestr('pet', 'This is my first pet\n')
         z.writestr('pet/cat/fish', 'This is my first pet cat fish\n')
@@ -35,21 +40,27 @@ def MakeOtherZips():
         z.writestr('pet', 'This is my second pet\n')
         z.writestr('pet/cat/fish', 'This is my second pet cat fish\n')
 
-    with ZipFile(os.path.join(dir, 'data', 'lzma.zip'), 'w', compression=ZIP_LZMA) as z:
+    with ZipFile(os.path.join(dir, 'data', 'lzma.zip'),
+                 'w',
+                 compression=ZIP_LZMA) as z:
         z.writestr('lzma.txt', 'This file is compressed with LZMA.\n')
 
-    with ZipFile(os.path.join(dir, 'data', 'bzip2.zip'), 'w', compression=ZIP_BZIP2) as z:
+    with ZipFile(os.path.join(dir, 'data', 'bzip2.zip'),
+                 'w',
+                 compression=ZIP_BZIP2) as z:
         z.writestr('bzip2.txt', 'This file is compressed with BZIP2.\n')
 
     with ZipFile(os.path.join(dir, 'data', 'empty.zip'), 'w') as z:
         pass
 
     with ZipFile(os.path.join(dir, 'data', 'mixed-paths.zip'), 'w') as z:
-        z.writestr('normal.txt', 'This file is in the default "current" directory.\n')
+        z.writestr('normal.txt',
+                   'This file is in the default "current" directory.\n')
         z.writestr('../up-1.txt', 'This file is one level "up".\n')
         z.writestr('../../up-2.txt', 'This file is two levels "up".\n')
         z.writestr('/top.txt', 'This file is in the top root directory.\n')
-        z.writestr('/../over-the-top.txt', 'This file is "above" the top root directory.\n')
+        z.writestr('/../over-the-top.txt',
+                   'This file is "above" the top root directory.\n')
         z.writestr('.', 'This should not be a valid path.\n')
         z.writestr('/.', 'This should not be a valid path.\n')
         z.writestr('a/.', 'This should not be a valid path.\n')
@@ -70,10 +81,21 @@ def MakeOtherZips():
 
     with ZipFile(os.path.join(dir, 'data', 'long-names.zip'), 'w') as z:
         z.writestr('Short name.txt', 'This is a short long name.\n')
-        z.writestr('Very ' + 'long ' * 50 + 'name.txt', 'This is a very long name.\n')
-        z.writestr('Very ' + 'long ' * 100 + 'name.txt', 'This is a very long name.\n')
-        z.writestr('Very ' + 'long ' * 200 + 'name.txt', 'This is a very long name.\n')
-        z.writestr('Very ' + 'long ' * 400 + 'name.txt', 'This is a very long name.\n')
+        z.writestr('255 ' + 'z' * (255 - 8) + '.txt',
+                   'This file name has 255 characters.\n')
+        z.writestr('256 ' + 'z' * (256 - 8) + '.txt',
+                   'This file name has 256 characters.\n')
+        z.writestr('511 ' + 'z' * (511 - 8) + '.txt',
+                   'This file name has 511 characters.\n')
+        z.writestr('1023 ' + 'z' * (1023 - 9) + '.txt',
+                   'This file name has 1023 characters.\n')
+        z.writestr('1024 ' + 'z' * (1024 - 9) + '.txt',
+                   'This file name has 1024 characters.\n')
+        z.writestr('1025 ' + 'z' * (1025 - 9) + '.txt',
+                   'This file name has 1025 characters.\n')
+        z.writestr(('a' * 255 + '/') * 16 + 'z' * 255,
+                   'This is a very long path.\n')
+
 
 MakeZipWithManySmallFiles()
 MakeOtherZips()
