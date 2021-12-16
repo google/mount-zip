@@ -103,7 +103,7 @@ bool Path::Normalize(std::string* dest_path,
 
     if (part == "." || part == ".." || part.size() > NAME_MAX ||
         std::any_of(part.begin(), part.end(),
-                    [](char c) { return std::iscntrl(c); })) {
+                    [](unsigned char c) { return std::iscntrl(c); })) {
       Log(LOG_ERR, "Bad file name: ", Path(original_path));
       return false;
     }
