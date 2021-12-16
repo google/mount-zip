@@ -116,23 +116,28 @@ struct Operations : fuse_operations {
   static const FileNode* GetNode(std::string_view fname) {
     Tree* const tree = static_cast<Tree*>(fuse_get_context()->private_data);
     assert(tree);
-    return tree->Find(fname);
+    const FileNode* const node = tree->Find(fname);
+    if (!node)
+      Log(LOG_DEBUG, "Cannot find ", Path(fname));
+    return node;
   }
 
-  static int GetAttr(const char* path, struct stat* st) {
+  static int GetAttr(const char* path, struct stat* st) try {
     const FileNode* const node = GetNode(path);
     if (!node)
       return -ENOENT;
 
     *st = *node;
     return 0;
+  } catch (...) {
+    return ToError("stat", path);
   }
 
   static int ReadDir(const char* path,
                      void* buf,
                      fuse_fill_dir_t filler,
                      [[maybe_unused]] off_t offset,
-                     [[maybe_unused]] fuse_file_info* fi) {
+                     [[maybe_unused]] fuse_file_info* fi) try {
     const FileNode* const node = GetNode(path);
     if (!node)
       return -ENOENT;
@@ -155,6 +160,8 @@ struct Operations : fuse_operations {
     }
 
     return 0;
+  } catch (...) {
+    return ToError("read dir", path);
   }
 
   static int Open(const char* path, fuse_file_info* fi) try {
