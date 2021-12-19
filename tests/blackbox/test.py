@@ -1719,6 +1719,71 @@ def TestZipFileNameEncoding():
                          options=['-o', 'encoding=cp866'])
     CheckZipMountingError('cp866.zip', 1, options=['-o', 'encoding=wrong'])
 
+    want_tree = {
+        '±≥≤⌠⌡÷≈°∙·√ⁿ²■\xa0\xa0': {
+            'size': 0
+        },
+        'ßΓπΣσμτΦΘΩδ∞φε∩≡': {
+            'size': 0
+        },
+        '╤╥╙╘╒╓╫╪┘┌█▄▌▐▀α': {
+            'size': 0
+        },
+        '┴┬├─┼╞╟╚╔╩╦╠═╬╧╨': {
+            'size': 0
+        },
+        '▒▓│┤╡╢╖╕╣║╗╝╜╛┐└': {
+            'size': 0
+        },
+        'íóúñÑªº¿⌐¬½¼¡«»░': {
+            'size': 0
+        },
+        'æÆôöòûùÿÖÜ¢£¥₧ƒá': {
+            'size': 0
+        },
+        'üéâäàåçêëèïîìÄÅÉ': {
+            'size': 0
+        },
+        'abcdefghijklmnop': {
+            'size': 0
+        },
+        'QRSTUVWXYZ[\\]^_`': {
+            'size': 0
+        },
+        'ABCDEFGHIJKLMNOP': {
+            'size': 0
+        },
+        '123456789:;<=>?@': {
+            'size': 0
+        },
+        '!"#$%&\'()*+,-.': {},
+        '!"#$%&\'()*+,-./0': {
+            'size': 0
+        }
+    }
+    MountZipAndCheckTree('cp437.zip',
+                         want_tree,
+                         options=['-o', 'encoding=cp437'])
+
+    del want_tree['ßΓπΣσμτΦΘΩδ∞φε∩≡']
+    want_tree.update({
+        'ßΓπΣσµτΦΘΩδ∞φε∩≡': {
+            'size': 0
+        },
+        'qrstuvwxyz{|}~⌂Ç': {
+            'size': 0
+        },
+        '◄↕‼¶§▬↨↑↓→←∟↔▲▼ ': {
+            'size': 0
+        },
+        '☺☻♥♦♣♠•◘○◙♂♀♪♫☼►': {
+            'size': 0
+        }
+    })
+    MountZipAndCheckTree('cp437.zip',
+                         want_tree,
+                         options=['-o', 'encoding=libzip'])
+
 
 # Tests the nosymlinks, nohardlinks and nospecials mount options.
 def TestZipWithSpecialFiles():
@@ -2197,6 +2262,7 @@ def TestInvalidZip():
 
 
 logging.getLogger().setLevel('INFO')
+
 
 TestZipWithDefaultOptions()
 TestZipFileNameEncoding()
