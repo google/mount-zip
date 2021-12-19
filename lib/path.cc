@@ -20,7 +20,6 @@
 
 #include <limits.h>
 
-#include "log.h"
 #include "path.h"
 
 bool Path::redact = false;
@@ -90,14 +89,13 @@ void Path::Append(std::string* const head, const std::string_view tail) {
   *head += tail;
 }
 
-bool Path::Normalize(std::string* dest_path,
-                     std::string_view original_path,
-                     bool need_prefix) {
-  assert(!original_path.empty());
+bool Path::Normalize(std::string* const dest_path,
+                     std::string_view in,
+                     const bool need_prefix) {
+  assert(!in.empty());
   assert(dest_path);
 
   *dest_path = "/";
-  std::string_view in = original_path;
 
   // Add prefix
   if (in.starts_with('/')) {
@@ -132,7 +130,6 @@ bool Path::Normalize(std::string* dest_path,
     if (part == "." || part == ".." || part.size() > NAME_MAX ||
         std::any_of(part.begin(), part.end(),
                     [](unsigned char c) { return std::iscntrl(c); })) {
-      Log(LOG_ERR, "Bad file name: ", Path(original_path));
       return false;
     }
 
