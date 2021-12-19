@@ -312,7 +312,7 @@ void Tree::BuildTree() {
 
   // But if the filename encoding is one of the encodings we want to convert
   // using ICU, prepare and use the ICU converter.
-  if (!encoding.empty() && encoding != "libzip_guess") {
+  if (!encoding.empty() && encoding != "libzip") {
     zipFlags = ZIP_FL_ENC_RAW;
     if (encoding != "raw")
       toUtf8 = [converter = std::make_shared<ConverterToUtf8>(
@@ -350,7 +350,8 @@ void Tree::BuildTree() {
     const FileType type = GetFileType(mode);
 
     if (!Path::Normalize(&path, toUtf8(original_path), need_prefix_)) {
-      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ", original_path);
+      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ",
+          original_path);
       continue;
     }
 
@@ -402,7 +403,8 @@ void Tree::BuildTree() {
     const FileType type = GetFileType(mode);
 
     if (!Path::Normalize(&path, toUtf8(original_path), need_prefix_)) {
-      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ", original_path);
+      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ",
+          original_path);
       continue;
     }
 
