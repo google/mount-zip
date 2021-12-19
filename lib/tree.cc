@@ -350,7 +350,7 @@ void Tree::BuildTree() {
     const FileType type = GetFileType(mode);
 
     if (!Path::Normalize(&path, toUtf8(original_path), need_prefix_)) {
-      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path");
+      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ", original_path);
       continue;
     }
 
@@ -402,7 +402,7 @@ void Tree::BuildTree() {
     const FileType type = GetFileType(mode);
 
     if (!Path::Normalize(&path, toUtf8(original_path), need_prefix_)) {
-      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path");
+      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ", original_path);
       continue;
     }
 

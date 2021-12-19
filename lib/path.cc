@@ -16,6 +16,7 @@
 #include "path.h"
 
 #include <cassert>
+#include <iomanip>
 
 #include <limits.h>
 
@@ -23,6 +24,33 @@
 #include "path.h"
 
 bool Path::redact = false;
+
+std::ostream& operator<<(std::ostream& out, const Path path) {
+  if (Path::redact)
+    return out << "(redacted)";
+
+  out.put('\'');
+  for (const char c : path) {
+    switch (c) {
+      case '\\':
+      case '\'':
+        out.put('\\');
+        out.put(c);
+        break;
+      default:
+        const int i = static_cast<unsigned char>(c);
+        if (std::iscntrl(i)) {
+          out << "\\x" << std::hex << std::setw(2) << std::setfill('0') << i
+              << std::dec;
+        } else {
+          out.put(c);
+        }
+    }
+  }
+
+  out.put('\'');
+  return out;
+}
 
 Path Path::WithoutTrailingSeparator() const {
   Path path = *this;

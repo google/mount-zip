@@ -26,12 +26,6 @@ class Path : public std::string_view {
   Path(const char* path) : std::string_view(path) {}
   Path(std::string_view path) : std::string_view(path) {}
 
-  // Output operator for debugging.
-  friend std::ostream& operator<<(std::ostream& out, Path path) {
-    return redact ? out << "(redacted)"
-                  : out << '\'' << static_cast<std::string_view>(path) << '\'';
-  }
-
   // Removes trailing separators.
   Path WithoutTrailingSeparator() const;
 
@@ -58,5 +52,8 @@ class Path : public std::string_view {
   // Should paths be redacted from logs?
   static bool redact;
 };
+
+// Output operator for debugging.
+std::ostream& operator<<(std::ostream& out, Path path);
 
 #endif  // PATH_H
