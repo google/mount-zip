@@ -349,9 +349,10 @@ void Tree::BuildTree() {
     const auto [mode, is_hardlink] = GetEntryAttributes(id, original_path);
     const FileType type = GetFileType(mode);
 
-    if (!Path::Normalize(&path, toUtf8(original_path), need_prefix_)) {
+    const Path original_path_utf8 = toUtf8(original_path);
+    if (!Path::Normalize(&path, original_path_utf8, need_prefix_)) {
       Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ",
-          original_path);
+          original_path_utf8);
       continue;
     }
 
@@ -402,9 +403,10 @@ void Tree::BuildTree() {
     const Path original_path = zip_get_name(zip_, id, zipFlags);
     const FileType type = GetFileType(mode);
 
-    if (!Path::Normalize(&path, toUtf8(original_path), need_prefix_)) {
+    const Path original_path_utf8 = toUtf8(original_path);
+    if (!Path::Normalize(&path, original_path_utf8, need_prefix_)) {
       Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ",
-          original_path);
+          original_path_utf8);
       continue;
     }
 
