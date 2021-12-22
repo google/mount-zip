@@ -1,3 +1,14 @@
+2021-12-22 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.4:
+	- Add tests
+	- Add "raw" and "libzip" filename encodings
+	- Skip filenames longer than NAME_MAX
+	- Use fuse_main()
+	- Improve logs
+	- Fix for NetBSD
+
+
 2021-11-28 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.3:
