@@ -313,12 +313,16 @@ void Tree::BuildTree() {
   // But if the filename encoding is one of the encodings we want to convert
   // using ICU, prepare and use the ICU converter.
   if (!encoding.empty() && encoding != "libzip") {
-    zipFlags = ZIP_FL_ENC_RAW;
-    if (encoding != "raw")
-      toUtf8 = [converter = std::make_shared<ConverterToUtf8>(
-                    encoding.c_str(), maxNameLength)](std::string_view s) {
-        return (*converter)(s);
-      };
+    try {
+      if (encoding != "raw")
+        toUtf8 = [converter = std::make_shared<ConverterToUtf8>(
+                      encoding.c_str(), maxNameLength)](std::string_view s) {
+          return (*converter)(s);
+        };
+      zipFlags = ZIP_FL_ENC_RAW;
+    } catch (const std::exception& e) {
+      Log(LOG_ERR, e.what());
+    }
   }
 
   zip_stat_t sb;

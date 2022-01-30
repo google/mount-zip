@@ -1717,7 +1717,6 @@ def TestZipFileNameEncoding():
     MountZipAndCheckTree('cp866.zip',
                          want_tree,
                          options=['-o', 'encoding=cp866'])
-    CheckZipMountingError('cp866.zip', 1, options=['-o', 'encoding=wrong'])
 
     want_tree = {
         '±≥≤⌠⌡÷≈°∙·√ⁿ²■\xa0\xa0': {
@@ -1783,6 +1782,9 @@ def TestZipFileNameEncoding():
     MountZipAndCheckTree('cp437.zip',
                          want_tree,
                          options=['-o', 'encoding=libzip'])
+    MountZipAndCheckTree('cp437.zip',
+                         want_tree,
+                         options=['-o', 'encoding=wrong'])
 
 
 # Tests the nosymlinks, nohardlinks and nospecials mount options.
