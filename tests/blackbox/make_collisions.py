@@ -24,10 +24,21 @@ tmp = os.path.join(dir, 'collisions.zip~')
 
 try:
     with ZipFile(tmp, 'w', compression=ZIP_DEFLATED, allowZip64=True) as z:
+        z.writestr(
+            'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (2)',
+            b'This should be two')
+        z.writestr(
+            'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (4)',
+            b'This should be four')
         for i in range(100):
             print('\rWriting collisions.zip... %3d %%' % i, end='', flush=True)
             for j in range(1000):
-                z.writestr('a/b/c/d/e/f/g/h/i/j/There are many versions of this file', b'')
+                z.writestr(
+                    'a/b/c/d/e/f/g/h/i/j/There are many versions of this file',
+                    b'')
+        z.writestr(
+            'a/b/c/d/e/f/g/h/i/j/There are many versions of this file',
+            b'Last one')
 
     print('\r\033[2KDone', flush=True)
     os.replace(tmp, os.path.join(dir, 'collisions.zip'))

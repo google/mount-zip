@@ -1508,20 +1508,37 @@ def TestBigZip():
 
     want_tree = {
         'a/b/c/d/e/f/g/h/i/j/There are many versions of this file': {
-            'nlink': 1,
             'size': 0,
         },
         'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (1)': {
-            'nlink': 1,
+            'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (2)': {
+            'size': 18,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (3)': {
+            'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (4)': {
+            'size': 19,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (5)': {
             'size': 0,
         },
         'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (50000)': {
-            'nlink': 1,
             'size': 0,
         },
         'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (99999)': {
-            'nlink': 1,
             'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (100000)': {
+            'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (100001)': {
+            'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (100002)': {
+            'size': 8,
         },
     }
     MountZipAndCheckTree('collisions.zip',
@@ -2287,7 +2304,6 @@ def TestInvalidZip():
 
 
 logging.getLogger().setLevel('INFO')
-
 
 TestZipWithDefaultOptions()
 TestZipFileNameEncoding()
