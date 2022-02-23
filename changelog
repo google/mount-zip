@@ -1,3 +1,11 @@
+2022-02-24 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.5:
+	- Fix quadratic behavior when resolving name collisions
+	- Use default filename conversion if unknown encoding is passed
+	- Implement listxattr and getxattr
+	- Add tests
+
 2021-12-22 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.4:
