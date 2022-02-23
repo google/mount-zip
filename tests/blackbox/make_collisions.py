@@ -1,6 +1,6 @@
+#!/bin/python3
+
 # Copyright 2021 Google LLC
-# Copyright 2010-2021 Alexander Galanin <al@galanin.nnov.ru>
-# http://galanin.nnov.ru/~al
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,20 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-all: data/big.zip data/collisions.zip
-	python3 test.py
+from zipfile import ZipFile, ZIP_DEFLATED
+import os.path
+import os
 
-data/big.zip: make_big_zip.py
-	python3 make_big_zip.py
+dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+tmp = os.path.join(dir, 'collisions.zip~')
 
-data/collisions.zip: make_collisions.py
-	python3 make_collisions.py
+try:
+    with ZipFile(tmp, 'w', compression=ZIP_DEFLATED, allowZip64=True) as z:
+        for i in range(100):
+            print('\rWriting collisions.zip... %3d %%' % i, end='', flush=True)
+            for j in range(1000):
+                z.writestr('a/b/c/d/e/f/g/h/i/j/There are many versions of this file', b'')
 
-rebuild:
-	make -C ../../lib all
-	make -C ../.. all
-
-force-rebuild:
-	make -C ../.. clean all
-
-.PHONY: all rebuild force-rebuild
+    print('\r\033[2KDone', flush=True)
+    os.replace(tmp, os.path.join(dir, 'collisions.zip'))
+except:
+    os.remove(tmp)

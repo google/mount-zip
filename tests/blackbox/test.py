@@ -1506,6 +1506,29 @@ def TestBigZip():
                          strict=False,
                          use_md5=False)
 
+    want_tree = {
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file': {
+            'nlink': 1,
+            'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (1)': {
+            'nlink': 1,
+            'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (50000)': {
+            'nlink': 1,
+            'size': 0,
+        },
+        'a/b/c/d/e/f/g/h/i/j/There are many versions of this file (99999)': {
+            'nlink': 1,
+            'size': 0,
+        },
+    }
+    MountZipAndCheckTree('collisions.zip',
+                         want_tree,
+                         strict=False,
+                         use_md5=False)
+
 
 # Tests that a big file can be accessed in random order.
 def TestBigZip2():
