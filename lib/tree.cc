@@ -560,7 +560,7 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
   const std::string ext(f, e);
 
   // Add a number before the extension
-  int i = 0;
+  int& i = pos->collision_count;
   while (true) {
     f.resize(e);
     f += " (";

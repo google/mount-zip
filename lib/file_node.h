@@ -66,6 +66,9 @@ struct FileNode {
   // targets.
   std::string_view original_path;
 
+  // Number of entries whose name have initially collided with this file node.
+  int collision_count = 0;
+
 #ifdef NDEBUG
   using LinkMode = bi::link_mode<bi::normal_link>;
 #else
