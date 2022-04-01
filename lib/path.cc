@@ -93,7 +93,7 @@ void Path::Append(std::string* const head, const std::string_view tail) {
 
 bool Path::Normalize(std::string* const dest_path,
                      std::string_view in,
-                     const bool need_prefix) {
+                     [[maybe_unused]] const bool need_prefix) {
   assert(!in.empty());
   assert(dest_path);
 
@@ -102,19 +102,9 @@ bool Path::Normalize(std::string* const dest_path,
   // Add prefix
   if (in.starts_with('/')) {
     assert(need_prefix);
-    Append(dest_path, "ROOT");
-    in.remove_prefix(1);
-  } else {
-    bool parentRelative = false;
-    while (in.starts_with("../")) {
-      assert(need_prefix);
-      *dest_path += "UP";
-      in.remove_prefix(3);
-      parentRelative = true;
-    }
-
-    if (need_prefix && !parentRelative)
-      Append(dest_path, "CUR");
+    // Append(dest_path, "ROOT");
+    Append(dest_path, "\xF0\x9F\xA5\x95");
+    // Append(dest_path, "\xF0\x9F\x94\x9D");
   }
 
   // Extract part after part
@@ -129,13 +119,21 @@ bool Path::Normalize(std::string* const dest_path,
     const std::string_view part = in.substr(0, in.find_first_of('/'));
     assert(!part.empty());
 
-    if (part == "." || part == ".." || part.size() > NAME_MAX ||
-        std::any_of(part.begin(), part.end(),
-                    [](unsigned char c) { return std::iscntrl(c); })) {
+    if (part.size() > NAME_MAX)
       return false;
+
+    if (part == ".") {
+      // Append(dest_path, "DOT");
+      Append(dest_path, "\xE2\x80\xA4");
+      // Append(dest_path, "\xE2\x9E\xA1");
+    } else if (part == "..") {
+      // Append(dest_path, "UP");
+      Append(dest_path, "\xE2\x80\xA5");
+      // Append(dest_path, "\xE2\xAC\x86");
+    } else {
+      Append(dest_path, part);
     }
 
-    Append(dest_path, part);
     in.remove_prefix(part.size());
   }
 }
