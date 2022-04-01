@@ -30,6 +30,35 @@ def MakeZipWithManySmallFiles():
 
 
 def MakeOtherZips():
+    with ZipFile(os.path.join(dir, 'data', 'file-name-same-name-as-dir.zip'),
+                 'w') as z:
+        z.writestr('repeated/', '')
+        z.writestr('repeated', 'First file')
+
+    with ZipFile(os.path.join(dir, 'data', 'empty-dir-same-name-as-file.zip'),
+                 'w') as z:
+        z.writestr('repeated', 'First file')
+        z.writestr('repeated/', '')
+
+    with ZipFile(os.path.join(dir, 'data', 'parent-dir-same-name-as-file.zip'),
+                 'w') as z:
+        z.writestr('repeated', 'First file')
+        z.writestr('repeated/second', 'Second file')
+
+    with ZipFile(os.path.join(dir, 'data', 'repeated-file-name.zip'),
+                 'w') as z:
+        z.writestr('repeated', 'First file')
+        z.writestr('repeated', 'Second file')
+
+    with ZipFile(os.path.join(dir, 'data', 'repeated-dir-name.zip'), 'w') as z:
+        z.writestr('repeated/', '')
+        z.writestr('repeated/', '')
+
+    with ZipFile(os.path.join(dir, 'data', 'mixed-case.zip'), 'w') as z:
+        z.writestr('Case', 'Mixed case 111')
+        z.writestr('case', 'Lower case 22')
+        z.writestr('CASE', 'Upper case 3')
+
     with ZipFile(os.path.join(dir, 'data', 'file-dir-same-name.zip'),
                  'w') as z:
         z.writestr('pet/cat', 'This is my first pet cat\n')
@@ -39,6 +68,50 @@ def MakeOtherZips():
         z.writestr('pet/cat', 'This is my second pet cat\n')
         z.writestr('pet', 'This is my second pet\n')
         z.writestr('pet/cat/fish', 'This is my second pet cat fish\n')
+
+    with ZipFile(os.path.join(dir, 'data', 'windows-specials.zip'), 'w') as z:
+        for s in [
+                'First',
+                'NUL',
+                'NUL ',
+                'NUL.',
+                'NUL .',
+                'NUL.txt',
+                'NUL.tar.gz',
+                'NUL..txt',
+                'NUL...txt',
+                'NUL .txt',
+                'NUL  .txt',
+                'NUL  ..txt',
+                'Nul.txt',
+                'nul.very long extension',
+                ' NUL.txt',
+                'a/NUL',
+                'CON',
+                'PRN',
+                'AUX',
+                'COM1',
+                'COM2',
+                'COM3',
+                'COM4',
+                'COM5',
+                'COM6',
+                'COM7',
+                'COM8',
+                'COM9',
+                'LPT1',
+                'LPT2',
+                'LPT3',
+                'LPT4',
+                'LPT5',
+                'LPT6',
+                'LPT7',
+                'LPT8',
+                'LPT9',
+                'CLOCK$',
+                'Last',
+        ]:
+            z.writestr(s, 'This is: ' + s)
 
     with ZipFile(os.path.join(dir, 'data', 'lzma.zip'),
                  'w',
@@ -54,30 +127,129 @@ def MakeOtherZips():
         pass
 
     with ZipFile(os.path.join(dir, 'data', 'mixed-paths.zip'), 'w') as z:
-        z.writestr('normal.txt',
-                   'This file is in the default "current" directory.\n')
-        z.writestr('../up-1.txt', 'This file is one level "up".\n')
-        z.writestr('../../up-2.txt', 'This file is two levels "up".\n')
-        z.writestr('/top.txt', 'This file is in the top root directory.\n')
-        z.writestr('/../over-the-top.txt',
-                   'This file is "above" the top root directory.\n')
-        z.writestr('.', 'This should not be a valid path.\n')
-        z.writestr('/.', 'This should not be a valid path.\n')
-        z.writestr('a/.', 'This should not be a valid path.\n')
-        z.writestr('a/./', 'This should not be a valid path.\n')
-        z.writestr('a/./b', 'This should not be a valid path.\n')
-        z.writestr('a/..', 'This should not be a valid path.\n')
-        z.writestr('a/../', 'This should not be a valid path.\n')
-        z.writestr('a/../b', 'This should not be a valid path.\n')
-        z.writestr('Star (*).txt', 'This is a star *.\n')
-        z.writestr('Question (?).txt', 'This is a question mark ?.\n')
-        z.writestr('Quote (\').txt', 'This is a quote \'.\n')
-        z.writestr('Double quote (\").txt', 'This is a double quote \".\n')
-        z.writestr('Backslash (\\).txt', 'This is a backslash \\.\n')
-        z.writestr('Angle <>.txt', 'These are angle brackets <>.\n')
-        z.writestr('Square [].txt', 'These are square brackets [].\n')
-        z.writestr('Empty/', 'This is an empty directory.\n')
-        z.writestr('/Empty/', 'This is an empty directory.\n')
+        for s in [
+                'First',
+                '../One Level Up',
+                '../../Two Levels Up',
+                '/At The Top',
+                '/../Over The Top',
+                '/',
+                '../',
+                '.',
+                '..',
+                '...',
+                '....',
+                '/.',
+                'a/.',
+                'a/./',
+                'a/./b',
+                'a/..',
+                'a/../',
+                'a/../b',
+                '.One',
+                '..Two',
+                '...Three',
+                'Tab \t',
+                'Star *',
+                'Dot .',
+                'Ampersand &',
+                'Hash #',
+                'Dollar $',
+                'Euro €',
+                'Pipe |',
+                'Smile 🙂',
+                'Tilde ~',
+                'Colon :',
+                'Semicolon ;',
+                'Percent %',
+                'Caret ^',
+                'At @',
+                'Comma ,',
+                'Exclamation !',
+                'Dash -',
+                'Plus +',
+                'Equal =',
+                'Underscore _',
+                'Question ?',
+                'Backtick `',
+                'Quote \'',
+                'Double quote \"',
+                'Backslash1→\\',
+                '\\←Backslash2',
+                'Backslash3→\\←Backslash4',
+                'C:',
+                'C:\\',
+                'C:\\Temp',
+                'C:\\Temp\\',
+                'C:\\Temp\\File',
+                '\\\\server\\share\\file',
+                'u/v//w///x//y/z',
+                ' ',
+                '~',
+                '%TMP',
+                '$HOME',
+                '-',
+                'Space→ ',
+                ' ←Space',
+                'Angle <>',
+                'Square []',
+                'Round ()',
+                'Curly {}',
+                'Delete \x7F',
+                'Escape \x1B',
+                'Backspace \x08',
+                'Line Feed \n',
+                'Carriage Return \r',
+                'Bell \a',
+                'String Terminator \u009C',
+                'Empty/',
+                '/Empty/',
+                'FileOrDir',
+                'FileOrDir/',
+                'FileOrDir/File',
+                'Case',
+                'case',
+                'CASE',
+                'NUL',
+                'NUL ',
+                'NUL.',
+                'NUL .',
+                'NUL.txt',
+                'NUL.tar.gz',
+                'NUL..txt',
+                'NUL...txt',
+                'NUL .txt',
+                'NUL  .txt',
+                'NUL  ..txt',
+                'nul.very long extension',
+                ' NUL.txt',
+                'c/NUL',
+                'CON',
+                'PRN',
+                'AUX',
+                'COM1',
+                'COM2',
+                'COM3',
+                'COM4',
+                'COM5',
+                'COM6',
+                'COM7',
+                'COM8',
+                'COM9',
+                'LPT1',
+                'LPT2',
+                'LPT3',
+                'LPT4',
+                'LPT5',
+                'LPT6',
+                'LPT7',
+                'LPT8',
+                'LPT9',
+                'CLOCK$',
+                '/dev/null',
+                'Last',
+        ]:
+            z.writestr(s, 'This is: ' + s)
 
     with ZipFile(os.path.join(dir, 'data', 'long-names.zip'), 'w') as z:
         z.writestr('Short name.txt', 'This is a short long name.\n')
