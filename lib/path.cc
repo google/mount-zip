@@ -15,6 +15,7 @@
 
 #include "path.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iomanip>
 
