@@ -77,7 +77,7 @@ class Beat {
   using Duration = Clock::duration;
 
   // Beat period.
-  const Duration period_ = std::chrono::milliseconds(100);
+  const Duration period_ = std::chrono::milliseconds(1000);
 
   // Next beat time.
   TimePoint next_ = Clock::now() + period_;

@@ -339,7 +339,7 @@ void Tree::BuildTree() {
   // Add zip entries for all items except hardlinks
   for (zip_int64_t id = 0; id < n; ++id) {
     if (should_display_progress)
-      Log(LOG_DEBUG, "Indexing... ", 100 * id / n, "%");
+      Log(LOG_INFO, "Loading ", 100 * id / n, "%");
 
     if (zip_stat_index(zip_, id, zipFlags, &sb) < 0)
       throw ZipError(StrCat("Cannot read entry #", id), zip_);
