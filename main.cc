@@ -382,7 +382,7 @@ int main(int argc, char* argv[]) try {
   // Ensure that numbers in debug messages have thousands separators.
   // It makes big numbers much easier to read (eg sizes expressed in bytes).
   std::locale::global(std::locale(std::locale::classic(), new NumPunct));
-  openlog(PROGRAM, LOG_PID | LOG_PERROR, LOG_USER);
+  openlog(PROGRAM, LOG_PERROR, LOG_USER);
   setlogmask(LOG_UPTO(LOG_INFO));
 
   fuse_args args = FUSE_ARGS_INIT(argc, argv);
