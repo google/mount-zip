@@ -1,3 +1,9 @@
+2022-07-26 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.6:
+	- Log a "Loading" progress message once per second
+	- Don't log PID in syslog
+
 2022-02-24 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.5:
@@ -61,7 +67,7 @@
 	- Renamed and formatted source files to Chromium's style
 	- Enhanced README
 	- Man page generated from README
-	
+
 2021-01-31 Alexander Galanin <al@galanin.nnov.ru>
 
 	* Released 0.7.2:
