@@ -76,9 +76,15 @@ struct DataNode {
     st.st_blksize = 512;
     st.st_blocks = (size + st.st_blksize - 1) / st.st_blksize;
     st.st_size = size;
+#if __APPLE__
+    st.st_atimespec = atime;
+    st.st_mtimespec = mtime;
+    st.st_ctimespec = ctime;
+#else
     st.st_atim = atime;
     st.st_mtim = mtime;
     st.st_ctim = ctime;
+#endif
     st.st_uid = uid;
     st.st_gid = gid;
     st.st_rdev = dev;
