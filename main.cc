@@ -217,24 +217,10 @@ struct Operations : fuse_operations {
     return ToError("read link", path);
   }
 
-  static int ListXAttr([[maybe_unused]] const char* path,
-                       [[maybe_unused]] char* list,
-                       [[maybe_unused]] size_t size) {
-    return 0;
-  }
-
-  static int GetXAttr([[maybe_unused]] const char* path,
-                      [[maybe_unused]] const char* name,
-                      [[maybe_unused]] char* value,
-                      [[maybe_unused]] size_t size) {
-    return -ENODATA;
-  }
-
  public:
   Operations() : fuse_operations {
     .getattr = GetAttr, .readlink = ReadLink, .open = Open, .read = Read,
-    .release = Release, .getxattr = GetXAttr, .listxattr = ListXAttr,
-    .readdir = ReadDir,
+    .release = Release, .readdir = ReadDir,
 #if FUSE_VERSION >= 28
     .flag_nullpath_ok = 0,  // Don't allow null path
 #endif
