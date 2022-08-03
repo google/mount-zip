@@ -150,12 +150,24 @@ class CacheFileReader : public UnbufferedReader {
 
     // Extend cache file.
     const off_t offset = st.st_size;
+#if __APPLE__
+    fstore_t st{.fst_flags = F_ALLOCATEALL,
+                .fst_posmode = F_PEOFPOSMODE,
+                .fst_offset = 0,
+                .fst_length = expected_size_};
+    if (fcntl(cache_file_, F_PREALLOCATE, &st) < 0 ||
+        ftruncate(cache_file_, offset + expected_size_) < 0)
+      ThrowSystemError("Cannot reserve ", expected_size_,
+                       " bytes in cache file ", cache_file_, " at offset ",
+                       offset);
+#else
     if (const int err = posix_fallocate(cache_file_, offset, expected_size_)) {
       errno = err;  // posix_fallocate doesn't set errno
       ThrowSystemError("Cannot reserve ", expected_size_,
                        " bytes in cache file ", cache_file_, " at offset ",
                        offset);
     }
+#endif
 
     Log(LOG_DEBUG, "Reserved ", expected_size_,
         " bytes in cache file at offset ", offset);
