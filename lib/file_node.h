@@ -76,7 +76,7 @@ struct FileNode {
 #endif
 
   // Hook used to index FileNodes by parent.
-  using ByParent = bi::slist_member_hook<>;
+  using ByParent = bi::slist_member_hook<LinkMode>;
   ByParent by_parent;
 
   // Children of this node. The children are not sorted and their order is not
@@ -84,7 +84,6 @@ struct FileNode {
   // pointer of every child in |children| should point back to this node.
   using Children =
       bi::slist<FileNode,
-                LinkMode,
                 bi::member_hook<FileNode, ByParent, &FileNode::by_parent>,
                 bi::constant_time_size<false>,
                 bi::linear<true>,
