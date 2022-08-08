@@ -28,7 +28,6 @@
 #include <unistd.h>
 
 #include "error.h"
-#include "path.h"
 #include "scoped_file.h"
 
 zip_int64_t Reader::reader_count_ = 0;
@@ -101,40 +100,19 @@ class CacheFileReader : public UnbufferedReader {
 
  private:
   // Creates a new, empty and hidden cache file.
-  // Throws std::runtime_error in case of error.
+  // Throws std::system_error in case of error.
   static ScopedFile CreateCacheFile() {
-    char name[] = "/tmp/XXXXXX";
+    ScopedFile file(open("/tmp", O_TMPFILE | O_RDWR | O_EXCL, 0));
 
-    // Create cache file.
-    ScopedFile file(mkstemp(name));
     if (!file.IsValid())
-      ThrowSystemError("Cannot create cache file ", Path(name));
-
-    Log(LOG_DEBUG, "Created cache file ", Path(name));
-
-    // Unlink cache file.
-    if (unlink(name) < 0)
-      ThrowSystemError("Cannot unlink cache file ", Path(name));
-
-    // Assert that the cache file doesn't have any links to it.
-    struct stat st;
-    if (fstat(file.GetDescriptor(), &st) < 0)
-      ThrowSystemError("Cannot stat cache file ", Path(name));
-
-    if (st.st_nlink != 0)
-      throw std::runtime_error(
-          StrCat("Cache file ", Path(name), " has ", st.st_nlink, " links"));
-
-    if (st.st_size != 0)
-      throw std::runtime_error(
-          StrCat("Cache file ", Path(name), " is not empty"));
+      ThrowSystemError("Cannot create cache file");
 
     return file;
   }
 
   // Gets the file descriptor to the global cache file.
   // Creates this cache file if necessary.
-  // Throws std::runtime_error in case of error.
+  // Throws std::system_error in case of error.
   static int GetCacheFile() {
     static const ScopedFile file = CreateCacheFile();
     return file.GetDescriptor();
