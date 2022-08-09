@@ -40,7 +40,7 @@ static void LimitSize(ssize_t* const a, off_t b) {
 ZipFile UnbufferedReader::Open(zip_t* const zip, const zip_int64_t file_id) {
   ZipFile file(zip_fopen_index(zip, file_id, 0));
   if (!file)
-    throw ZipError(StrCat("Cannot open File #", file_id), zip);
+    throw ZipError(StrCat("Cannot open File [", file_id, "]"), zip);
   return file;
 }
 
