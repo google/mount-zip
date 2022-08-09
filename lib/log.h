@@ -93,7 +93,7 @@ class Beat {
       return false;
 
     count_ += 1;
-    next_ += period_;
+    next_ = now + period_;
     return true;
   }
 
