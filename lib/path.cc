@@ -64,7 +64,8 @@ Path Path::WithoutTrailingSeparator() const {
 
 Path Path::WithoutExtension() const {
   const std::string_view::size_type i = find_last_of("/.");
-  if (i > 0 && i + 1 < size() && at(i) == '.' && at(i - 1) != '/')
+  if (i != std::string_view::npos && i > 0 && i + 1 < size() && at(i) == '.' &&
+      at(i - 1) != '/')
     return substr(0, i);
 
   return *this;
