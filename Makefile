@@ -43,6 +43,7 @@ INSTALL_DATA = $(INSTALL) -m 644
 all: $(DEST)
 
 doc: $(MAN)
+	man -l $(MAN)
 
 $(DEST): $(OBJECTS) $(LIB)
 	$(CXX) $(OBJECTS) $(LDFLAGS) $(LIBS) -o $@
@@ -64,7 +65,7 @@ all-clean:
 $(MAN): README.md
 	pandoc $< -s -t man -o $@
 
-install: all doc
+install: $(DEST) $(MAN)
 	$(INSTALL_PROGRAM) "$(DEST)" "$(DESTDIR)$(bindir)/$(DEST)"
 	$(INSTALL_DATA) $(MAN) "$(DESTDIR)$(MANDIR)/$(MAN)"
 
