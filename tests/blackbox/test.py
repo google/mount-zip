@@ -1466,7 +1466,7 @@ def TestZipWithDefaultOptions():
 
 
 # Tests the ZIP with lots of files.
-def TestBigZip():
+def TestZipWithManyFiles():
     # Only check a few files: the first one, the last one, and one in the middle.
     want_tree = {
         '1': {
@@ -1548,7 +1548,7 @@ def TestBigZip():
 
 
 # Tests that a big file can be accessed in random order.
-def TestBigZip2():
+def TestBigZip():
     zip_name = 'big.zip'
     logging.info(f'Checking {zip_name!r}...')
     with tempfile.TemporaryDirectory() as mount_point:
@@ -1582,6 +1582,41 @@ def TestBigZip2():
                 got_line = os.pread(fd, 100, n * len(want_line))
                 if (got_line):
                     LogError(f'Want empty line, Got line: {got_line!r}')
+            finally:
+                os.close(fd)
+        finally:
+            logging.debug(f'Unmounting {zip_path!r} from {mount_point!r}...')
+            subprocess.run(['fusermount', '-u', '-z', mount_point], check=True)
+            logging.debug(f'Unmounted {zip_path!r} from {mount_point!r}')
+
+# Tests that a big file can be accessed in somewhat random order even with no
+# cache file.
+def TestBigZipNoCache():
+    zip_name = 'big.zip'
+    logging.info(f'Checking {zip_name!r}...')
+    with tempfile.TemporaryDirectory() as mount_point:
+        zip_path = os.path.join(script_dir, 'data', zip_name)
+        logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
+        subprocess.run([mount_program, '--nocache', zip_path, mount_point],
+                       check=True,
+                       capture_output=True,
+                       input='',
+                       encoding='UTF-8')
+        try:
+            logging.debug(f'Mounted ZIP {zip_path!r} on {mount_point!r}')
+            tree = GetTree(mount_point, use_md5=False)
+            fd = os.open(os.path.join(mount_point, 'big.txt'), os.O_RDONLY)
+            try:
+                random.seed()
+                n = 100000000
+                for j in sorted([random.randrange(n) for i in range(50)]) + [n - 1, 0] + sorted([random.randrange(n) for i in range(50)]) + [n - 1, 0]:
+                    logging.debug(f'Getting line {j}...')
+                    want_line = b'%08d The quick brown fox jumps over the lazy dog.\n' % j
+                    got_line = os.pread(fd, len(want_line), j * len(want_line))
+                    if (got_line != want_line):
+                        LogError(
+                            f'Want line: {want_line!r}, Got line: {got_line!r}'
+                        )
             finally:
                 os.close(fd)
         finally:
@@ -2310,8 +2345,9 @@ TestZipFileNameEncoding()
 TestZipWithSpecialFiles()
 TestEncryptedZip()
 TestInvalidZip()
+TestZipWithManyFiles()
 TestBigZip()
-TestBigZip2()
+TestBigZipNoCache()
 
 if error_count:
     LogError(f'There were {error_count} errors')

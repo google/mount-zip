@@ -256,7 +256,8 @@ DataNode DataNode::Make(zip_t* const zip,
 
 Reader::Ptr DataNode::GetReader(zip_t* zip) const {
   if (cached_reader) {
-    Log(LOG_DEBUG, *cached_reader, ": Reused for File [", id, "]");
+    Log(LOG_DEBUG, *cached_reader, ": Cached ", *cached_reader,
+        " reused for File [", id, "]");
     return cached_reader->AddRef();
   }
 

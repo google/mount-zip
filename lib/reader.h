@@ -69,6 +69,12 @@ class Reader {
     return out << "Reader " << reader.reader_id_;
   }
 
+  // Whether a cache file may be created if needed.
+  static bool may_cache_;
+
+  // Directory in which the cache file is created if needed.
+  static std::string cache_dir_;
+
  protected:
   virtual ~Reader() = default;
 

@@ -40,6 +40,7 @@
 #include "error.h"
 #include "log.h"
 #include "path.h"
+#include "reader.h"
 #include "tree.h"
 
 #if (LIBZIP_VERSION_MAJOR < 1)
@@ -52,26 +53,25 @@
 
 // Prints usage information.
 void print_usage() {
-  fprintf(
-      stderr,
-      "Mounts a ZIP archive as a FUSE filesystem\n"
-      "\n"
-      "Usage: %s [options] <ZIP-file> [mount-point]\n"
-      "\n"
-      "General options:\n"
-      "    --help    -h           print help\n"
-      "    --version              print version\n"
-      "    --quiet   -q           print fewer log messages\n"
-      "    --verbose              print more log messages\n"
-      "    --redact               redact file names from log messages\n"
-      "    --force                mount ZIP even if password is wrong\n"
-      "    --encoding=CHARSET     original encoding of file names\n"
-      "\n"
-      "    -o nospecials          no special files (FIFOs, sockets, devices)\n"
-      "    -o nosymlinks          no symbolic links\n"
-      "    -o nohardlinks         no hard links\n"
-      "\n",
-      PROGRAM);
+  fprintf(stderr,
+          R"(Mounts a ZIP archive as a FUSE filesystem
+
+Usage: %s [options] <ZIP-file> [mount-point]
+
+General options:
+    --help    -h           print help
+    --version              print version
+    --quiet   -q           print fewer log messages
+    --verbose              print more log messages
+    --redact               redact file names from log messages
+    --force                mount ZIP even if password is wrong
+    --encoding=CHARSET     original encoding of file names
+    --nocache              no caching of uncompressed data
+    -o nospecials          no special files (FIFOs, sockets, devices)
+    -o nosymlinks          no symbolic links
+    -o nohardlinks         no hard links
+)",
+          PROGRAM);
 }
 
 // Prints version information.
@@ -244,6 +244,7 @@ enum {
   KEY_NO_SPECIALS,
   KEY_NO_SYMLINKS,
   KEY_NO_HARDLINKS,
+  KEY_NO_CACHE,
 };
 
 // Processes command line arguments.
@@ -315,6 +316,10 @@ static int ProcessArg(void* data,
       param.opts.check_password = false;
       return DISCARD;
 
+    case KEY_NO_CACHE:
+      Reader::may_cache_ = false;
+      return DISCARD;
+
     case KEY_NO_SPECIALS:
       param.opts.include_special_files = false;
       return DISCARD;
@@ -384,6 +389,7 @@ int main(int argc, char* argv[]) try {
                            FUSE_OPT_KEY("-v", KEY_VERBOSE),
                            FUSE_OPT_KEY("--redact", KEY_REDACT),
                            FUSE_OPT_KEY("--force", KEY_FORCE),
+                           FUSE_OPT_KEY("--nocache", KEY_NO_CACHE),
                            FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
                            FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
                            FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),

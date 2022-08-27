@@ -24,12 +24,15 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/syslog.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include "error.h"
 #include "scoped_file.h"
 
+bool Reader::may_cache_ = true;
+std::string Reader::cache_dir_ = "/tmp";
 zip_int64_t Reader::reader_count_ = 0;
 
 static void LimitSize(ssize_t* const a, off_t b) {
@@ -102,11 +105,15 @@ class CacheFileReader : public UnbufferedReader {
   // Creates a new, empty and hidden cache file.
   // Throws std::system_error in case of error.
   static ScopedFile CreateCacheFile() {
-    ScopedFile file(open("/tmp", O_TMPFILE | O_RDWR | O_EXCL, 0));
+    if (!may_cache_)
+      throw std::runtime_error("Option --nocache is in use");
+
+    ScopedFile file(open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
 
     if (!file.IsValid())
-      ThrowSystemError("Cannot create cache file");
+      ThrowSystemError("Cannot create cache file in ", cache_dir_);
 
+    Log(LOG_DEBUG, "Created cache file in ", cache_dir_);
     return file;
   }
 
@@ -227,7 +234,7 @@ class CacheFileReader : public UnbufferedReader {
 };
 
 // Exception thrown by BufferedReader::Advance() when the decompression engine
-// has to jump too far and a cached reader is reader to be used instead.
+// has to jump too far and a cached reader is to be used instead.
 class TooFar : public std::exception {
  public:
   const char* what() const noexcept override { return "Too far"; }
@@ -253,7 +260,7 @@ bool BufferedReader::CreateCachedReader() const noexcept {
     Log(LOG_DEBUG, *this, ": Created Cached ", *cached_reader_);
     return true;
   } catch (const std::exception& e) {
-    Log(LOG_ERR, *this, ": Cannot create cached reader: ", e.what());
+    Log(LOG_ERR, *this, ": Cannot create Cached Reader: ", e.what());
     return false;
   }
 }
