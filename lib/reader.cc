@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "error.h"
+#include "path.h"
 #include "scoped_file.h"
 
 bool Reader::may_cache_ = true;
@@ -111,9 +112,9 @@ class CacheFileReader : public UnbufferedReader {
     ScopedFile file(open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
 
     if (!file.IsValid())
-      ThrowSystemError("Cannot create cache file in ", cache_dir_);
+      ThrowSystemError("Cannot create cache file in ", Path(cache_dir_));
 
-    Log(LOG_DEBUG, "Created cache file in ", cache_dir_);
+    Log(LOG_DEBUG, "Created cache file in ", Path(cache_dir_));
     return file;
   }
 

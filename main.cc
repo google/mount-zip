@@ -31,8 +31,10 @@
 #include <fuse_opt.h>
 #include <libgen.h>
 #include <limits.h>
+#include <linux/limits.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/syslog.h>
 #include <sys/types.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -66,6 +68,7 @@ General options:
     --redact               redact file names from log messages
     --force                mount ZIP even if password is wrong
     --encoding=CHARSET     original encoding of file names
+    --cache=dir            cache dir (default is /tmp)
     --nocache              no caching of uncompressed data
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links
@@ -88,8 +91,15 @@ struct Param {
   std::string filename;
   // Mount point
   std::string mount_point;
+  // Cache dir
+  char* cache_dir = nullptr;
   // Conversion options.
   Tree::Options opts;
+
+  ~Param() {
+    if (cache_dir)
+      free(cache_dir);
+  }
 };
 
 // FUSE operations
@@ -393,6 +403,7 @@ int main(int argc, char* argv[]) try {
                            FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
                            FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
                            FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),
+                           {"--cache=%s", offsetof(Param, cache_dir), 0},
                            {"encoding=%s", offsetof(Param, opts.encoding), 0},
                            {nullptr, 0, 0}};
 
@@ -403,6 +414,17 @@ int main(int argc, char* argv[]) try {
   if (param.filename.empty()) {
     print_usage();
     return EXIT_FAILURE;
+  }
+
+  // Resolve path of cache dir if provided.
+  if (param.cache_dir) {
+    char buffer[PATH_MAX + 1];
+    const char* const p = realpath(param.cache_dir, buffer);
+    if (!p)
+      ThrowSystemError("Cannot use cache dir ", Path(param.cache_dir));
+
+    Reader::cache_dir_ = p;
+    Log(LOG_DEBUG, "Using cache dir ", Path(Reader::cache_dir_));
   }
 
   // Open and index the ZIP archive.
