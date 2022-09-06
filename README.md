@@ -47,7 +47,8 @@ yet, **mount-zip** creates it first. If no mount point is provided,
 :   redact file names from log messages
 
 **-\-force**
-:   mount ZIP even if password is wrong
+:   mount ZIP even if password is wrong or missing, or if the encryption or
+    compression method is unsupported
 
 **-\-encoding=CHARSET**
 :   original encoding of file names
@@ -780,19 +781,28 @@ related the ZIP archive itself:
 :   Zlib data error. This is probably the sign of a wrong password. Use
     `--force` to bypass the password verification.
 
+**26**
+:   Unsupported compression method. Use `--force` to bypass the compression
+    method verification.
+
 **29**
 :   The archive is not recognized as a valid ZIP.
 
 **31**
 :   The ZIP archive has an inconsistent structure.
 
+**34**
+:   Unsupported encryption method. Use `--force` to bypass the encryption method
+    verification.
+
 **36**
-:   The ZIP archive contains an encrypted file, but no password was provided.
-    Use `--force` to bypass the password verification.
+:   Needs password. The ZIP archive contains an encrypted file, but no password
+    was provided. Use `--force` to bypass the password verification.
 
 **37**
-:   The ZIP archive contains an encrypted file, and the provided password does
-    not allow to decrypt it. Use `--force` to bypass the password verification.
+:   Wrong password. The ZIP archive contains an encrypted file, and the provided
+    password does not allow to decrypt it. Use `--force` to bypass the password
+    verification.
 
 # PROJECT HISTORY
 

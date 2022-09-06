@@ -45,6 +45,9 @@ class Tree {
     // Checks the password validity on the first encrypted file found in the
     // ZIP?
     bool check_password = true;
+
+    // Check if all the files use supported compression and encryption methods?
+    bool check_compression = true;
   };
 
   using Ptr = std::unique_ptr<Tree>;

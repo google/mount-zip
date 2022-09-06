@@ -66,7 +66,8 @@ General options:
     --quiet   -q           print fewer log messages
     --verbose              print more log messages
     --redact               redact file names from log messages
-    --force                mount ZIP even if password is wrong
+    --force                mount ZIP even if password is wrong or missing, or
+                           if the encryption or compression method is unsupported
     --encoding=CHARSET     original encoding of file names
     --cache=DIR            cache dir (default is /tmp)
     --nocache              no caching of uncompressed data
@@ -324,6 +325,7 @@ static int ProcessArg(void* data,
 
     case KEY_FORCE:
       param.opts.check_password = false;
+      param.opts.check_compression = false;
       return DISCARD;
 
     case KEY_NO_CACHE:

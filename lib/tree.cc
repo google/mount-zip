@@ -43,6 +43,63 @@
 #include "log.h"
 #include "scoped_file.h"
 
+enum CompressionMethod : int;
+
+std::ostream& operator<<(std::ostream& out, const CompressionMethod cm) {
+  out << "ZIP_CM_";
+
+  switch (cm) {
+#define PRINT(s)   \
+  case ZIP_CM_##s: \
+    return out << #s;
+
+    PRINT(STORE)
+    PRINT(SHRINK)
+    PRINT(REDUCE_1)
+    PRINT(REDUCE_2)
+    PRINT(REDUCE_3)
+    PRINT(REDUCE_4)
+    PRINT(IMPLODE)
+    PRINT(DEFLATE)
+    PRINT(DEFLATE64)
+    PRINT(PKWARE_IMPLODE)
+    PRINT(BZIP2)
+    PRINT(LZMA)
+    PRINT(TERSE)
+    PRINT(LZ77)
+    PRINT(LZMA2)
+    PRINT(XZ)
+    PRINT(JPEG)
+    PRINT(WAVPACK)
+    PRINT(PPMD)
+#undef PRINT
+  }
+
+  return out << static_cast<int>(cm);
+}
+
+enum EncryptionMethod : int;
+
+std::ostream& operator<<(std::ostream& out, const EncryptionMethod em) {
+  out << "ZIP_EM_";
+
+  switch (em) {
+#define PRINT(s)   \
+  case ZIP_EM_##s: \
+    return out << #s;
+
+    PRINT(NONE)
+    PRINT(TRAD_PKWARE)
+    PRINT(AES_128)
+    PRINT(AES_192)
+    PRINT(AES_256)
+    PRINT(UNKNOWN)
+#undef PRINT
+  }
+
+  return out << static_cast<int>(em);
+}
+
 // Temporarily suppresses the echo on the terminal.
 // Used when waiting for password to be typed.
 class SuppressEcho {
@@ -400,6 +457,24 @@ void Tree::BuildTree() {
     if ((sb.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
         sb.encryption_method != ZIP_EM_NONE)
       CheckPassword(node);
+
+    if (!zip_encryption_method_supported(sb.encryption_method, 1)) {
+      ZipError e(StrCat("Cannot decrypt ", *node, ": ",
+                        EncryptionMethod(sb.encryption_method)),
+                 ZIP_ER_ENCRNOTSUPP);
+      if (opts_.check_compression)
+        throw std::move(e);
+      Log(LOG_ERR, e.what());
+    }
+
+    if (!zip_compression_method_supported(sb.comp_method, 1)) {
+      ZipError e(StrCat("Cannot decompress ", *node, ": ",
+                        CompressionMethod(sb.comp_method)),
+                 ZIP_ER_COMPNOTSUPP);
+      if (opts_.check_compression)
+        throw std::move(e);
+      Log(LOG_ERR, e.what());
+    }
   }
 
   // Add hardlinks

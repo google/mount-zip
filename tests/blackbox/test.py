@@ -1462,7 +1462,7 @@ def TestZipWithDefaultOptions():
     }
 
     for zip_name, want_tree in want_trees.items():
-        MountZipAndCheckTree(zip_name, want_tree)
+        MountZipAndCheckTree(zip_name, want_tree, options = ['--force'])
 
 
 # Tests the ZIP with lots of files.
