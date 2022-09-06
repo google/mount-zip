@@ -1,3 +1,16 @@
+2022-09-06 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.7:
+        - Check compression and encryption methods at mount time
+        - Add --cache option to specify a cache directory
+        - Add --nocache option to disable caching
+        - 'make doc' shows the generated man page
+        - Fix bug in Path::WithoutExtension()
+        - Use open() with O_TMPFILE to create the cache file
+        - Emulate posix_fallocate on macOS
+        - Fix build error on macOS
+        - Remove listxattr and getxattr
+
 2022-07-26 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.6:
