@@ -497,6 +497,9 @@ void Tree::BuildTree() {
     node->original_path = original_path;
     files_by_original_path_.insert(*node);
   }
+
+  if (should_display_progress.Count())
+    Log(LOG_INFO, "Loaded 100%");
 }
 
 void Tree::CheckPassword(const FileNode* const node) {
