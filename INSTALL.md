@@ -5,7 +5,7 @@ To build **mount-zip**, you need the following libraries:
 *   [Boost Intrusive](https://www.boost.org)
 *   [ICU](https://icu.unicode.org)
 *   [libfuse >= 2.7](https://github.com/libfuse/libfuse)
-*   [libzip >= 1.0](https://libzip.org)
+*   [libzip >= 1.9.1](https://libzip.org)
 
 On Debian systems, you can get these libraries by installing the following
 packages:

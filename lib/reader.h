@@ -69,6 +69,9 @@ class Reader {
     return out << "Reader " << reader.reader_id_;
   }
 
+  // Opens the file at index |file_id|. Throws ZipError in case of error.
+  static ZipFile Open(zip_t* zip, zip_int64_t file_id);
+
   // Whether a cache file may be created if needed.
   static bool may_cache_;
 
@@ -110,21 +113,20 @@ class UnbufferedReader : public Reader {
  public:
   ~UnbufferedReader() override { Log(LOG_DEBUG, *this, ": Closed"); }
 
-  UnbufferedReader(zip_t* const zip,
+  UnbufferedReader(ZipFile file,
                    const zip_int64_t file_id,
                    const off_t expected_size)
       : file_id_(file_id),
         expected_size_(expected_size),
-        file_(Open(zip, file_id)) {
-    Log(LOG_DEBUG, *this, ": Opened File [", file_id_, "]");
+        file_(std::move(file)) {
+    assert(file_);
+    Log(LOG_DEBUG, *this, ": Opened File [", file_id_,
+        "] seekable = ", zip_file_is_seekable(file_.get()));
   }
 
   char* Read(char* dest, char* dest_end, off_t offset) override;
 
  protected:
-  // Opens the file at index |file_id|. Throws ZipError in case of error.
-  static ZipFile Open(zip_t* zip, zip_int64_t file_id);
-
   // Reads up to |size| bytes at the current position pos_ and stores them
   // into |dest|. Returns the number of bytes actually read, which could be
   // less than |size|. Returns 0 if |size| is 0. Returns 0 if the end of file
@@ -157,10 +159,11 @@ class UnbufferedReader : public Reader {
 class BufferedReader : public UnbufferedReader {
  public:
   BufferedReader(zip_t* const zip,
+                 ZipFile file,
                  const zip_int64_t file_id,
                  const off_t expected_size,
                  Reader::Ptr* const cached_reader)
-      : UnbufferedReader(zip, file_id, expected_size),
+      : UnbufferedReader(std::move(file), file_id, expected_size),
         zip_(zip),
         cached_reader_(*cached_reader) {
     assert(cached_reader);

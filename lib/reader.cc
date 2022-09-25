@@ -41,7 +41,7 @@ static void LimitSize(ssize_t* const a, off_t b) {
     *a = static_cast<ssize_t>(b);
 }
 
-ZipFile UnbufferedReader::Open(zip_t* const zip, const zip_int64_t file_id) {
+ZipFile Reader::Open(zip_t* const zip, const zip_int64_t file_id) {
   ZipFile file(zip_fopen_index(zip, file_id, 0));
   if (!file)
     throw ZipError(StrCat("Cannot open File [", file_id, "]"), zip);
@@ -100,7 +100,7 @@ class CacheFileReader : public UnbufferedReader {
   CacheFileReader(zip_t* const zip,
                   const zip_int64_t file_id,
                   const off_t expected_size)
-      : UnbufferedReader(zip, file_id, expected_size) {}
+      : UnbufferedReader(Open(zip, file_id), file_id, expected_size) {}
 
  private:
   // Creates a new, empty and hidden cache file.
