@@ -54,13 +54,6 @@ ssize_t UnbufferedReader::ReadAtCurrentPosition(char* dest, ssize_t size) {
   if (pos_ >= expected_size_)
     return 0;
 
-  // Avoid reading bytes past the expected end of file.
-  // This is a workaround for https://github.com/nih-at/libzip/issues/261
-  //
-  // TODO Remove this workaround once we use a version of libzip with
-  // https://github.com/nih-at/libzip/commit/6cb36530deafc731cac277080a319d52e4233867
-  LimitSize(&size, expected_size_ - pos_);
-
   if (size == 0)
     return 0;
 
