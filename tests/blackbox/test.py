@@ -889,7 +889,7 @@ def TestZipWithDefaultOptions():
                 'mtime': 1635812732000000000,
                 'ctime': 1635812732000000000,
                 'size': 35,
-                # 'md5': 'afcc577cec75357c61cc360e3bca0ac6'
+                'md5': 'afcc577cec75357c61cc360e3bca0ac6'
             }
         },
         'mixed-paths.zip': {
