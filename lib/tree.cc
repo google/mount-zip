@@ -453,11 +453,6 @@ void Tree::BuildTree() {
     node->original_path = original_path;
     files_by_original_path_.insert(*node);
 
-    // Check the password on encrypted files.
-    if ((sb.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
-        sb.encryption_method != ZIP_EM_NONE)
-      CheckPassword(node);
-
     if (!zip_encryption_method_supported(sb.encryption_method, 1)) {
       ZipError e(StrCat("Cannot decrypt ", *node, ": ",
                         EncryptionMethod(sb.encryption_method)),
@@ -475,6 +470,11 @@ void Tree::BuildTree() {
         throw std::move(e);
       Log(LOG_ERR, e.what());
     }
+
+    // Check the password on encrypted files.
+    if ((sb.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
+        sb.encryption_method != ZIP_EM_NONE)
+      CheckPassword(node);
   }
 
   // Add hardlinks
