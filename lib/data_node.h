@@ -49,6 +49,8 @@ inline void SetFileType(mode_t* mode, FileType type) {
 
 std::ostream& operator<<(std::ostream& out, FileType t);
 
+struct FileNode;
+
 // Represents an inode.
 struct DataNode {
   static ino_t ino_count;
@@ -91,7 +93,7 @@ struct DataNode {
     return st;
   }
 
-  Reader::Ptr GetReader(zip_t* zip) const;
+  Reader::Ptr GetReader(zip_t* zip, const FileNode& file_node) const;
 
   static DataNode Make(zip_t* zip, zip_int64_t id, mode_t mode);
 

@@ -119,7 +119,7 @@ struct FileNode {
   }
 
   // Gets a Reader to read file contents.
-  Reader::Ptr GetReader() const { return link->GetReader(zip); }
+  Reader::Ptr GetReader() const { return link->GetReader(zip, *this); }
 
   // Output operator for debugging.
   friend std::ostream& operator<<(std::ostream& out, const FileNode& node) {

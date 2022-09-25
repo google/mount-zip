@@ -22,6 +22,7 @@
 #include <zip.h>
 
 #include "data_node.h"
+#include "file_node.h"
 #include "error.h"
 #include "extra_field.h"
 
@@ -256,30 +257,28 @@ DataNode DataNode::Make(zip_t* const zip,
   return node;
 }
 
-Reader::Ptr DataNode::GetReader(zip_t* zip) const {
+Reader::Ptr DataNode::GetReader(zip_t* const zip,
+                                const FileNode& file_node) const {
   if (cached_reader) {
     Log(LOG_DEBUG, *cached_reader, ": Reusing Cached ", *cached_reader,
-        " for File [", id, "]");
+        " for ", file_node);
     return cached_reader->AddRef();
   }
 
   if (!target.empty())
     return Reader::Ptr(new StringReader(target));
 
-  assert(zip);
-
-  zip_stat_t st;
-  if (zip_stat_index(zip, id, 0, &st) < 0)
-    throw ZipError("Cannot stat file", zip);
-
   ZipFile file = Reader::Open(zip, id);
   assert(file);
 
   const bool seekable = zip_file_is_seekable(file.get()) > 0;
-  return Reader::Ptr(seekable
-                         ? new UnbufferedReader(std::move(file), id, st.size)
-                         : new BufferedReader(zip, std::move(file), id, st.size,
+  Reader::Ptr reader(seekable
+                         ? new UnbufferedReader(std::move(file), id, size)
+                         : new BufferedReader(zip, std::move(file), id, size,
                                               &cached_reader));
+
+  Log(LOG_DEBUG, *reader, ": Opened ", file_node, ", seekable = ", seekable);
+  return reader;
 }
 
 timespec DataNode::Now() {

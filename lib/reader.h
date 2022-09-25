@@ -120,8 +120,6 @@ class UnbufferedReader : public Reader {
         expected_size_(expected_size),
         file_(std::move(file)) {
     assert(file_);
-    Log(LOG_DEBUG, *this, ": Opened File [", file_id_,
-        "] seekable = ", zip_file_is_seekable(file_.get()));
   }
 
   char* Read(char* dest, char* dest_end, off_t offset) override;
