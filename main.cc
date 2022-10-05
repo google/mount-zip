@@ -228,10 +228,22 @@ struct Operations : fuse_operations {
     return ToError("read link", path);
   }
 
+  static int StatFs([[maybe_unused]] const char* const path,
+                    struct statvfs* const st) {
+    assert(st);
+    const Tree* const tree =
+        static_cast<const Tree*>(fuse_get_context()->private_data);
+    assert(tree);
+    st->f_bsize = Tree::block_size;
+    st->f_frsize = Tree::block_size;
+    st->f_blocks = tree->GetBlockCount();
+    return 0;
+  }
+
  public:
   Operations() : fuse_operations {
     .getattr = GetAttr, .readlink = ReadLink, .open = Open, .read = Read,
-    .release = Release, .readdir = ReadDir,
+    .statfs = StatFs, .release = Release, .readdir = ReadDir,
 #if FUSE_VERSION >= 28
     .flag_nullpath_ok = 0,  // Don't allow null path
 #endif

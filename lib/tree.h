@@ -61,6 +61,9 @@ class Tree {
   // Returns a null pointer if no matching node can be found.
   FileNode* Find(std::string_view path);
 
+  static const blksize_t block_size = DataNode::block_size;
+  blkcnt_t GetBlockCount() const { return total_block_count_; }
+
  private:
   // Constructor.
   Tree(zip_t* zip, Options opts) : zip_(zip), opts_(std::move(opts)) {}
@@ -169,6 +172,8 @@ class Tree {
   // Collection of FileNodes indexed by original path.
   FilesByOriginalPath files_by_original_path_{
       {buckets_by_original_path_.get(), bucket_count_}};
+
+  blkcnt_t total_block_count_ = 1;
 
   // Does NormalizePath add a prefix?
   bool need_prefix_ = false;

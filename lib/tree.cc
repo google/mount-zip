@@ -426,6 +426,7 @@ void Tree::BuildTree() {
       node->data.nlink = nlink;
       node->original_path = Path(original_path).WithoutTrailingSeparator();
       files_by_original_path_.insert(*node);
+      total_block_count_ += 1;
       continue;
     }
 
@@ -452,6 +453,8 @@ void Tree::BuildTree() {
     parent->AddChild(node);
     node->original_path = original_path;
     files_by_original_path_.insert(*node);
+    total_block_count_ += 1;
+    total_block_count_ += node->operator DataNode::Stat().st_blocks;
 
     if (!zip_encryption_method_supported(sb.encryption_method, 1)) {
       ZipError e(StrCat("Cannot decrypt ", *node, ": ",
@@ -496,10 +499,14 @@ void Tree::BuildTree() {
     parent->AddChild(node);
     node->original_path = original_path;
     files_by_original_path_.insert(*node);
+    total_block_count_ += 1;
   }
 
   if (should_display_progress.Count())
     Log(LOG_INFO, "Loaded 100%");
+
+  Log(LOG_DEBUG, "Nodes = ", files_by_path_.size());
+  Log(LOG_DEBUG, "Blocks = ", total_block_count_);
 }
 
 void Tree::CheckPassword(const FileNode* const node) {

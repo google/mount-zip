@@ -67,6 +67,7 @@ struct DataNode {
   timespec ctime = mtime;
   std::string target;  // Link target
   mutable Reader::Ptr cached_reader;
+  static const blksize_t block_size = 512;
 
   // Get attributes.
   using Stat = struct stat;
@@ -75,8 +76,8 @@ struct DataNode {
     st.st_ino = ino;
     st.st_nlink = nlink;
     st.st_mode = mode;
-    st.st_blksize = 512;
-    st.st_blocks = (size + st.st_blksize - 1) / st.st_blksize;
+    st.st_blksize = block_size;
+    st.st_blocks = (size + block_size - 1) / block_size;
     st.st_size = size;
 #if __APPLE__
     st.st_atimespec = atime;
