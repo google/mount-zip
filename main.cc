@@ -451,7 +451,12 @@ int main(int argc, char* argv[]) try {
   // Open and index the ZIP archive.
   Log(LOG_DEBUG, "Indexing ", Path(param.filename), "...");
   Timer timer;
-  const Tree::Ptr tree = Tree::Init(param.filename.c_str(), param.opts);
+  Tree::Ptr tree_ptr = Tree::Init(param.filename.c_str(), param.opts);
+  Tree& tree = *tree_ptr;
+#ifdef NDEBUG
+  // For optimization, don't bother destructing the tree.
+  tree_ptr.release();
+#endif
   Log(LOG_DEBUG, "Indexed ", Path(param.filename), " in ", timer);
 
   if (!param.mount_point.empty()) {
@@ -500,7 +505,7 @@ int main(int argc, char* argv[]) try {
   // Single-threaded operation.
   fuse_opt_add_arg(&args, "-s");
 
-  return fuse_main(args.argc, args.argv, &operations, tree.get());
+  return fuse_main(args.argc, args.argv, &operations, &tree);
 } catch (const ZipError& e) {
   Log(LOG_ERR, e.what());
   // Shift libzip error codes in order to avoid collision with FUSE errors.
