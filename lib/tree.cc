@@ -476,12 +476,24 @@ void Tree::BuildTree() {
 
     // Check the password on encrypted files.
     if ((sb.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
-        sb.encryption_method != ZIP_EM_NONE)
+        sb.encryption_method != ZIP_EM_NONE) {
       CheckPassword(node);
+    }
 
     // Cache file data if necessary.
-    if (opts_.pre_cache)
-      node->CacheAll();
+    if (opts_.pre_cache) {
+      try {
+        node->CacheAll();
+      } catch (const ZipError& error) {
+        Log(LOG_ERR, "Cannot cache ", *node, ": ", error.what());
+        if (opts_.check_password) {
+          Log(LOG_INFO,
+              "Use the --force option to continue even if some files cannot be "
+              "cached");
+          throw;
+        }
+      }
+    }
   }
 
   // Add hardlinks

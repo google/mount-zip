@@ -94,7 +94,7 @@ struct DataNode {
     return st;
   }
 
-  void CacheAll(zip_t* zip);
+  void CacheAll(zip_t* zip, const FileNode& file_node);
 
   Reader::Ptr GetReader(zip_t* zip, const FileNode& file_node) const;
 

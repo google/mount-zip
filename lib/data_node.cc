@@ -257,10 +257,10 @@ DataNode DataNode::Make(zip_t* const zip,
   return node;
 }
 
-void DataNode::CacheAll(zip_t* const zip) {
+void DataNode::CacheAll(zip_t* const zip, const FileNode& file_node) {
   assert(!cached_reader);
   if (size == 0) {
-    Log(LOG_DEBUG, "No need to cache File [", id, "]: Empty file");
+    Log(LOG_DEBUG, "No need to cache ", file_node, ": Empty file");
     return;
   }
 
@@ -269,7 +269,7 @@ void DataNode::CacheAll(zip_t* const zip) {
 
   const bool seekable = zip_file_is_seekable(file.get()) > 0;
   if (seekable) {
-    Log(LOG_DEBUG, "No need to cache File [", id, "]: File is seekable");
+    Log(LOG_DEBUG, "No need to cache ", file_node, ": File is seekable");
     return;
   }
 
