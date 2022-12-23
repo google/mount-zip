@@ -22,9 +22,9 @@
 #include <zip.h>
 
 #include "data_node.h"
-#include "file_node.h"
 #include "error.h"
 #include "extra_field.h"
+#include "file_node.h"
 
 std::ostream& operator<<(std::ostream& out, FileType t) {
   switch (t) {
@@ -257,11 +257,30 @@ DataNode DataNode::Make(zip_t* const zip,
   return node;
 }
 
+void DataNode::CacheAll(zip_t* const zip) {
+  assert(!cached_reader);
+  if (size == 0) {
+    Log(LOG_DEBUG, "No need to cache File [", id, "]: Empty file");
+    return;
+  }
+
+  ZipFile file = Reader::Open(zip, id);
+  assert(file);
+
+  const bool seekable = zip_file_is_seekable(file.get()) > 0;
+  if (seekable) {
+    Log(LOG_DEBUG, "No need to cache File [", id, "]: File is seekable");
+    return;
+  }
+
+  cached_reader = CacheFile(std::move(file), id, size);
+}
+
 Reader::Ptr DataNode::GetReader(zip_t* const zip,
                                 const FileNode& file_node) const {
   if (cached_reader) {
-    Log(LOG_DEBUG, *cached_reader, ": Reusing Cached ", *cached_reader,
-        " for ", file_node);
+    Log(LOG_DEBUG, *cached_reader, ": Reusing Cached ", *cached_reader, " for ",
+        file_node);
     return cached_reader->AddRef();
   }
 
@@ -272,10 +291,9 @@ Reader::Ptr DataNode::GetReader(zip_t* const zip,
   assert(file);
 
   const bool seekable = zip_file_is_seekable(file.get()) > 0;
-  Reader::Ptr reader(seekable
-                         ? new UnbufferedReader(std::move(file), id, size)
-                         : new BufferedReader(zip, std::move(file), id, size,
-                                              &cached_reader));
+  Reader::Ptr reader(seekable ? new UnbufferedReader(std::move(file), id, size)
+                              : new BufferedReader(zip, std::move(file), id,
+                                                   size, &cached_reader));
 
   Log(LOG_DEBUG, *reader, ": Opened ", file_node, ", seekable = ", seekable);
   return reader;

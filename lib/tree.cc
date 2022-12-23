@@ -478,6 +478,10 @@ void Tree::BuildTree() {
     if ((sb.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
         sb.encryption_method != ZIP_EM_NONE)
       CheckPassword(node);
+
+    // Cache file data if necessary.
+    if (opts_.pre_cache)
+      node->CacheAll();
   }
 
   // Add hardlinks

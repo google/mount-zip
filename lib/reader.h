@@ -217,4 +217,8 @@ class BufferedReader : public UnbufferedReader {
   char buffer_[buffer_size_];
 };
 
+// Cache the whole file contents. Returns a Reader that will be able to serve
+// the cached contents.
+Reader::Ptr CacheFile(ZipFile file, zip_int64_t file_id, off_t expected_size);
+
 #endif

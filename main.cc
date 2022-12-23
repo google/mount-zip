@@ -69,6 +69,7 @@ General options:
     --force                mount ZIP even if password is wrong or missing, or
                            if the encryption or compression method is unsupported
     --encoding=CHARSET     original encoding of file names
+    --precache             preemptively uncompress and cache data
     --cache=DIR            cache dir (default is /tmp)
     --nocache              no caching of uncompressed data
     -o nospecials          no special files (FIFOs, sockets, devices)
@@ -264,10 +265,11 @@ enum {
   KEY_REDACT,
   KEY_FORCE,
   KEY_ENCODING,
+  KEY_PRE_CACHE,
+  KEY_NO_CACHE,
   KEY_NO_SPECIALS,
   KEY_NO_SYMLINKS,
   KEY_NO_HARDLINKS,
-  KEY_NO_CACHE,
 };
 
 // Processes command line arguments.
@@ -338,6 +340,10 @@ static int ProcessArg(void* data,
     case KEY_FORCE:
       param.opts.check_password = false;
       param.opts.check_compression = false;
+      return DISCARD;
+
+    case KEY_PRE_CACHE:
+      param.opts.pre_cache = true;
       return DISCARD;
 
     case KEY_NO_CACHE:
@@ -413,6 +419,7 @@ int main(int argc, char* argv[]) try {
                            FUSE_OPT_KEY("-v", KEY_VERBOSE),
                            FUSE_OPT_KEY("--redact", KEY_REDACT),
                            FUSE_OPT_KEY("--force", KEY_FORCE),
+                           FUSE_OPT_KEY("--precache", KEY_PRE_CACHE),
                            FUSE_OPT_KEY("--nocache", KEY_NO_CACHE),
                            FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
                            FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),

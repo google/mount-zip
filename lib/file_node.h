@@ -118,6 +118,8 @@ struct FileNode {
     children.push_front(*child);
   }
 
+  void CacheAll() { data.CacheAll(zip); }
+
   // Gets a Reader to read file contents.
   Reader::Ptr GetReader() const { return link->GetReader(zip, *this); }
 

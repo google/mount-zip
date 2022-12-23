@@ -57,6 +57,10 @@ ssize_t UnbufferedReader::ReadAtCurrentPosition(char* dest, ssize_t size) {
   if (size == 0)
     return 0;
 
+  if (!file_)
+    return 0;
+
+  assert(file_);
   const ssize_t n = static_cast<ssize_t>(zip_fread(file_.get(), dest, size));
 
   if (n < 0)
@@ -90,10 +94,13 @@ char* UnbufferedReader::Read(char* dest, char* dest_end, off_t offset) {
 // caches the decompressed bytes in a cache file.
 class CacheFileReader : public UnbufferedReader {
  public:
+  using UnbufferedReader::UnbufferedReader;
   CacheFileReader(zip_t* const zip,
                   const zip_int64_t file_id,
                   const off_t expected_size)
       : UnbufferedReader(Open(zip, file_id), file_id, expected_size) {}
+
+  void CacheAll() { EnsureCachedUpTo(expected_size_); }
 
  private:
   // Creates a new, empty and hidden cache file.
@@ -111,7 +118,7 @@ class CacheFileReader : public UnbufferedReader {
     return file;
   }
 
-  // Gets the file descriptor to the global cache file.
+  // Gets the file descriptor of the global cache file.
   // Creates this cache file if necessary.
   // Throws std::system_error in case of error.
   static int GetCacheFile() {
@@ -187,8 +194,10 @@ class CacheFileReader : public UnbufferedReader {
       char buf[buf_size];
       const off_t store_offset = start_offset_ + pos_;
       const ssize_t n = ReadAtCurrentPosition(buf, buf_size);
-      if (n == 0)
+      if (n == 0) {
+        file_.reset();
         break;
+      }
 
       WriteToCacheFile(buf, n, store_offset);
     }
@@ -226,6 +235,17 @@ class CacheFileReader : public UnbufferedReader {
   // Position at which the decompressed data is stored in the cache file.
   const off_t start_offset_ = ReserveSpace();
 };
+
+Reader::Ptr CacheFile(ZipFile file,
+                      const zip_int64_t file_id,
+                      const off_t expected_size) {
+  CacheFileReader* const p =
+      new CacheFileReader(std::move(file), file_id, expected_size);
+  Reader::Ptr r(p);
+  Log(LOG_DEBUG, *p, ": Caching ", expected_size, " bytes...");
+  p->CacheAll();
+  return r;
+}
 
 // Exception thrown by BufferedReader::Advance() when the decompression engine
 // has to jump too far and a cached reader is to be used instead.

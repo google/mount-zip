@@ -48,6 +48,9 @@ class Tree {
 
     // Check if all the files use supported compression and encryption methods?
     bool check_compression = true;
+
+    // Pre-cache data?
+    bool pre_cache = false;
   };
 
   using Ptr = std::unique_ptr<Tree>;
