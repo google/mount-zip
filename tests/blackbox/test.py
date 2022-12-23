@@ -1548,13 +1548,13 @@ def TestZipWithManyFiles():
 
 
 # Tests that a big file can be accessed in random order.
-def TestBigZip():
+def TestBigZip(options = []):
     zip_name = 'big.zip'
     logging.info(f'Checking {zip_name!r}...')
     with tempfile.TemporaryDirectory() as mount_point:
         zip_path = os.path.join(script_dir, 'data', zip_name)
         logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
-        subprocess.run([mount_program, zip_path, mount_point],
+        subprocess.run([mount_program] + options + [zip_path, mount_point],
                        check=True,
                        capture_output=True,
                        input='',
@@ -2347,6 +2347,7 @@ TestEncryptedZip()
 TestInvalidZip()
 TestZipWithManyFiles()
 TestBigZip()
+TestBigZip(options = ['--precache'])
 TestBigZipNoCache()
 
 if error_count:
