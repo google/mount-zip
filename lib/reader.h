@@ -17,6 +17,7 @@
 #define READER_H
 
 #include <cassert>
+#include <functional>
 #include <memory>
 #include <ostream>
 #include <string_view>
@@ -219,6 +220,9 @@ class BufferedReader : public UnbufferedReader {
 
 // Cache the whole file contents. Returns a Reader that will be able to serve
 // the cached contents.
-Reader::Ptr CacheFile(ZipFile file, zip_int64_t file_id, off_t expected_size);
+Reader::Ptr CacheFile(ZipFile file,
+                      zip_int64_t file_id,
+                      off_t expected_size,
+                      std::function<void(ssize_t)> progress = {});
 
 #endif

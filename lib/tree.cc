@@ -330,19 +330,27 @@ void Tree::BuildTree() {
   assert(ok);
   root.release();  // Now owned by |files_by_path_|.
 
+  // Sum of all uncompressed file sizes.
+  uint64_t total_uncompressed_size = 0;
+  zip_stat_t sb;
+
   // Concatenate all the names in a buffer in order to guess the encoding.
   std::string allNames;
   allNames.reserve(10000);
-
   size_t maxNameLength = 0;
 
   // search for absolute or parent-relative paths
   for (zip_int64_t id = 0; id < n; ++id) {
-    const char* const p = zip_get_name(zip_, id, ZIP_FL_ENC_RAW);
-    if (!p)
+    if (zip_stat_index(zip_, id, ZIP_FL_ENC_RAW, &sb) < 0)
+      throw ZipError(StrCat("Cannot read entry #", id), zip_);
+
+    if ((sb.valid & ZIP_STAT_SIZE) != 0)
+      total_uncompressed_size += sb.size;
+
+    if ((sb.valid & ZIP_STAT_NAME) == 0 || !sb.name || !*sb.name)
       continue;
 
-    const std::string_view name = p;
+    const std::string_view name = sb.name;
     if (maxNameLength < name.size())
       maxNameLength = name.size();
 
@@ -352,6 +360,9 @@ void Tree::BuildTree() {
     if (!need_prefix_)
       need_prefix_ = name.starts_with('/') || name.starts_with("../");
   }
+
+  Log(LOG_DEBUG, "Total uncompressed size = ", total_uncompressed_size,
+      " bytes");
 
   // Detect filename encoding.
   std::string encoding;
@@ -382,8 +393,6 @@ void Tree::BuildTree() {
     }
   }
 
-  zip_stat_t sb;
-
   struct Hardlink {
     zip_int64_t id;
     mode_t mode;
@@ -392,21 +401,28 @@ void Tree::BuildTree() {
   std::vector<Hardlink> hardlinks;
   std::string path;
   Beat should_display_progress;
+  uint64_t total_extracted_size = 0;
+  const auto progress = [&should_display_progress, &total_uncompressed_size,
+                         &total_extracted_size](const ssize_t chunk_size) {
+    assert(chunk_size >= 0);
+    total_extracted_size += chunk_size;
+    if (!should_display_progress)
+      return;
+    Log(LOG_INFO, "Loading ",
+        total_extracted_size < total_uncompressed_size
+            ? 100 * total_extracted_size / total_uncompressed_size
+            : 100,
+        "%");
+  };
 
   // Add zip entries for all items except hardlinks
   for (zip_int64_t id = 0; id < n; ++id) {
-    if (should_display_progress)
-      Log(LOG_INFO, "Loading ", 100 * id / n, "%");
-
     if (zip_stat_index(zip_, id, zipFlags, &sb) < 0)
       throw ZipError(StrCat("Cannot read entry #", id), zip_);
 
-    if ((sb.valid & ZIP_STAT_NAME) == 0 || !sb.name || !*sb.name) {
-      Log(LOG_ERR, "Skipped entry [", id, "]: No name");
-      continue;
-    }
-
-    const Path original_path = sb.name;
+    const Path original_path =
+        (sb.valid & ZIP_STAT_NAME) != 0 && sb.name && *sb.name ? sb.name : "-";
+    const uint64_t size = (sb.valid & ZIP_STAT_SIZE) != 0 ? sb.size : 0;
     const auto [mode, is_hardlink] = GetEntryAttributes(id, original_path);
     const FileType type = GetFileType(mode);
 
@@ -414,6 +430,8 @@ void Tree::BuildTree() {
     if (!Path::Normalize(&path, original_path_utf8, need_prefix_)) {
       Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ",
           original_path_utf8);
+      assert(total_uncompressed_size >= size);
+      total_uncompressed_size -= size;
       continue;
     }
 
@@ -427,6 +445,8 @@ void Tree::BuildTree() {
       node->original_path = Path(original_path).WithoutTrailingSeparator();
       files_by_original_path_.insert(*node);
       total_block_count_ += 1;
+      assert(total_uncompressed_size >= size);
+      total_uncompressed_size -= size;
       continue;
     }
 
@@ -434,6 +454,8 @@ void Tree::BuildTree() {
         (type == FileType::Symlink ? !opts_.include_symlinks
                                    : !opts_.include_special_files)) {
       Log(LOG_INFO, "Skipped ", type, " [", id, "] ", Path(path));
+      assert(total_uncompressed_size >= size);
+      total_uncompressed_size -= size;
       continue;
     }
 
@@ -443,6 +465,8 @@ void Tree::BuildTree() {
       } else {
         Log(LOG_INFO, "Skipped ", type, " [", id, "] ", Path(path));
       }
+      assert(total_uncompressed_size >= size);
+      total_uncompressed_size -= size;
       continue;
     }
 
@@ -483,7 +507,10 @@ void Tree::BuildTree() {
     // Cache file data if necessary.
     if (opts_.pre_cache) {
       try {
-        node->CacheAll();
+        if (!node->CacheAll(progress)) {
+          assert(total_uncompressed_size >= size);
+          total_uncompressed_size -= size;
+        }
       } catch (const ZipError& error) {
         Log(LOG_ERR, "Cannot cache ", *node, ": ", error.what());
         if (opts_.check_password) {

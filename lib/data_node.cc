@@ -257,11 +257,13 @@ DataNode DataNode::Make(zip_t* const zip,
   return node;
 }
 
-void DataNode::CacheAll(zip_t* const zip, const FileNode& file_node) {
+bool DataNode::CacheAll(zip_t* const zip,
+                        const FileNode& file_node,
+                        std::function<void(ssize_t)> progress) {
   assert(!cached_reader);
   if (size == 0) {
     Log(LOG_DEBUG, "No need to cache ", file_node, ": Empty file");
-    return;
+    return false;
   }
 
   ZipFile file = Reader::Open(zip, id);
@@ -270,10 +272,11 @@ void DataNode::CacheAll(zip_t* const zip, const FileNode& file_node) {
   const bool seekable = zip_file_is_seekable(file.get()) > 0;
   if (seekable) {
     Log(LOG_DEBUG, "No need to cache ", file_node, ": File is seekable");
-    return;
+    return false;
   }
 
-  cached_reader = CacheFile(std::move(file), id, size);
+  cached_reader = CacheFile(std::move(file), id, size, std::move(progress));
+  return true;
 }
 
 Reader::Ptr DataNode::GetReader(zip_t* const zip,

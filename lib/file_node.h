@@ -118,7 +118,9 @@ struct FileNode {
     children.push_front(*child);
   }
 
-  void CacheAll() { data.CacheAll(zip, *this); }
+  bool CacheAll(std::function<void(ssize_t)> progress = {}) {
+    return data.CacheAll(zip, *this, std::move(progress));
+  }
 
   // Gets a Reader to read file contents.
   Reader::Ptr GetReader() const { return link->GetReader(zip, *this); }

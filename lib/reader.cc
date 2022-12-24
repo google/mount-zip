@@ -100,7 +100,9 @@ class CacheFileReader : public UnbufferedReader {
                   const off_t expected_size)
       : UnbufferedReader(Open(zip, file_id), file_id, expected_size) {}
 
-  void CacheAll() { EnsureCachedUpTo(expected_size_); }
+  void CacheAll(std::function<void(ssize_t)> progress) {
+    EnsureCachedUpTo(expected_size_, std::move(progress));
+  }
 
  private:
   // Creates a new, empty and hidden cache file.
@@ -179,7 +181,8 @@ class CacheFileReader : public UnbufferedReader {
   }
 
   // Ensures the decompressed data is cached at least up to the given offset.
-  void EnsureCachedUpTo(const off_t offset) {
+  void EnsureCachedUpTo(const off_t offset,
+                        const std::function<void(ssize_t)> progress = {}) {
     const off_t start_pos = pos_;
     const off_t total_to_cache = offset - pos_;
     const Timer timer;
@@ -200,6 +203,8 @@ class CacheFileReader : public UnbufferedReader {
       }
 
       WriteToCacheFile(buf, n, store_offset);
+      if (progress)
+        progress(n);
     }
 
     if (should_log_progress.Count())
@@ -238,12 +243,13 @@ class CacheFileReader : public UnbufferedReader {
 
 Reader::Ptr CacheFile(ZipFile file,
                       const zip_int64_t file_id,
-                      const off_t expected_size) {
+                      const off_t expected_size,
+                      std::function<void(ssize_t)> progress) {
   CacheFileReader* const p =
       new CacheFileReader(std::move(file), file_id, expected_size);
   Reader::Ptr r(p);
   Log(LOG_DEBUG, *p, ": Caching ", expected_size, " bytes...");
-  p->CacheAll();
+  p->CacheAll(std::move(progress));
   return r;
 }
 
