@@ -335,9 +335,9 @@ void Tree::BuildTree() {
   zip_stat_t sb;
 
   // Concatenate all the names in a buffer in order to guess the encoding.
-  std::string allNames;
-  allNames.reserve(10000);
-  size_t maxNameLength = 0;
+  std::string all_names;
+  all_names.reserve(10000);
+  size_t max_name_length = 0;
 
   // search for absolute or parent-relative paths
   for (zip_int64_t id = 0; id < n; ++id) {
@@ -351,11 +351,11 @@ void Tree::BuildTree() {
       continue;
 
     const std::string_view name = sb.name;
-    if (maxNameLength < name.size())
-      maxNameLength = name.size();
+    if (max_name_length < name.size())
+      max_name_length = name.size();
 
-    if (allNames.size() + name.size() <= allNames.capacity())
-      allNames.append(name);
+    if (all_names.size() + name.size() <= all_names.capacity())
+      all_names.append(name);
 
     if (!need_prefix_)
       need_prefix_ = name.starts_with('/') || name.starts_with("../");
@@ -369,8 +369,8 @@ void Tree::BuildTree() {
   if (opts_.encoding)
     encoding = opts_.encoding;
   if (encoding.empty() || encoding == "auto")
-    encoding = DetectEncoding(allNames);
-  allNames.clear();
+    encoding = DetectEncoding(all_names);
+  all_names.clear();
 
   // Prepare functor to convert filenames to UTF-8.
   // By default, just rely on the conversion to UTF-8 provided by libzip.
@@ -384,7 +384,7 @@ void Tree::BuildTree() {
     try {
       if (encoding != "raw")
         toUtf8 = [converter = std::make_shared<ConverterToUtf8>(
-                      encoding.c_str(), maxNameLength)](std::string_view s) {
+                      encoding.c_str(), max_name_length)](std::string_view s) {
           return (*converter)(s);
         };
       zipFlags = ZIP_FL_ENC_RAW;
