@@ -19,6 +19,6 @@
 
 #define FUSE_USE_VERSION 27
 #define PROGRAM "mount-zip"
-#define VERSION "1.0.7"
+#define VERSION "1.0.8"
 
 #endif

@@ -1,3 +1,10 @@
+2022-12-27 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.8:
+        - Add --precache option for preemptive caching
+        - Implement statfs
+        - Use libzip's zip_file_is_seekable
+
 2022-09-06 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.7:
