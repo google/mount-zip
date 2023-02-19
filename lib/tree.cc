@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cctype>
 #include <cerrno>
@@ -303,21 +304,10 @@ Tree::~Tree() {
 }
 
 size_t Tree::GetBucketCount(zip_t* zip) {
-  size_t n = std::min<zip_int64_t>(zip_get_num_entries(zip, 0),
-                                   std::numeric_limits<ssize_t>::max());
+  const size_t n = std::min<zip_int64_t>(zip_get_num_entries(zip, 0),
+                                         std::numeric_limits<ssize_t>::max());
   // Floor the number of elements to a power of 2 with a minimum of 16.
-  n |= 16;
-  n |= n >> 1;
-  n |= n >> 2;
-  n |= n >> 4;
-  n |= n >> 8;
-  n |= n >> 16;
-  if constexpr (sizeof(n) > 4) {
-    n |= n >> 32;
-  }
-  n ^= n >> 1;
-  Log(LOG_DEBUG, "Allocating ", n, " buckets");
-  return n;
+  return std::bit_floor(n | 16u);
 }
 
 void Tree::BuildTree() {
