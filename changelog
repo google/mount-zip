@@ -1,3 +1,9 @@
+2023-08-17 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.9:
+	- No functional modification compared to the previous release
+	- Use std::bit_floor to simplify some code
+
 2022-12-27 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.8:
