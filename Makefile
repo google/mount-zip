@@ -35,7 +35,7 @@ SOURCES = main.cc
 OBJECTS = $(SOURCES:.cc=.o)
 MAN = $(DEST).1
 MANDIR = $(prefix)/share/man/man1
-CLEANFILES = $(OBJECTS) $(DEST) $(MAN)
+CLEANFILES = $(OBJECTS) $(DEST)
 INSTALL = install -D
 INSTALL_PROGRAM = $(INSTALL)
 INSTALL_DATA = $(INSTALL) -m 644
@@ -65,7 +65,7 @@ all-clean:
 $(MAN): README.md
 	pandoc $< -s -t man -o $@
 
-install: $(DEST) $(MAN)
+install: $(DEST)
 	$(INSTALL_PROGRAM) "$(DEST)" "$(DESTDIR)$(bindir)/$(DEST)"
 	$(INSTALL_DATA) $(MAN) "$(DESTDIR)$(MANDIR)/$(MAN)"
 
