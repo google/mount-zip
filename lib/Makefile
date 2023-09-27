@@ -18,7 +18,7 @@
 DEST = libfusezip.a
 PKG_CONFIG ?= pkg-config
 DEPS = fuse libzip icu-uc icu-i18n
-CXXFLAGS := $(shell $(PKG_CONFIG) --cflags $(DEPS))
+CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
 CXXFLAGS += -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
 ifeq ($(DEBUG), 1)
 CXXFLAGS += -O0 -g
@@ -38,7 +38,7 @@ $(DEST): $(OBJECTS)
 	$(AR) -cr $@ $(OBJECTS)
 
 .cc.o:
-	$(CXX) -c $(CXXFLAGS) $< -o $@
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 clean:
 	rm -f $(DEST) $(OBJECTS)
