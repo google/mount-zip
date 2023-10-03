@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-DEST = libfusezip.a
+DEST = libmountzip.a
 PKG_CONFIG ?= pkg-config
 DEPS = fuse libzip icu-uc icu-i18n
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
@@ -35,7 +35,7 @@ debug:
 	$(MAKE) DEBUG=1 all
 
 $(DEST): $(OBJECTS)
-	$(AR) -cr $@ $(OBJECTS)
+	$(AR) $(ARFLAGS) $@ $(OBJECTS)
 
 .cc.o:
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@

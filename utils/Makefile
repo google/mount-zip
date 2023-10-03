@@ -15,24 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-PKG_CONFIG?=pkg-config
-LIBS=-L../lib -lfusezip $(shell $(PKG_CONFIG) libzip --libs)
-CXXFLAGS=-g -O0 -Wall -Wextra -Wlogical-op -Wshadow -pedantic -Werror
-ZIPFLAGS=$(shell $(PKG_CONFIG) libzip --cflags)
+PKG_CONFIG ?= pkg-config
+LIBS = -L../lib -lmountzip $(shell $(PKG_CONFIG) libzip --libs)
+CXXFLAGS += -g -O0 -Wall -Wextra -Wlogical-op -Wshadow -pedantic -Werror
+CXXFLAGS += $(shell $(PKG_CONFIG) libzip --cflags)
 
 all: dump-extrafld create-content-size
 
 dump-extrafld: dump-extrafld.cpp $(LIB)
-	$(CXX) $(CXXFLAGS) $(ZIPFLAGS) $< \
-	    -I.. \
-	    $(LDFLAGS) $(LIBS) \
-	    -o $@
+	$(CXX) $(CXXFLAGS) $< -I.. $(LDFLAGS) $(LIBS) -o $@
 
 create-content-size: create-content-size.cpp
-	$(CXX) $(CXXFLAGS) $(ZIPFLAGS) $< \
-	    -I.. \
-	    $(LDFLAGS) $(LIBS) \
-	    -o $@
+	$(CXX) $(CXXFLAGS) $< -I.. $(LDFLAGS) $(LIBS) -o $@
 
 clean:
 	rm -f dump-extrafld create-content-size

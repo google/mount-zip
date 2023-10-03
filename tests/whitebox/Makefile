@@ -15,13 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-CXXFLAGS=-g -O2 -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -std=c++20
 PKG_CONFIG ?= pkg-config
 PC_DEPS = fuse libzip icu-uc icu-i18n
-PC_CFLAGS := $(shell $(PKG_CONFIG) --cflags $(PC_DEPS))
-LIBS := -L../../lib -lfusezip $(shell $(PKG_CONFIG) --libs $(PC_DEPS))
+CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(PC_DEPS))
+CXXFLAGS += -g -O2 -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -std=c++20
+LIBS := -L../../lib -lmountzip $(shell $(PKG_CONFIG) --libs $(PC_DEPS))
 VALGRIND=valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33
-LIB=libfusezip.a
+LIB=libmountzip.a
 
 SOURCES=$(wildcard *.cc)
 OBJECTS=$(SOURCES:.cc=.o)
@@ -35,9 +35,7 @@ $(DEST): %.x: %.o $(LIB)
 	$(CXX) $(LDFLAGS) $< $(LIBS) -o $@
 
 $(OBJECTS): %.o: %.cc
-	$(CXX) -c $(CXXFLAGS) $(PC_CFLAGS) \
-	    -I../../lib \
-	    $< -o $@
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -I../../lib $< -o $@
 
 $(LIB):
 	make -C ../../lib
@@ -68,4 +66,3 @@ $(VALGRIND_TESTS): %.valgrind: %.x
 valgrind: $(VALGRIND_TESTS)
 
 .PHONY: all clean distclean test test-clean valgrind lib-clean $(LIB)
-

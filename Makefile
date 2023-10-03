@@ -21,8 +21,8 @@ exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 PKG_CONFIG ?= pkg-config
 DEPS = fuse libzip icu-uc icu-i18n
-LIBS := -Llib -lfusezip $(shell $(PKG_CONFIG) --libs $(DEPS))
-LIBS += -Llib -lfusezip
+LIBS += -Llib -lmountzip
+LIBS += $(shell $(PKG_CONFIG) --libs $(DEPS))
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
 CXXFLAGS += -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
 ifeq ($(DEBUG), 1)
@@ -30,7 +30,7 @@ CXXFLAGS += -O0 -g
 else
 CXXFLAGS += -O2 -DNDEBUG
 endif
-LIB = lib/libfusezip.a
+LIB = lib/libmountzip.a
 SOURCES = main.cc
 OBJECTS = $(SOURCES:.cc=.o)
 MAN = $(DEST).1
