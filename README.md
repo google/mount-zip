@@ -54,7 +54,7 @@ yet, **mount-zip** creates it first. If no mount point is provided,
 :   original encoding of file names
 
 **-\-cache=DIR**
-:   cache directory (default is `/tmp`)
+:   cache directory (default is `$TMPDIR` or `/tmp`)
 
 **-\-precache**
 :   preemptively uncompress and cache data
@@ -609,9 +609,9 @@ sys     0m0.018s
 ```
 
 Decompressed data is cached in a temporary file located in the cache directory
-(`/tmp` by default). The cache directory can be changed with the `--cache=DIR`
-option. The cache file is only created if necessary, and automatically deleted
-when the ZIP is unmounted.
+(`$TMPDIR` or `/tmp` by default). The cache directory can be changed with the
+`--cache=DIR` option. The cache file is only created if necessary, and
+automatically deleted when the ZIP is unmounted.
 
 You can preemtively cache data at mount time by using the `--precache` option.
 

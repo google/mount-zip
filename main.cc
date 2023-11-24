@@ -70,7 +70,7 @@ General options:
                            if the encryption or compression method is unsupported
     --encoding=CHARSET     original encoding of file names
     --precache             preemptively uncompress and cache data
-    --cache=DIR            cache dir (default is /tmp)
+    --cache=DIR            cache dir (default is $TMPDIR or /tmp)
     --nocache              no caching of uncompressed data
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links

@@ -32,8 +32,14 @@
 #include "path.h"
 #include "scoped_file.h"
 
+static std::string GetEnvOrDefault(const char* env_var,
+                                   const char* default_val) {
+  const char* val = std::getenv(env_var);
+  return val ? val : default_val;
+}
+
 bool Reader::may_cache_ = true;
-std::string Reader::cache_dir_ = "/tmp";
+std::string Reader::cache_dir_ = GetEnvOrDefault("TMPDIR", "/tmp");
 zip_int64_t Reader::reader_count_ = 0;
 
 static void LimitSize(ssize_t* const a, off_t b) {
