@@ -32,8 +32,13 @@
 #include "path.h"
 #include "scoped_file.h"
 
+static std::string GetTmpDir() {
+  const char* const val = std::getenv("TMPDIR");
+  return val && *val ? val : "/tmp";
+}
+
 bool Reader::may_cache_ = true;
-std::string Reader::cache_dir_ = "/tmp";
+std::string Reader::cache_dir_ = GetTmpDir();
 zip_int64_t Reader::reader_count_ = 0;
 
 static void LimitSize(ssize_t* const a, off_t b) {

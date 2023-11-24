@@ -15,7 +15,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "MOUNT-ZIP" "1" "September 2023" "mount-zip 1.0" "User Manual"
+.TH "MOUNT-ZIP" "1" "December 2023" "mount-zip 1.0" "User Manual"
 .hy
 .SH NAME
 .PP
@@ -67,7 +67,7 @@ compression method is unsupported
 original encoding of file names
 .TP
 \f[B]--cache=DIR\f[R]
-cache directory (default is \f[V]/tmp\f[R])
+cache directory (default is \f[V]$TMPDIR\f[R] or \f[V]/tmp\f[R])
 .TP
 \f[B]--precache\f[R]
 preemptively uncompress and cache data
@@ -723,7 +723,7 @@ sys     0m0.018s
 .fi
 .PP
 Decompressed data is cached in a temporary file located in the cache
-directory (\f[V]/tmp\f[R] by default).
+directory (\f[V]$TMPDIR\f[R] or \f[V]/tmp\f[R] by default).
 The cache directory can be changed with the \f[V]--cache=DIR\f[R]
 option.
 The cache file is only created if necessary, and automatically deleted
