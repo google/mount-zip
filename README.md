@@ -50,9 +50,6 @@ yet, **mount-zip** creates it first. If no mount point is provided,
 :   mount ZIP even if password is wrong or missing, or if the encryption or
     compression method is unsupported
 
-**-\-encoding=CHARSET**
-:   original encoding of file names
-
 **-\-cache=DIR**
 :   cache directory (default is `$TMPDIR` or `/tmp`)
 
@@ -61,6 +58,9 @@ yet, **mount-zip** creates it first. If no mount point is provided,
 
 **-\-nocache**
 :   no caching of uncompressed data
+
+**-o encoding=CHARSET**
+:   original encoding of file names
 
 **-o nospecials**
 :   hide special files (FIFOs, sockets, devices)

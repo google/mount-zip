@@ -68,10 +68,10 @@ General options:
     --redact               redact file names from log messages
     --force                mount ZIP even if password is wrong or missing, or
                            if the encryption or compression method is unsupported
-    --encoding=CHARSET     original encoding of file names
     --precache             preemptively uncompress and cache data
     --cache=DIR            cache dir (default is $TMPDIR or /tmp)
     --nocache              no caching of uncompressed data
+    -o encoding=CHARSET    original encoding of file names
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links
     -o nohardlinks         no hard links
