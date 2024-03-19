@@ -809,6 +809,9 @@ related the ZIP archive itself:
     password does not allow to decrypt it. Use `--force` to bypass the password
     verification.
 
+**45**
+:   Possibly truncated or corrupted ZIP archive.
+
 # PROJECT HISTORY
 
 **mount-zip** started as a fork of **fuse-zip**.
