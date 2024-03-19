@@ -1833,13 +1833,26 @@ def TestZipFileNameEncoding():
         '!"#$%&\'()*+,-.': {},
         '!"#$%&\'()*+,-./0': {
             'size': 0
-        }
+        },
+        'qrstuvwxyz{|}~\x1aÇ': {
+            'size': 0
+        },
+        '\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1c\x1b\x7f\x1d\x1e\x1f ': {
+            'size': 0
+        },
+        '\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10': {
+            'size': 0
+        },
     }
     MountZipAndCheckTree('cp437.zip',
                          want_tree,
                          options=['-o', 'encoding=cp437'])
 
     del want_tree['ßΓπΣσμτΦΘΩδ∞φε∩≡']
+    del want_tree['qrstuvwxyz{|}~\x1aÇ']
+    del want_tree['\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1c\x1b\x7f\x1d\x1e\x1f ']
+    del want_tree['\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10']
+
     want_tree.update({
         'ßΓπΣσµτΦΘΩδ∞φε∩≡': {
             'size': 0

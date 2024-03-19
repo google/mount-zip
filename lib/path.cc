@@ -129,11 +129,8 @@ bool Path::Normalize(std::string* const dest_path,
     const std::string_view part = in.substr(0, in.find_first_of('/'));
     assert(!part.empty());
 
-    if (part == "." || part == ".." || part.size() > NAME_MAX ||
-        std::any_of(part.begin(), part.end(),
-                    [](unsigned char c) { return std::iscntrl(c); })) {
+    if (part == "." || part == ".." || part.size() > NAME_MAX)
       return false;
-    }
 
     Append(dest_path, part);
     in.remove_prefix(part.size());
