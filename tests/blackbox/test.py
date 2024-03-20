@@ -836,84 +836,109 @@ def TestZipWithDefaultOptions():
           }
       },
       'mixed-paths.zip': {
-          'CUR/Empty': {
-              'ino': 18,
-              'mode': 'drwxrwxr-x',
-              'nlink': 2,
-              'uid': 0,
-              'gid': 0,
-          },
-          'CUR/Square [].txt': {
-              'ino': 16,
-              'mode': '-rw-------',
-              'nlink': 1,
-              'uid': 0,
-              'gid': 0,
-              'size': 30,
-              'md5': 'a3c0f4c806fd09aed3820f4cd04a5c17',
+          'CUR/Empty': {'mode': 'drwxrwxr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'CUR/And (&).txt': {
+              'size': 23,
+              'md5': '288932f7446c7eaeda8695359f12e09c',
           },
           'CUR/Angle <>.txt': {
-              'ino': 15,
-              'mode': '-rw-------',
-              'nlink': 1,
-              'uid': 0,
-              'gid': 0,
-              'size': 29,
-              'md5': '3275b321cca4963642cf083bbcc0cf2d',
+              'size': 28,
+              'md5': 'e21a6dfe71fd2683df5d29bd34e98794',
+          },
+          'CUR/At (@).txt': {
+              'size': 21,
+              'md5': '546e4e5d87c4070e59d431f76aa9f0c8',
           },
           'CUR/Backslash (\\).txt': {
-              'ino': 14,
-              'mode': '-rw-------',
-              'nlink': 1,
-              'uid': 0,
-              'gid': 0,
-              'size': 23,
-              'md5': '1c5360ba1d4f1698941d2ef7ccc722d8',
+              'size': 22,
+              'md5': '24a83c0eaec26d8a048e784744077eba',
           },
-          'CUR/Double quote (").txt': {
-              'ino': 13,
-              'mode': '-rw-------',
-              'nlink': 1,
-              'uid': 0,
-              'gid': 0,
+          'CUR/Backtick (`).txt': {
+              'size': 21,
+              'md5': '9bc1bf962f1b3a1ffa9fbb3436c8ec80',
+          },
+          'CUR/Bar (|).txt': {
+              'size': 16,
+              'md5': '2a2822358d9712528fdb8c80378ba2c7',
+          },
+          'CUR/Caret (^).txt': {
+              'size': 18,
+              'md5': '8c45b0d06ae0079756fe720540016f73',
+          },
+          'CUR/Carriage return (\r).txt': {
+              'size': 27,
+              'md5': '4838374dd42ca8549077536d2cd6086f',
+          },
+          'CUR/Colon (:).txt': {
+              'size': 18,
+              'md5': '6c9ddde4cb589f7d4d6484c1a34f843d',
+          },
+          'CUR/Comma (,).txt': {
+              'size': 18,
+              'md5': 'e286b69cccb0feeb4f50049d40c3dc67',
+          },
+          'CUR/Curly {}.txt': {
               'size': 26,
-              'md5': 'b4d1ac0f736d863e0cead53f96c7d314',
+              'md5': 'fc6f7b7faca1bc85a63abc9110d30fd5',
           },
-          "CUR/Quote (').txt": {
-              'ino': 12,
-              'mode': '-rw-------',
-              'nlink': 1,
-              'uid': 0,
-              'gid': 0,
-              'size': 19,
-              'md5': '7d27cb02785c9c7a939889104544de82',
+          'CUR/Dollar ($).txt': {
+              'size': 24,
+              'md5': '5540a138d1f59e7e493ba30412e92475',
+          },
+          'CUR/Double (").txt': {
+              'size': 25,
+              'md5': 'ce77fa3fa51d9fd94ad414bbac699a69',
+          },
+          'CUR/Escape (←).txt': {
+              'size': 30,
+              'md5': 'a4dd000ea2d31598906ccf3ea0c2585e',
+          },
+          'CUR/Hash (#).txt': {
+              'size': 22,
+              'md5': '7b75401fa2e1bc601d0aefbdfb2d5346',
+          },
+          'CUR/Newline (\n).txt': {
+              'size': 18,
+              'md5': '6350894ad5cf5472611f66fde24679ce',
+          },
+          'CUR/Percent (%).txt': {
+              'size': 25,
+              'md5': '1c03f5f6c5dfb3e15d194034d537b12d',
+          },
+          'CUR/Plus (+).txt': {
+              'size': 22,
+              'md5': '8a621fba4747d2fac16c71b0d6eb9c74',
           },
           'CUR/Question (?).txt': {
-              'ino': 11,
-              'mode': '-rw-------',
-              'nlink': 1,
-              'uid': 0,
-              'gid': 0,
-              'size': 27,
-              'md5': '6449d2e0a6ac10b9d763347208e4a347',
+              'size': 26,
+              'md5': '95c6ddf288067f9329509582a0644038',
+          },
+          "CUR/Quote (').txt": {
+              'size': 25,
+              'md5': 'a2836d37a718aa549c35b4c7fa42c8bc',
+          },
+          'CUR/Semicolon (;).txt': {
+              'size': 22,
+              'md5': '702fb425cca3a87e19b2334276939131',
+          },
+          'CUR/Square [].txt': {
+              'size': 29,
+              'md5': 'fbf2e098e64e8b080bb191fe110aba38',
           },
           'CUR/Star (*).txt': {
-              'ino': 10,
-              'mode': '-rw-------',
-              'nlink': 1,
-              'uid': 0,
-              'gid': 0,
+              'size': 17,
+              'md5': 'ca195d09e794add28bb1a9c6c0cd9214',
+          },
+          'CUR/Tab (\t).txt': {
+              'size': 16,
+              'md5': 'a5a41933703a368e2526ae853a3de101',
+          },
+          'CUR/Tilde (~).txt': {
               'size': 18,
-              'md5': 'fd26a5799726c278ede65ab2298a513a',
+              'md5': 'a5f5a3f198fac98f6888825989b94dfe',
           },
           'ROOT': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'ROOT/Empty': {
-              'ino': 20,
-              'mode': 'drwxrwxr-x',
-              'nlink': 2,
-              'uid': 0,
-              'gid': 0,
-          },
+          'ROOT/Empty': {'mode': 'drwxrwxr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
           'ROOT/top.txt': {
               'mode': '-rw-------',
               'nlink': 1,
