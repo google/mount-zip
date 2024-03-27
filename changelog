@@ -1,3 +1,8 @@
+2024-03-27 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.13:
+	- Allow control characters in filenames and paths
+
 2023-12-04 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.12:
