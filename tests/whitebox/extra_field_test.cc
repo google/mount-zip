@@ -283,7 +283,7 @@ void unix_infozip1() {
  */
 void unix_infozip2() {
   const zip_uint8_t data_local[] = {0x02, 0x01, 0x04, 0x03};
-  const zip_uint8_t data_central[] = {};
+  const zip_uint8_t data_central[] = {0};
 
   uid_t uid;
   gid_t gid;
