@@ -57,6 +57,9 @@ $(LIB):
 lib-clean:
 	$(MAKE) -C lib clean
 
+check-clean:
+	$(MAKE) -C tests clean
+
 clean: lib-clean all-clean check-clean
 
 all-clean:
