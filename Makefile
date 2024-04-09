@@ -36,9 +36,9 @@ OBJECTS = $(SOURCES:.cc=.o)
 MAN = $(DEST).1
 MANDIR = $(prefix)/share/man/man1
 CLEANFILES = $(OBJECTS) $(DEST)
-INSTALL = install -D
-INSTALL_PROGRAM = $(INSTALL)
-INSTALL_DATA = $(INSTALL) -m 644
+INSTALL = install
+INSTALL_PROGRAM = $(INSTALL) -D
+INSTALL_DATA = $(INSTALL) -D -m 644
 
 all: $(DEST)
 
