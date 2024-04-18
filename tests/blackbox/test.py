@@ -2221,7 +2221,7 @@ def TestInvalidZip():
   CheckZipMountingError('invalid.zip', 29)
   with tempfile.NamedTemporaryFile() as f:
     os.chmod(f.name, 0)
-    CheckZipMountingError(f.name, 21)
+    CheckZipMountingError(f.name, 21 if os.getuid() != 0 else 29)
 
 
 logging.getLogger().setLevel('INFO')
