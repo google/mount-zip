@@ -17,6 +17,7 @@
 
 import os
 import os.path
+import warnings
 from zipfile import ZIP_DEFLATED, ZipFile
 
 dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
@@ -33,6 +34,8 @@ try:
         b'This should be four',
     )
     for i in range(100):
+      warnings.filterwarnings(
+          'ignore', message="Duplicate name: 'a/b/c/d/e/f/g/h/i/j/There are many versions of this file'")
       print('\rWriting collisions.zip... %3d %%' % i, end='', flush=True)
       for j in range(1000):
         z.writestr(
