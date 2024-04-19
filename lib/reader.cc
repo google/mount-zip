@@ -23,6 +23,7 @@
 #include <utility>
 
 #include <fcntl.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/syslog.h>
 #include <sys/types.h>
@@ -116,13 +117,24 @@ class CacheFileReader : public UnbufferedReader {
     if (!may_cache_)
       throw std::runtime_error("Option --nocache is in use");
 
-    ScopedFile file(open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
+    try {
+      ScopedFile file(open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
 
-    if (!file.IsValid())
-      ThrowSystemError("Cannot create cache file in ", Path(cache_dir_));
+      if (!file.IsValid())
+        ThrowSystemError("Cannot create cache file in ", Path(cache_dir_));
 
-    Log(LOG_DEBUG, "Created cache file in ", Path(cache_dir_));
-    return file;
+      Log(LOG_DEBUG, "Created cache file in ", Path(cache_dir_));
+      return file;
+    } catch (const std::exception& e) {
+      Log(LOG_WARNING, e.what());
+
+      ScopedFile file(memfd_create("cache", 0));
+      if (!file.IsValid())
+        ThrowSystemError("Cannot create cache file in memory");
+
+      Log(LOG_WARNING, "Created cache file in memory instead");
+      return file;
+    }
   }
 
   // Gets the file descriptor of the global cache file.
