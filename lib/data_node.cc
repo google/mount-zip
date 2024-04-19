@@ -269,7 +269,22 @@ bool DataNode::CacheAll(zip_t* const zip,
   ZipFile file = Reader::Open(zip, id);
   assert(file);
 
+#if LIBZIP_VERSION_MAJOR > 1 ||                             \
+  LIBZIP_VERSION_MAJOR == 1 &&                              \
+  (LIBZIP_VERSION_MINOR > 9 ||                              \
+   LIBZIP_VERSION_MINOR == 9 && LIBZIP_VERSION_MICRO >= 1)
+  // For libzip >= 1.9.1
   const bool seekable = zip_file_is_seekable(file.get()) > 0;
+#else
+  // For libzip < 1.9.1
+  zip_stat_t st;
+  const bool seekable = zip_stat_index(zip, id, 0, &st) == 0 &&
+                        (st.valid & ZIP_STAT_COMP_METHOD) != 0 &&
+                        st.comp_method == ZIP_CM_STORE &&
+                        (st.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
+                        st.encryption_method == ZIP_EM_NONE;
+#endif
+
   if (seekable) {
     Log(LOG_DEBUG, "No need to cache ", file_node, ": File is seekable");
     return false;
@@ -293,7 +308,22 @@ Reader::Ptr DataNode::GetReader(zip_t* const zip,
   ZipFile file = Reader::Open(zip, id);
   assert(file);
 
+#if LIBZIP_VERSION_MAJOR > 1 ||      \
+    LIBZIP_VERSION_MAJOR == 1 &&     \
+        (LIBZIP_VERSION_MINOR > 9 || \
+         LIBZIP_VERSION_MINOR == 9 && LIBZIP_VERSION_MICRO >= 1)
+  // For libzip >= 1.9.1
   const bool seekable = zip_file_is_seekable(file.get()) > 0;
+#else
+  // For libzip < 1.9.1
+  zip_stat_t st;
+  const bool seekable = zip_stat_index(zip, id, 0, &st) == 0 &&
+                        (st.valid & ZIP_STAT_COMP_METHOD) != 0 &&
+                        st.comp_method == ZIP_CM_STORE &&
+                        (st.valid & ZIP_STAT_ENCRYPTION_METHOD) != 0 &&
+                        st.encryption_method == ZIP_EM_NONE;
+#endif
+
   Reader::Ptr reader(seekable ? new UnbufferedReader(std::move(file), id, size)
                               : new BufferedReader(zip, std::move(file), id,
                                                    size, &cached_reader));
