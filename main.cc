@@ -439,13 +439,18 @@ int main(int argc, char* argv[]) try {
 
   // Resolve path of cache dir if provided.
   if (param.cache_dir) {
-    char buffer[PATH_MAX + 1];
-    const char* const p = realpath(param.cache_dir, buffer);
-    if (!p)
-      ThrowSystemError("Cannot use cache dir ", Path(param.cache_dir));
+    if (*param.cache_dir) {
+      char buffer[PATH_MAX + 1];
+      const char* const p = realpath(param.cache_dir, buffer);
+      if (!p)
+        ThrowSystemError("Cannot use cache dir ", Path(param.cache_dir));
 
-    Reader::cache_dir_ = p;
-    Log(LOG_DEBUG, "Using cache dir ", Path(Reader::cache_dir_));
+      Reader::cache_dir_ = p;
+      Log(LOG_DEBUG, "Using cache dir ", Path(Reader::cache_dir_));
+    } else {
+      Reader::cache_dir_.clear();
+      Log(LOG_DEBUG, "Using memory cache");
+    }
   }
 
   // Open and index the ZIP archive.

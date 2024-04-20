@@ -16,6 +16,7 @@
 #include "reader.h"
 
 #include <cassert>
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -111,30 +112,55 @@ class CacheFileReader : public UnbufferedReader {
   }
 
  private:
-  // Creates a new, empty and hidden cache file.
+  // Creates a new and empty cache file.
   // Throws std::system_error in case of error.
   static ScopedFile CreateCacheFile() {
     if (!may_cache_)
       throw std::runtime_error("Option --nocache is in use");
 
-    try {
-      ScopedFile file(open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
-
-      if (!file.IsValid())
-        ThrowSystemError("Cannot create cache file in ", Path(cache_dir_));
-
-      Log(LOG_DEBUG, "Created cache file in ", Path(cache_dir_));
-      return file;
-    } catch (const std::exception& e) {
-      Log(LOG_WARNING, e.what());
-
+    // If no cache dir is set, create an in-memory anonymous file.
+    if (cache_dir_.empty()) {
       ScopedFile file(memfd_create("cache", 0));
       if (!file.IsValid())
         ThrowSystemError("Cannot create cache file in memory");
 
-      Log(LOG_WARNING, "Created cache file in memory instead");
+      Log(LOG_DEBUG, "Created cache file in memory");
       return file;
     }
+
+    // Create a cache file in the cache dir.
+    if (ScopedFile file(
+            open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
+        file.IsValid()) {
+      Log(LOG_DEBUG, "Created anonymous cache file in ", Path(cache_dir_));
+      return file;
+    }
+
+    if (errno != ENOTSUP)
+      ThrowSystemError("Cannot create anonymous cache file in ", Path(cache_dir_));
+
+    // Some filesystems, such as overlayfs, do not support the creation of
+    // temp files with O_TMPFILE. Unfortunately, these filesystems are
+    // sometimes used for the /tmp directory. In that case, create a named
+    // temp file, and unlink it immediately.
+
+    assert(errno == ENOTSUP);
+    Log(LOG_DEBUG, "The filesystem of ", Path(cache_dir_),
+        " does not support O_TMPFILE");
+
+    std::string path = cache_dir_;
+    Path::Append(&path, "XXXXXX");
+    ScopedFile file(mkstemp(path.data()));
+
+    if (!file.IsValid())
+      ThrowSystemError("Cannot create named cache file in ", Path(cache_dir_));
+
+    Log(LOG_DEBUG, "Created cache file ", Path(path));
+
+    if (unlink(path.c_str()) < 0)
+      ThrowSystemError("Cannot unlink cache file ", Path(path));
+
+    return file;
   }
 
   // Gets the file descriptor of the global cache file.
