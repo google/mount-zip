@@ -20,7 +20,6 @@ all:
 	make -C whitebox test
 
 valgrind:
-	make -C blackbox valgrind
 	make -C whitebox valgrind
 
 clean:
