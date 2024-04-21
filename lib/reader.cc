@@ -39,13 +39,28 @@ static std::string GetTmpDir() {
   return val && *val ? val : "/tmp";
 }
 
-bool Reader::may_cache_ = true;
+CacheStrategy Reader::cache_strategy_ = CacheStrategy::Unspecified;
 std::string Reader::cache_dir_ = GetTmpDir();
 zip_int64_t Reader::reader_count_ = 0;
 
 static void LimitSize(ssize_t* const a, off_t b) {
   if (*a > b)
     *a = static_cast<ssize_t>(b);
+}
+
+void Reader::SetCacheStrategy(const CacheStrategy strategy) {
+  if (cache_strategy_ != CacheStrategy::Unspecified)
+    throw std::runtime_error(
+        "Only one of these options can be used: "
+        "--nocache, --memcache or --cache");
+
+  cache_strategy_ = strategy;
+}
+
+void Reader::SetCacheDir(const std::string_view dir) {
+  SetCacheStrategy(CacheStrategy::InFile);
+  cache_dir_ = dir;
+  Log(LOG_DEBUG, "Using cache dir ", Path(Reader::cache_dir_));
 }
 
 ZipFile Reader::Open(zip_t* const zip, const zip_int64_t file_id) {
@@ -115,52 +130,59 @@ class CacheFileReader : public UnbufferedReader {
   // Creates a new and empty cache file.
   // Throws std::system_error in case of error.
   static ScopedFile CreateCacheFile() {
-    if (!may_cache_)
-      throw std::runtime_error("Option --nocache is in use");
+    switch (cache_strategy_) {
+      case CacheStrategy::NoCache:
+        throw std::runtime_error(
+            "Cannot create cache file: Option --nocache is in use");
 
-    // If no cache dir is set, create an in-memory anonymous file.
-    if (cache_dir_.empty()) {
-      ScopedFile file(memfd_create("cache", 0));
-      if (!file.IsValid())
-        ThrowSystemError("Cannot create cache file in memory");
+      case CacheStrategy::InMemory:
+        // Create an in-memory anonymous file.
+        {
+          ScopedFile file(memfd_create("cache", 0));
+          if (!file.IsValid())
+            ThrowSystemError("Cannot create cache file in memory");
 
-      Log(LOG_DEBUG, "Created cache file in memory");
-      return file;
+          Log(LOG_DEBUG, "Created cache file in memory");
+          return file;
+        }
+
+      default:
+        // Create a cache file in the cache dir.
+        if (ScopedFile file(
+                open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
+            file.IsValid()) {
+          Log(LOG_DEBUG, "Created anonymous cache file in ", Path(cache_dir_));
+          return file;
+        }
+
+        if (errno != ENOTSUP)
+          ThrowSystemError("Cannot create anonymous cache file in ",
+                           Path(cache_dir_));
+
+        // Some filesystems, such as overlayfs, do not support the creation of
+        // temp files with O_TMPFILE. Unfortunately, these filesystems are
+        // sometimes used for the /tmp directory. In that case, create a named
+        // temp file, and unlink it immediately.
+
+        assert(errno == ENOTSUP);
+        Log(LOG_DEBUG, "The filesystem of ", Path(cache_dir_),
+            " does not support O_TMPFILE");
+
+        std::string path = cache_dir_;
+        Path::Append(&path, "XXXXXX");
+        ScopedFile file(mkstemp(path.data()));
+
+        if (!file.IsValid())
+          ThrowSystemError("Cannot create named cache file in ",
+                           Path(cache_dir_));
+
+        Log(LOG_DEBUG, "Created cache file ", Path(path));
+
+        if (unlink(path.c_str()) < 0)
+          ThrowSystemError("Cannot unlink cache file ", Path(path));
+
+        return file;
     }
-
-    // Create a cache file in the cache dir.
-    if (ScopedFile file(
-            open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
-        file.IsValid()) {
-      Log(LOG_DEBUG, "Created anonymous cache file in ", Path(cache_dir_));
-      return file;
-    }
-
-    if (errno != ENOTSUP)
-      ThrowSystemError("Cannot create anonymous cache file in ", Path(cache_dir_));
-
-    // Some filesystems, such as overlayfs, do not support the creation of
-    // temp files with O_TMPFILE. Unfortunately, these filesystems are
-    // sometimes used for the /tmp directory. In that case, create a named
-    // temp file, and unlink it immediately.
-
-    assert(errno == ENOTSUP);
-    Log(LOG_DEBUG, "The filesystem of ", Path(cache_dir_),
-        " does not support O_TMPFILE");
-
-    std::string path = cache_dir_;
-    Path::Append(&path, "XXXXXX");
-    ScopedFile file(mkstemp(path.data()));
-
-    if (!file.IsValid())
-      ThrowSystemError("Cannot create named cache file in ", Path(cache_dir_));
-
-    Log(LOG_DEBUG, "Created cache file ", Path(path));
-
-    if (unlink(path.c_str()) < 0)
-      ThrowSystemError("Cannot unlink cache file ", Path(path));
-
-    return file;
   }
 
   // Gets the file descriptor of the global cache file.

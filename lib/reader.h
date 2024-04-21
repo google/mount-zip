@@ -32,6 +32,13 @@ struct ZipClose {
 
 using ZipFile = std::unique_ptr<zip_file_t, ZipClose>;
 
+enum class CacheStrategy {
+  Unspecified,
+  NoCache,
+  InMemory,
+  InFile,
+};
+
 // Base abstract class for Reader objects that reads and return bytes from a
 // file stored or compressed in a ZIP archive.
 class Reader {
@@ -73,14 +80,20 @@ class Reader {
   // Opens the file at index |file_id|. Throws ZipError in case of error.
   static ZipFile Open(zip_t* zip, zip_int64_t file_id);
 
-  // Whether a cache file may be created if needed.
-  static bool may_cache_;
+  // Sets the cache strategy.
+  static void SetCacheStrategy(CacheStrategy strategy);
 
-  // Directory in which the cache file is created if needed.
-  static std::string cache_dir_;
+  // Sets the cache strategy and directory.
+  static void SetCacheDir(std::string_view dir);
 
  protected:
   virtual ~Reader() = default;
+
+  // Cache strategy.
+  static CacheStrategy cache_strategy_;
+
+  // Directory in which the cache file is created if needed.
+  static std::string cache_dir_;
 
   // Number of created Reader objects.
   static zip_int64_t reader_count_;

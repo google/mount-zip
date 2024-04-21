@@ -68,9 +68,10 @@ General options:
     --redact               redact file names from log messages
     --force                mount ZIP even if password is wrong or missing, or
                            if the encryption or compression method is unsupported
-    --precache             preemptively uncompress and cache data
+    --precache             preemptively decompress and cache data
     --cache=DIR            cache dir (default is $TMPDIR or /tmp)
-    --nocache              no caching of uncompressed data
+    --memcache             cache decompressed data in memory
+    --nocache              no caching of decompressed data
     -o encoding=CHARSET    original encoding of file names
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links
@@ -266,6 +267,7 @@ enum {
   KEY_FORCE,
   KEY_ENCODING,
   KEY_PRE_CACHE,
+  KEY_MEM_CACHE,
   KEY_NO_CACHE,
   KEY_NO_SPECIALS,
   KEY_NO_SYMLINKS,
@@ -346,8 +348,12 @@ static int ProcessArg(void* data,
       param.opts.pre_cache = true;
       return DISCARD;
 
+    case KEY_MEM_CACHE:
+      Reader::SetCacheStrategy(CacheStrategy::InMemory);
+      return DISCARD;
+
     case KEY_NO_CACHE:
-      Reader::may_cache_ = false;
+      Reader::SetCacheStrategy(CacheStrategy::NoCache);
       return DISCARD;
 
     case KEY_NO_SPECIALS:
@@ -420,6 +426,7 @@ int main(int argc, char* argv[]) try {
                            FUSE_OPT_KEY("--redact", KEY_REDACT),
                            FUSE_OPT_KEY("--force", KEY_FORCE),
                            FUSE_OPT_KEY("--precache", KEY_PRE_CACHE),
+                           FUSE_OPT_KEY("--memcache", KEY_MEM_CACHE),
                            FUSE_OPT_KEY("--nocache", KEY_NO_CACHE),
                            FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
                            FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
@@ -439,18 +446,12 @@ int main(int argc, char* argv[]) try {
 
   // Resolve path of cache dir if provided.
   if (param.cache_dir) {
-    if (*param.cache_dir) {
-      char buffer[PATH_MAX + 1];
-      const char* const p = realpath(param.cache_dir, buffer);
-      if (!p)
-        ThrowSystemError("Cannot use cache dir ", Path(param.cache_dir));
+    char buffer[PATH_MAX + 1];
+    const char* const p = realpath(param.cache_dir, buffer);
+    if (!p)
+      ThrowSystemError("Cannot use cache dir ", Path(param.cache_dir));
 
-      Reader::cache_dir_ = p;
-      Log(LOG_DEBUG, "Using cache dir ", Path(Reader::cache_dir_));
-    } else {
-      Reader::cache_dir_.clear();
-      Log(LOG_DEBUG, "Using memory cache");
-    }
+    Reader::SetCacheDir(p);
   }
 
   // Open and index the ZIP archive.

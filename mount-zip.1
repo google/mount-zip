@@ -15,7 +15,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "MOUNT-ZIP" "1" "December 2023" "mount-zip 1.0" "User Manual"
+.TH "MOUNT-ZIP" "1" "April 2024" "mount-zip 1.0" "User Manual"
 .hy
 .SH NAME
 .PP
@@ -63,14 +63,17 @@ redact file names from log messages
 mount ZIP even if password is wrong or missing, or if the encryption or
 compression method is unsupported
 .TP
+\f[B]--precache\f[R]
+preemptively decompress and cache data
+.TP
 \f[B]--cache=DIR\f[R]
 cache directory (default is \f[V]$TMPDIR\f[R] or \f[V]/tmp\f[R])
 .TP
-\f[B]--precache\f[R]
-preemptively uncompress and cache data
+\f[B]--memcache\f[R]
+cache decompressed data in memory
 .TP
 \f[B]--nocache\f[R]
-no caching of uncompressed data
+no caching of decompressed data
 .TP
 \f[B]-o encoding=CHARSET\f[R]
 original encoding of file names
@@ -729,12 +732,19 @@ option.
 The cache file is only created if necessary, and automatically deleted
 when the ZIP is unmounted.
 .PP
+Alternatively, the \f[V]--memcache\f[R] option caches the decompressed
+data in memory.
+Be cautious with this option since it can cause \f[B]mount-zip\f[R] to
+use a lot of memory.
+.PP
 You can preemtively cache data at mount time by using the
 \f[V]--precache\f[R] option.
+The cost of decompression in incurred upfront, and this ensures that any
+subsequent access to the mounted data is fast.
 .PP
-If \f[B]mount-zip\f[R] cannot create the cache file, or if it was passed
-the \f[V]--nocache\f[R] option, it will do its best using a small
-rolling buffer in memory.
+If \f[B]mount-zip\f[R] cannot create and expand the cache file, or if it
+was passed the \f[V]--nocache\f[R] option, it will do its best using a
+small rolling buffer in memory.
 However, some data access patterns might then result in poor
 performance, especially if \f[B]mount-zip\f[R] has to repeatedly extract
 the same file.
@@ -742,7 +752,7 @@ the same file.
 .PP
 On small archives \f[B]mount-zip\f[R] has the same performance as
 commonly used virtual filesystems such as KIO, Gnome GVFS, mc vfs,
-unpackfs, avfs and fuse-j-zip.
+unpackfs, avfs and fuse-zip.
 But on large archives containing many files, \f[B]mount-zip\f[R] is
 pretty quick.
 .PP

@@ -3,7 +3,7 @@ title: MOUNT-ZIP
 section: 1
 header: User Manual
 footer: mount-zip 1.0
-date: December 2023
+date: April 2024
 ---
 # NAME
 
@@ -50,14 +50,17 @@ yet, **mount-zip** creates it first. If no mount point is provided,
 :   mount ZIP even if password is wrong or missing, or if the encryption or
     compression method is unsupported
 
+**-\-precache**
+:   preemptively decompress and cache data
+
 **-\-cache=DIR**
 :   cache directory (default is `$TMPDIR` or `/tmp`)
 
-**-\-precache**
-:   preemptively uncompress and cache data
+**-\-memcache**
+:   cache decompressed data in memory
 
 **-\-nocache**
-:   no caching of uncompressed data
+:   no caching of decompressed data
 
 **-o encoding=CHARSET**
 :   original encoding of file names
@@ -613,18 +616,25 @@ Decompressed data is cached in a temporary file located in the cache directory
 `--cache=DIR` option. The cache file is only created if necessary, and
 automatically deleted when the ZIP is unmounted.
 
-You can preemtively cache data at mount time by using the `--precache` option.
+Alternatively, the `--memcache` option caches the decompressed data in memory.
+Be cautious with this option since it can cause **mount-zip** to use a lot of
+memory.
 
-If **mount-zip** cannot create the cache file, or if it was passed the
-`--nocache` option, it will do its best using a small rolling buffer in memory.
-However, some data access patterns might then result in poor performance,
-especially if **mount-zip** has to repeatedly extract the same file.
+You can preemtively cache data at mount time by using the `--precache` option.
+The cost of decompression in incurred upfront, and this ensures that any
+subsequent access to the mounted data is fast.
+
+If **mount-zip** cannot create and expand the cache file, or if it was passed
+the `--nocache` option, it will do its best using a small rolling buffer in
+memory. However, some data access patterns might then result in poor
+performance, especially if **mount-zip** has to repeatedly extract the same
+file.
 
 # PERFORMANCE
 
 On small archives **mount-zip** has the same performance as commonly used
 virtual filesystems such as KIO, Gnome GVFS, mc vfs, unpackfs, avfs and
-fuse-j-zip. But on large archives containing many files, **mount-zip** is pretty
+fuse-zip. But on large archives containing many files, **mount-zip** is pretty
 quick.
 
 For example on my laptop, a ZIP archive containing more than 70,000 files is
