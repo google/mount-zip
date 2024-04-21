@@ -1,3 +1,10 @@
+2024-04-21 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.14:
+	- Add --memcache option for in-memory cache file
+	- Add workaround for cache file on filesystems that don't support O_TMPFILE
+	- Support older versions of libzip than 1.9.1
+
 2024-03-27 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.13:
@@ -69,7 +76,6 @@
 	- Use fuse_main()
 	- Improve logs
 	- Fix for NetBSD
-
 
 2021-11-28 François Degros <fdegros@chromium.org>
 
@@ -174,6 +180,7 @@
 	directory is not writable.
 
 2018-02-04 Alexander Galanin <al@galanin.nnov.ru>
+
 	* Released 0.4.5:
 	- #52: Print error message and exit on nonexistent file in read-only mode.
 	- #51: Check return value of chdir().
@@ -181,10 +188,12 @@
 	- Fixed errors found by static code analysis.
 
 2017-12-04 Alexander Galanin <al@galanin.nnov.ru>
+
 	* Released 0.4.4:
 	- Fixed problem with README installation.
 
 2017-12-03 Alexander Galanin <al@galanin.nnov.ru>
+
 	* Released 0.4.3:
 	- License changed to GPLv3 or later because LGPLv3 is too confusing.
 	- Support mknod() system call.
@@ -192,10 +201,12 @@
 	- Fixed timestamp and file attribute fields saving into archive.
 
 2016-02-28 Alexander Galanin <al@galanin.nnov.ru>
+
 	* Released 0.4.2:
 	- Properly handle ZIP_SOURCE_SUPPORTS call introduced in libzip 1.0 (fixes #46)
 
 2014-07-04 Alexander Galanin <al@galanin.nnov.ru>
+
 	* Released 0.4.1:
 	- Fixed problem with subdir module support.
 	- Applied makefile conventions from GNU Coding Standards.
