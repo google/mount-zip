@@ -844,12 +844,14 @@ Shows Hard Links             | ✅         | ✅
 Shows Special Files          | ✅         | ✅
 Shows Precise Timestamps     | ✅         | ✅
 Allows Random Access         | ✅         | ✅
+Can Cache in Memory          | ✅         | ✅
+Can Cache in Temp File       | ✅         | ❌
+Smart Caching                | ✅         | ❌
 Decompresses Lazily          | ✅         | ❌
+Handles Huge Files           | ✅         | ❌
 Decrypts Encrypted Files     | ✅         | ❌
 Detects Name Encoding        | ✅         | ❌
 Deduplicates Names           | ✅         | ❌
-Reads Huge Files             | ✅         | ❌
-Smart Caching                | ✅         | ❌
 Can Hide Symlinks            | ✅         | ❌
 Can Hide Hard Links          | ✅         | ❌
 Can Hide Special Files       | ✅         | ❌
