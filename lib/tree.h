@@ -66,6 +66,7 @@ class Tree {
 
   static const blksize_t block_size = DataNode::block_size;
   blkcnt_t GetBlockCount() const { return total_block_count_; }
+  fsfilcnt_t GetNodeCount() const { return files_by_path_.size(); }
 
  private:
   // Constructor.

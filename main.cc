@@ -239,6 +239,12 @@ struct Operations : fuse_operations {
     st->f_bsize = Tree::block_size;
     st->f_frsize = Tree::block_size;
     st->f_blocks = tree->GetBlockCount();
+    st->f_bfree = 0;
+    st->f_bavail = 0;
+    st->f_files = tree->GetNodeCount();
+    st->f_ffree = 0;
+    st->f_favail = 0;
+    st->f_flag = ST_RDONLY;
     st->f_namemax = NAME_MAX;
     return 0;
   }

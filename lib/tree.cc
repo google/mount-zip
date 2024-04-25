@@ -538,7 +538,7 @@ void Tree::BuildTree() {
   if (should_display_progress.Count())
     Log(LOG_INFO, "Loaded 100%");
 
-  Log(LOG_DEBUG, "Nodes = ", files_by_path_.size());
+  Log(LOG_DEBUG, "Nodes = ", GetNodeCount());
   Log(LOG_DEBUG, "Blocks = ", total_block_count_);
 }
 
