@@ -75,6 +75,39 @@ Path::size_type Path::ExtensionPosition() const {
   return last_dot;
 }
 
+Path::size_type Path::TruncationPosition(size_type i) const {
+  if (i >= size())
+    return size();
+
+  while (true) {
+    // Avoid truncating at a UTF-8 trailing byte.
+    while (i > 0 && (at(i) & 0b1100'0000) == 0b1000'0000)
+      --i;
+
+    if (i == 0)
+      return i;
+
+    const std::string_view zero_width_joiner = "\u200D";
+
+    // Avoid truncating at a zero-width joiner.
+    if (substr(i).starts_with(zero_width_joiner)) {
+      --i;
+      continue;
+    }
+
+    // Avoid truncating just after a zero-width joiner.
+    if (substr(0, i).ends_with(zero_width_joiner)) {
+      i -= zero_width_joiner.size();
+      if (i > 0) {
+        --i;
+        continue;
+      }
+    }
+
+    return i;
+  }
+}
+
 void Path::Append(std::string* const head, const std::string_view tail) {
   assert(head);
 
@@ -123,20 +156,23 @@ bool Path::Normalize(std::string* const dest_path,
 
   // Extract part after part
   while (true) {
-    const std::string_view::size_type i = in.find_first_not_of('/');
-    if (i == std::string_view::npos)
+    const size_type i = in.find_first_not_of('/');
+    if (i == npos)
       return true;
 
     in.remove_prefix(i);
     assert(!in.empty());
 
-    const std::string_view part = in.substr(0, in.find_first_of('/'));
+    std::string_view part = in.substr(0, in.find_first_of('/'));
     assert(!part.empty());
 
-    if (part == "." || part == ".." || part.size() > NAME_MAX)
+    in.remove_prefix(part.size());
+    const size_type truncation_pos = Path(part).TruncationPosition(NAME_MAX);
+    part = part.substr(0, truncation_pos);
+
+    if (part.empty() || part == "." || part == "..")
       return false;
 
     Append(dest_path, part);
-    in.remove_prefix(part.size());
   }
 }

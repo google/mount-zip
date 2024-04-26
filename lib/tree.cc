@@ -677,11 +677,9 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
   // Add a number before the extension
   int& i = pos->collision_count;
   while (true) {
-    f.resize(e);
-    f += " (";
-    f += std::to_string(++i);
-    f += ")";
-    f += ext;
+    const std::string suffix = StrCat(" (", std::to_string(++i), ")", ext);
+    f.resize(std::min(e, Path(f).TruncationPosition(NAME_MAX - suffix.size())));
+    f += suffix;
 
     const auto [pos, ok] = files_by_path_.insert(*node);
     if (ok) {

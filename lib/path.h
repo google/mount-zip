@@ -63,6 +63,11 @@ class Path : public std::string_view {
   // Removes the extension, if any.
   Path WithoutExtension() const { return substr(0, ExtensionPosition()); }
 
+  // Gets a safe truncation position `x` such that `0 <= x && x <= i`. Avoids
+  // truncating in the middle of a multi-byte UTF-8 sequence. Returns `size()`
+  // if `i >= size()`.
+  size_type TruncationPosition(size_type i) const;
+
   // Splits path between parent path and basename.
   std::pair<Path, Path> Split() const {
     const std::string_view::size_type i = find_last_of('/') + 1;
