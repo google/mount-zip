@@ -74,6 +74,12 @@ yet, **mount-zip** creates it first. If no mount point is provided,
 **-o nohardlinks**
 :   hide hard links
 
+**-f**
+:   foreground mode
+
+**-d**
+:   foreground mode with debug output
+
 # USAGE
 
 Mount a ZIP archive:
@@ -733,6 +739,9 @@ To follow **mount-zip**'s log messages as they are being written:
 ```
 $ tail -F /var/log/user.log | grep mount-zip
 ```
+
+Alternatively, you can run **mount-zip** in foreground mode with the `-f` option
+and read all the log messages on the terminal.
 
 By default, **mount-zip** writes INFO and ERROR messages. You can decrease the
 logging level to just ERROR messages with the `--quiet` option. Or you can

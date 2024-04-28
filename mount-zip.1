@@ -86,6 +86,12 @@ hide symbolic links
 .TP
 \f[B]-o nohardlinks\f[R]
 hide hard links
+.TP
+\f[B]-f\f[R]
+foreground mode
+.TP
+\f[B]-d\f[R]
+foreground mode with debug output
 .SH USAGE
 .PP
 Mount a ZIP archive:
@@ -870,6 +876,9 @@ $ tail -F /var/log/user.log | grep mount-zip
 \f[R]
 .fi
 .PP
+Alternatively, you can run \f[B]mount-zip\f[R] in foreground mode with
+the \f[V]-f\f[R] option and read all the log messages on the terminal.
+.PP
 By default, \f[B]mount-zip\f[R] writes INFO and ERROR messages.
 You can decrease the logging level to just ERROR messages with the
 \f[V]--quiet\f[R] option.
@@ -1041,7 +1050,35 @@ T}@T{
 ✅
 T}
 T{
+Can Cache in Memory
+T}@T{
+✅
+T}@T{
+✅
+T}
+T{
+Can Cache in Temp File
+T}@T{
+✅
+T}@T{
+❌
+T}
+T{
+Smart Caching
+T}@T{
+✅
+T}@T{
+❌
+T}
+T{
 Decompresses Lazily
+T}@T{
+✅
+T}@T{
+❌
+T}
+T{
+Handles Huge Files
 T}@T{
 ✅
 T}@T{
@@ -1063,20 +1100,6 @@ T}@T{
 T}
 T{
 Deduplicates Names
-T}@T{
-✅
-T}@T{
-❌
-T}
-T{
-Reads Huge Files
-T}@T{
-✅
-T}@T{
-❌
-T}
-T{
-Smart Caching
 T}@T{
 ✅
 T}@T{
