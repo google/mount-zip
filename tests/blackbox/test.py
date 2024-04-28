@@ -124,7 +124,10 @@ mount_program = os.path.join(script_dir, '..', '..', 'mount-zip')
 
 
 # Mounts the given ZIP archive, walks the mounted ZIP and unmounts.
-# Returns a dict representing the mounted ZIP.
+# Returns a pair where:
+# - member 0 is a dict representing the mounted ZIP.
+# - member 1 is the result of os.statvfs
+#
 # Throws subprocess.CalledProcessError if the ZIP cannot be mounted.
 def MountZipAndGetTree(zip_name, options=[], password='', use_md5=True):
   with tempfile.TemporaryDirectory() as mount_point:
@@ -139,7 +142,7 @@ def MountZipAndGetTree(zip_name, options=[], password='', use_md5=True):
     )
     try:
       logging.debug(f'Mounted ZIP {zip_path!r} on {mount_point!r}')
-      return GetTree(mount_point, use_md5=use_md5)
+      return GetTree(mount_point, use_md5=use_md5), os.statvfs(mount_point)
     finally:
       logging.debug(f'Unmounting {zip_path!r} from {mount_point!r}...')
       subprocess.run(['fusermount', '-u', '-z', mount_point], check=True)
@@ -149,13 +152,49 @@ def MountZipAndGetTree(zip_name, options=[], password='', use_md5=True):
 # Mounts the given ZIP archive, checks the mounted ZIP tree and unmounts.
 # Logs an error if the ZIP cannot be mounted.
 def MountZipAndCheckTree(
-    zip_name, want_tree, options=[], password='', strict=True, use_md5=True
+    zip_name,
+    want_tree,
+    want_blocks=None,
+    want_inodes=None,
+    options=[],
+    password='',
+    strict=True,
+    use_md5=True,
 ):
   logging.info(f'Checking {zip_name!r}...')
   try:
-    got_tree = MountZipAndGetTree(
+    got_tree, st = MountZipAndGetTree(
         zip_name, options=options, password=password, use_md5=use_md5
     )
+
+    want_block_size = 512
+    if st.f_bsize != want_block_size:
+      LogError(
+          f'Mismatch for st.f_bsize: got: {st.f_bsize}, want: {want_block_size}'
+      )
+    if st.f_frsize != want_block_size:
+      LogError(
+          'Mismatch for st.f_frsize: '
+          f'got: {st.f_frsize}, want: {want_block_size}'
+      )
+
+    want_name_max = 255
+    if st.f_namemax != want_name_max:
+      LogError(
+          'Mismatch for st.f_namemax: '
+          f'got: {st.f_namemax}, want: {want_name_max}'
+      )
+
+    if want_blocks is not None and st.f_blocks != want_blocks:
+      LogError(
+          f'Mismatch for st.f_blocks: got: {st.f_blocks}, want: {want_blocks}'
+      )
+
+    if want_inodes is not None and st.f_files != want_inodes:
+      LogError(
+          f'Mismatch for st.f_files: got: {st.f_files}, want: {want_inodes}'
+      )
+
     CheckTree(got_tree, want_tree, strict=strict)
   except subprocess.CalledProcessError as e:
     LogError(f'Cannot test {zip_name}: {e.stderr}')
@@ -166,7 +205,9 @@ def MountZipAndCheckTree(
 def CheckZipMountingError(zip_name, want_error_code, options=[], password=''):
   logging.info(f'Checking {zip_name!r}...')
   try:
-    got_tree = MountZipAndGetTree(zip_name, options=options, password=password)
+    got_tree, _ = MountZipAndGetTree(
+        zip_name, options=options, password=password
+    )
     LogError(f'Want error, Got tree: {got_tree}')
   except subprocess.CalledProcessError as e:
     if e.returncode != want_error_code:
@@ -177,7 +218,8 @@ def CheckZipMountingError(zip_name, want_error_code, options=[], password=''):
 
 def GenerateReferenceData():
   for zip_name in os.listdir(os.path.join(script_dir, 'data')):
-    all_zips[zip_name] = MountZipAndGetTree(zip_name, password='password')
+    tree, _ = MountZipAndGetTree(zip_name, password='password')
+    all_zips[zip_name] = tree
 
   pprint.pprint(all_zips, compact=True, sort_dicts=False)
 
@@ -1420,7 +1462,12 @@ def TestZipWithManyFiles():
   }
 
   MountZipAndCheckTree(
-      '65536-files.zip', want_tree, strict=False, use_md5=False
+      '65536-files.zip',
+      want_tree,
+      want_blocks=65537,
+      want_inodes=65537,
+      strict=False,
+      use_md5=False,
   )
 
   want_tree = {
@@ -1458,7 +1505,15 @@ def TestZipWithManyFiles():
           'size': 8,
       },
   }
-  MountZipAndCheckTree('collisions.zip', want_tree, strict=False, use_md5=False)
+
+  MountZipAndCheckTree(
+      'collisions.zip',
+      want_tree,
+      want_blocks=100007,
+      want_inodes=100014,
+      strict=False,
+      use_md5=False,
+  )
 
 
 # Tests that a big file can be accessed in random order.
@@ -1477,6 +1532,21 @@ def TestBigZip(options=[]):
     )
     try:
       logging.debug(f'Mounted ZIP {zip_path!r} on {mount_point!r}')
+
+      st = os.statvfs(mount_point)
+
+      want_blocks = 10546877
+      if st.f_blocks != want_blocks:
+        LogError(
+            f'Mismatch for st.f_blocks: got: {st.f_blocks}, want: {want_blocks}'
+        )
+
+      want_inodes = 2
+      if st.f_files != want_inodes:
+        LogError(
+            f'Mismatch for st.f_files: got: {st.f_files}, want: {want_inodes}'
+        )
+
       tree = GetTree(mount_point, use_md5=False)
       fd = os.open(os.path.join(mount_point, 'big.txt'), os.O_RDONLY)
       try:
@@ -1606,10 +1676,20 @@ def TestEncryptedZip():
       },
   }
 
-  MountZipAndCheckTree(zip_name, want_tree, password='password')
-  MountZipAndCheckTree(zip_name, want_tree, password='password\n')
   MountZipAndCheckTree(
-      zip_name, want_tree, password='password\nThis line is ignored...\n'
+      zip_name, want_tree, want_blocks=11, want_inodes=6, password='password'
+  )
+
+  MountZipAndCheckTree(
+      zip_name, want_tree, want_blocks=11, want_inodes=6, password='password\n'
+  )
+
+  MountZipAndCheckTree(
+      zip_name,
+      want_tree,
+      want_blocks=11,
+      want_inodes=6,
+      password='password\nThis line is ignored...\n',
   )
 
   # With wrong or no password.
@@ -1675,9 +1755,17 @@ def TestEncryptedZip():
   }
 
   MountZipAndCheckTree(
-      zip_name, want_tree, password='wrong password', options=['--force']
+      zip_name,
+      want_tree,
+      want_blocks=11,
+      want_inodes=6,
+      password='wrong password',
+      options=['--force'],
   )
-  MountZipAndCheckTree(zip_name, want_tree, options=['--force'])
+
+  MountZipAndCheckTree(
+      zip_name, want_tree, want_blocks=11, want_inodes=6, options=['--force']
+  )
 
 
 # Tests mounting ZIP with explicit file name encoding.
@@ -1894,10 +1982,10 @@ def TestZipWithSpecialFiles():
       },
   }
 
-  MountZipAndCheckTree(zip_name, want_tree)
+  MountZipAndCheckTree(zip_name, want_tree, want_blocks=17, want_inodes=15)
 
   # Check that the inode numbers of hardlinks match
-  got_tree = MountZipAndGetTree(zip_name)
+  got_tree, _ = MountZipAndGetTree(zip_name)
   want_ino = got_tree['regular']['ino']
   if not want_ino > 0:
     LogError(f'Want positive ino, Got: {want_ino}')
@@ -2020,7 +2108,13 @@ def TestZipWithSpecialFiles():
       },
   }
 
-  MountZipAndCheckTree(zip_name, want_tree, options=['-o', 'nosymlinks'])
+  MountZipAndCheckTree(
+      zip_name,
+      want_tree,
+      want_blocks=13,
+      want_inodes=12,
+      options=['-o', 'nosymlinks'],
+  )
 
   # Test -o nohardlinks
   want_tree = {
@@ -2123,7 +2217,13 @@ def TestZipWithSpecialFiles():
       },
   }
 
-  MountZipAndCheckTree(zip_name, want_tree, options=['-o', 'nohardlinks'])
+  MountZipAndCheckTree(
+      zip_name,
+      want_tree,
+      want_blocks=13,
+      want_inodes=11,
+      options=['-o', 'nohardlinks'],
+  )
 
   # Test -o nospecials
   want_tree = {
@@ -2192,7 +2292,13 @@ def TestZipWithSpecialFiles():
       },
   }
 
-  MountZipAndCheckTree(zip_name, want_tree, options=['-o', 'nospecials'])
+  MountZipAndCheckTree(
+      zip_name,
+      want_tree,
+      want_blocks=9,
+      want_inodes=7,
+      options=['-o', 'nospecials'],
+  )
 
   # Tests -o nosymlinks nohardlinks and nospecials together
   want_tree = {
@@ -2210,7 +2316,11 @@ def TestZipWithSpecialFiles():
   }
 
   MountZipAndCheckTree(
-      zip_name, want_tree, options=['-o', 'nosymlinks,nohardlinks,nospecials']
+      zip_name,
+      want_tree,
+      want_blocks=3,
+      want_inodes=2,
+      options=['-o', 'nosymlinks,nohardlinks,nospecials'],
   )
 
 
