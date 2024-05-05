@@ -21,7 +21,7 @@
 
 #include <limits.h>
 
-#include "path.h"
+#include "log.h"
 
 bool Path::redact = false;
 
@@ -156,23 +156,35 @@ bool Path::Normalize(std::string* const dest_path,
 
   // Extract part after part
   while (true) {
-    const size_type i = in.find_first_not_of('/');
+    size_type i = in.find_first_not_of('/');
     if (i == npos)
       return true;
 
     in.remove_prefix(i);
     assert(!in.empty());
 
-    std::string_view part = in.substr(0, in.find_first_of('/'));
+    i = in.find_first_of('/');
+    std::string_view part = in.substr(0, i);
     assert(!part.empty());
-
     in.remove_prefix(part.size());
-    const size_type truncation_pos = Path(part).TruncationPosition(NAME_MAX);
-    part = part.substr(0, truncation_pos);
+
+    std::string_view extension;
+    if (i == npos) {
+      const size_type last_dot = Path(part).ExtensionPosition();
+      extension = part.substr(last_dot);
+      part.remove_suffix(extension.size());
+    }
+
+    part = part.substr(
+        0, Path(part).TruncationPosition(NAME_MAX - extension.size()));
 
     if (part.empty() || part == "." || part == "..")
       return false;
 
-    Append(dest_path, part);
+    if (extension.empty()) {
+      Append(dest_path, part);
+    } else {
+      Append(dest_path, StrCat(part, extension));
+    }
   }
 }
