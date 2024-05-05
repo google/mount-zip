@@ -62,13 +62,17 @@ Path Path::WithoutTrailingSeparator() const {
   return path;
 }
 
-Path Path::WithoutExtension() const {
-  const std::string_view::size_type i = find_last_of("/.");
-  if (i != std::string_view::npos && i > 0 && i + 1 < size() && at(i) == '.' &&
-      at(i - 1) != '/')
-    return substr(0, i);
+Path::size_type Path::ExtensionPosition() const {
+  const size_type last_dot = find_last_of("/. ");
+  if (last_dot == npos || at(last_dot) != '.' || last_dot == 0 ||
+      last_dot == size() - 1 || size() - last_dot > 6)
+    return size();
 
-  return *this;
+  if (const size_type i = find_last_not_of('.', last_dot - 1);
+      i == npos || at(i) == '/')
+    return size();
+
+  return last_dot;
 }
 
 void Path::Append(std::string* const head, const std::string_view tail) {

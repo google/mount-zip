@@ -29,8 +29,39 @@ class Path : public std::string_view {
   // Removes trailing separators.
   Path WithoutTrailingSeparator() const;
 
+  // Gets the position of the dot where the filename extension starts, or
+  // `size()` if there is no extension.
+  //
+  // If the path ends with a slash, then it does not have an extension:
+  // * "/" -> no extension
+  // * "foo/" -> no extension
+  // * "a.b/" -> no extension
+  //
+  // If the path ends with a dot, then it does not have an extension:
+  // * "." -> no extension
+  // * ".." -> no extension
+  // * "..." -> no extension
+  // * "foo." -> no extension
+  // * "foo..." -> no extension
+  //
+  // If the filename starts with a dot or a sequence of dots, but does not have
+  // any other dot after that, then it does not have an extension:
+  // ".foo" -> no extension
+  // "...foo" -> no extension
+  // "a.b/...foo" -> no extension
+  //
+  // An extension cannot contain a space:
+  // * "foo. " -> no extension
+  // * "foo.a b" -> no extension
+  // * "foo. (1)" -> no extension
+  //
+  // An extension cannot be longer than 6 bytes, including the leading dot:
+  // * "foo.tool" -> ".tool"
+  // * "foo.toolong" -> no extension
+  size_type ExtensionPosition() const;
+
   // Removes the extension, if any.
-  Path WithoutExtension() const;
+  Path WithoutExtension() const { return substr(0, ExtensionPosition()); }
 
   // Splits path between parent path and basename.
   std::pair<Path, Path> Split() const {

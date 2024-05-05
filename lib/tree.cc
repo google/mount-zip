@@ -671,10 +671,7 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
 
   // Find extension start
   std::string& f = node->name;
-  std::string::size_type e = f.find_last_of('.');
-  if (e <= 0 || e >= f.size() - 1)
-    e = f.size();
-
+  const std::string::size_type e = Path(f).ExtensionPosition();
   const std::string ext(f, e);
 
   // Add a number before the extension
