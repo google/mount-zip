@@ -707,9 +707,10 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
   if (ok)
     return node.release();  // Now owned by |files_by_path_|.
 
+  // There is a name collision
   Log(LOG_DEBUG, *node, " conflicts with ", *pos);
 
-  // Find extension start
+  // Extract filename extension
   std::string& f = node->name;
   std::string::size_type e = Path(f).ExtensionPosition();
   const std::string ext(f, e);
@@ -718,10 +719,11 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
   e = f.size();
 
   // Add a number before the extension
-  int& i = pos->collision_count;
-  while (true) {
-    const std::string suffix = StrCat(" (", std::to_string(++i), ")", ext);
-    f.resize(std::min(e, Path(f).TruncationPosition(NAME_MAX - suffix.size())));
+  for (int* i = nullptr;;) {
+    const std::string suffix =
+        StrCat(" (", std::to_string(i ? ++*i + 1 : 1), ")", ext);
+    f.resize(e);
+    f.resize(Path(f).TruncationPosition(NAME_MAX - suffix.size()));
     f += suffix;
 
     const auto [pos, ok] = files_by_path_.insert(*node);
@@ -731,6 +733,8 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
     }
 
     Log(LOG_DEBUG, *node, " conflicts with ", *pos);
+    if (!i)
+      i = &pos->collision_count;
   }
 }
 
