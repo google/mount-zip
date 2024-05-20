@@ -53,50 +53,120 @@ def MakeOtherZips():
     pass
 
   with ZipFile(os.path.join(dir, 'data', 'mixed-paths.zip'), 'w') as z:
-    z.writestr(
-        'normal.txt', 'This file is in the default "current" directory.\n'
-    )
-    z.writestr('../up-1.txt', 'This file is one level "up".\n')
-    z.writestr('../../up-2.txt', 'This file is two levels "up".\n')
-    z.writestr('/top.txt', 'This file is in the top root directory.\n')
-    z.writestr(
-        '/../over-the-top.txt', 'This file is "above" the top root directory.\n'
-    )
-    z.writestr('.', 'This should not be a valid path.\n')
-    z.writestr('/.', 'This should not be a valid path.\n')
-    z.writestr('a/.', 'This should not be a valid path.\n')
-    z.writestr('a/./', 'This should not be a valid path.\n')
-    z.writestr('a/./b', 'This should not be a valid path.\n')
-    z.writestr('a/..', 'This should not be a valid path.\n')
-    z.writestr('a/../', 'This should not be a valid path.\n')
-    z.writestr('a/../b', 'This should not be a valid path.\n')
-    z.writestr('And (&).txt', 'This is an ampersand &\n')
-    z.writestr('Angle <>.txt', 'These are angle brackets <>\n')
-    z.writestr('At (@).txt', 'This is an at sign @\n')
-    z.writestr('Backslash (\\).txt', 'This is a backslash \\\n')
-    z.writestr('Backtick (`).txt', 'This is a backtick `\n')
-    z.writestr('Bar (|).txt', 'This is a bar |\n')
-    z.writestr('Caret (^).txt', 'This is a caret ^\n')
-    z.writestr('Carriage return (\r).txt', 'This is a carriage return\r\n')
-    z.writestr('Colon (:).txt', 'This is a colon :\n')
-    z.writestr('Comma (,).txt', 'This is a comma ,\n')
-    z.writestr('Curly {}.txt', 'These are curly braces {}\n')
-    z.writestr('Dollar ($).txt', 'This is a dollar sign $\n')
-    z.writestr('Double (").txt', 'This is a double quote "\n')
-    z.writestr('Escape (\x1b).txt', 'This is an escape character \x1b\n')
-    z.writestr('Hash (#).txt', 'This is a hash sign #\n')
-    z.writestr('Newline (\n).txt', 'This is a newline\n')
-    z.writestr('Percent (%).txt', 'This is a percent sign %\n')
-    z.writestr('Plus (+).txt', 'This is a plus sign +\n')
-    z.writestr('Question (?).txt', 'This is a question mark ?\n')
-    z.writestr("Quote (').txt", "This is a single quote '\n")
-    z.writestr('Semicolon (;).txt', 'This is a semicolon ;\n')
-    z.writestr('Square [].txt', 'These are square brackets []\n')
-    z.writestr('Star (*).txt', 'This is a star *\n')
-    z.writestr('Tab (\t).txt', 'This is a tab \t\n')
-    z.writestr('Tilde (~).txt', 'This is a tilde ~\n')
-    z.writestr('Empty/', 'This is an empty directory.\n')
-    z.writestr('/Empty/', 'This is an empty directory.\n')
+    for v in ['first', 'second', 'third']:
+      for s in [
+          '../One Level Up',
+          '../../Two Levels Up',
+          '../../../Three Levels Up',
+          '/At The Top',
+          '/../Over The Top',
+          '/',
+          './',
+          '../',
+          '.',
+          '..',
+          '...',
+          '... (1)',
+          '....',
+          '.' * 255,
+          '.' * 256,
+          '/.',
+          '/./',
+          'a/.',
+          'a/./',
+          'a/./b',
+          'a/..',
+          'a/../',
+          'a/../b',
+          '.One',
+          '..Two',
+          '...Three',
+          '...Three (1)',
+          'One.',
+          'Two..',
+          'Three...',
+          'Three... (1)',
+          'foo.a b',
+          'foo.a b (1)',
+          '.foo.txt',
+          'foo.tar.gz',
+          'foo (1).tar.gz',
+          '.foo (1).txt',
+          'Tab \t',
+          'Star *',
+          'Dot .',
+          'Ampersand &',
+          'Hash #',
+          'Dollar $',
+          'Euro €',
+          'Pipe |',
+          'Smile 🙂',
+          'Tilde ~',
+          'Colon :',
+          'Semicolon ;',
+          'Percent %',
+          'Caret ^',
+          'At @',
+          'Comma ,',
+          'Exclamation !',
+          'Dash -',
+          'Plus +',
+          'Equal =',
+          'Underscore _',
+          'Question ?',
+          'Backtick `',
+          "Quote '",
+          'Double quote "',
+          'Backslash \\',
+          '\\',
+          'C:\\Temp\\File',
+          '\\\\server\\share\\file',
+          'u/v//w///x//y/z',
+          ' ',
+          '~',
+          '%TMP%',
+          '$HOME',
+          '-',
+          'Space→ ',
+          ' ←Space',
+          'Angle <>',
+          'Square []',
+          'Round ()',
+          'Curly {}',
+          'Delete \x7F',
+          'Escape \x1B',
+          'Backspace \x08',
+          'Line Feed \n',
+          'Carriage Return \r',
+          'Bell \a',
+          'String Terminator \u009C',
+          'Empty/',
+          '/Empty/',
+          'FileOrDir',
+          'FileOrDir/',
+          'Case',
+          'case',
+          'CASE',
+          'Café',
+          'Cafe\u0301',
+          'NUL',
+          'CON',
+          'PRN',
+          'AUX',
+          'COM1',
+          'COM9',
+          'LPT1',
+          'LPT9',
+          'CLOCK$',
+          '/dev/null',
+          '🙂' * 63,
+          'a' + '🙂' * 63,
+          'ab' + '🙂' * 63,
+          'abc' + '🙂' * 63,
+          'abcd' + '🙂' * 63,
+          '\U0001F3F3\u200D\U0001F308' * 23,
+      ]:
+        z.writestr(s, f'This is the {v} version of {s!r}')
 
   with ZipFile(os.path.join(dir, 'data', 'long-names.zip'), 'w') as z:
     z.writestr('Short name.txt', 'This is a short long name.\n')
