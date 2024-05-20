@@ -101,6 +101,8 @@ std::ostream& operator<<(std::ostream& out, const EncryptionMethod em) {
   return out << static_cast<int>(em);
 }
 
+namespace {
+
 // Temporarily suppresses the echo on the terminal.
 // Used when waiting for password to be typed.
 class SuppressEcho {
@@ -127,6 +129,44 @@ class SuppressEcho {
   struct termios tattr_;
   bool reset_ = false;
 };
+
+// Checks if the given character is an ASCII digit.
+bool IsAsciiDigit(const char c) {
+  return c >= '0' && c <= '9';
+}
+
+// Removes the numeric suffix at the end of the given string `s`. Does nothing
+// if the string does not end with a numeric suffix. A numeric suffix is a
+// decimal number between parentheses and preceded by a space, like:
+// * " (1)" or
+// * " (142857)".
+void RemoveNumericSuffix(std::string& s) {
+  size_t i = s.size();
+
+  if (i == 0 || s[--i] != ')') {
+    return;
+  }
+
+  if (i == 0 || !IsAsciiDigit(s[--i])) {
+    return;
+  }
+
+  while (i > 0 && IsAsciiDigit(s[i - 1])) {
+    --i;
+  }
+
+  if (i == 0 || s[--i] != '(') {
+    return;
+  }
+
+  if (i == 0 || s[--i] != ' ') {
+    return;
+  }
+
+  s.resize(i);
+}
+
+}  // namespace
 
 bool Tree::ReadPasswordFromStdIn() {
   std::string password;
@@ -671,8 +711,11 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
 
   // Find extension start
   std::string& f = node->name;
-  const std::string::size_type e = Path(f).ExtensionPosition();
+  std::string::size_type e = Path(f).ExtensionPosition();
   const std::string ext(f, e);
+  f.resize(e);
+  RemoveNumericSuffix(f);
+  e = f.size();
 
   // Add a number before the extension
   int& i = pos->collision_count;
