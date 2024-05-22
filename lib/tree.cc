@@ -712,18 +712,17 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
 
   // Extract filename extension
   std::string& f = node->name;
-  std::string::size_type e = Path(f).ExtensionPosition();
+  const std::string::size_type e = Path(f).ExtensionPosition();
   const std::string ext(f, e);
   f.resize(e);
   RemoveNumericSuffix(f);
-  e = f.size();
+  const std::string base = f;
 
   // Add a number before the extension
   for (int* i = nullptr;;) {
     const std::string suffix =
         StrCat(" (", std::to_string(i ? ++*i + 1 : 1), ")", ext);
-    f.resize(e);
-    f.resize(Path(f).TruncationPosition(NAME_MAX - suffix.size()));
+    f.assign(base, 0, Path(base).TruncationPosition(NAME_MAX - suffix.size()));
     f += suffix;
 
     const auto [pos, ok] = files_by_path_.insert(*node);
