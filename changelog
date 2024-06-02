@@ -1,3 +1,11 @@
+2024-06-02 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.0.15:
+	- Fix statvfs implementation
+	- Truncate filenames to NAME_MAX bytes
+	- Adjust filename extension detection
+	- Adjust filename collision resolution
+
 2024-04-21 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.14:
