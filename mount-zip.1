@@ -15,7 +15,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "MOUNT-ZIP" "1" "April 2024" "mount-zip 1.0" "User Manual"
+.TH "MOUNT-ZIP" "1" "September 2024" "mount-zip 1.0" "User Manual"
 .hy
 .SH NAME
 .PP
@@ -26,22 +26,15 @@
 [\f[I]mount-point\f[R]]
 .SH DESCRIPTION
 .PP
-\f[B]mount-zip\f[R] is a tool allowing to open, explore and extract ZIP
-archives.
-.PP
-\f[B]mount-zip\f[R] mounts a ZIP archive as a read-only FUSE file
-system (https://en.wikipedia.org/wiki/Filesystem_in_Userspace), which
-can then be explored and read by any application.
-.PP
-\f[B]mount-zip\f[R] aspires to be an excellent ZIP mounter.
+\f[B]mount-zip\f[R] mounts a ZIP archive as a read-only FUSE
+filesystem (https://en.wikipedia.org/wiki/Filesystem_in_Userspace).
 It starts quickly, uses little memory, decodes encrypted files, and
 provides on-the-go decompression and caching for maximum efficiency.
 .PP
-The mount point should be an empty directory.
-If the mount point doesn\[cq]t exist yet, \f[B]mount-zip\f[R] creates it
-first.
-If no mount point is provided, \f[B]mount-zip\f[R] creates one in the
-same directory as the ZIP archive.
+\f[B]mount-zip\f[R] automatically creates the target mount point if it
+doesn\[cq]t exist yet.
+If no mount point is provided, \f[B]mount-zip\f[R] creates a mount point
+in the same directory as the ZIP archive.
 .SH OPTIONS
 .TP
 \f[B]--help\f[R] \f[B]-h\f[R]
@@ -312,7 +305,7 @@ AES encryption schemes.
 .PP
 When \f[B]mount-zip\f[R] finds an encrypted file while mounting a ZIP
 archive, it asks for a password.
-If the given password doesn\[cq]t allow to decrypt the file, then
+If the given password does not decrypt the file, then
 \f[B]mount-zip\f[R] refuses to mount the ZIP archive and returns an
 error:
 .IP
@@ -418,8 +411,8 @@ cat: \[aq]mnt/Encrypted ZipCrypto.txt\[aq]: Input/output error
 \f[R]
 .fi
 .PP
-For security reasons, \f[B]mount-zip\f[R] doesn\[cq]t allow to specify
-the password on the command line.
+For security reasons, \f[B]mount-zip\f[R] doesn\[cq]t allow the password
+to be specified on the command line.
 However, it is possible to pipe the password to
 \f[B]mount-zip\f[R]\[cq]s standard input:
 .IP
@@ -756,12 +749,8 @@ performance, especially if \f[B]mount-zip\f[R] has to repeatedly extract
 the same file.
 .SH PERFORMANCE
 .PP
-On small archives \f[B]mount-zip\f[R] has the same performance as
-commonly used virtual filesystems such as KIO, Gnome GVFS, mc vfs,
-unpackfs, avfs and fuse-zip.
-But on large archives containing many files, \f[B]mount-zip\f[R] is
-pretty quick.
-.PP
+\f[B]mount-zip\f[R] works well with large archives containing many
+files.
 For example on my laptop, a ZIP archive containing more than 70,000
 files is mounted in half a second:
 .IP
@@ -970,7 +959,7 @@ Use \f[V]--force\f[R] to bypass the password verification.
 \f[B]37\f[R]
 Wrong password.
 The ZIP archive contains an encrypted file, and the provided password
-does not allow to decrypt it.
+does not decrypt it.
 Use \f[V]--force\f[R] to bypass the password verification.
 .TP
 \f[B]45\f[R]
@@ -1043,21 +1032,21 @@ T}@T{
 ✅
 T}
 T{
-Allows Random Access
+Random Access
 T}@T{
 ✅
 T}@T{
 ✅
 T}
 T{
-Can Cache in Memory
+Can Cache Data in Memory
 T}@T{
 ✅
 T}@T{
 ✅
 T}
 T{
-Can Cache in Temp File
+Can Cache Data in Temp File
 T}@T{
 ✅
 T}@T{
@@ -1071,7 +1060,7 @@ T}@T{
 ❌
 T}
 T{
-Decompresses Lazily
+Decompresses Data Lazily
 T}@T{
 ✅
 T}@T{

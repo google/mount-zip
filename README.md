@@ -3,7 +3,7 @@ title: MOUNT-ZIP
 section: 1
 header: User Manual
 footer: mount-zip 1.0
-date: April 2024
+date: September 2024
 ---
 # NAME
 
@@ -15,19 +15,14 @@ date: April 2024
 
 # DESCRIPTION
 
-**mount-zip** is a tool allowing to open, explore and extract ZIP archives.
+**mount-zip** mounts a ZIP archive as a read-only [FUSE
+filesystem](https://en.wikipedia.org/wiki/Filesystem_in_Userspace). It starts
+quickly, uses little memory, decodes encrypted files, and provides on-the-go
+decompression and caching for maximum efficiency.
 
-**mount-zip** mounts a ZIP archive as a read-only
-[FUSE file system](https://en.wikipedia.org/wiki/Filesystem_in_Userspace), which
-can then be explored and read by any application.
-
-**mount-zip** aspires to be an excellent ZIP mounter. It starts quickly, uses
-little memory, decodes encrypted files, and provides on-the-go decompression and
-caching for maximum efficiency.
-
-The mount point should be an empty directory. If the mount point doesn't exist
-yet, **mount-zip** creates it first. If no mount point is provided,
-**mount-zip** creates one in the same directory as the ZIP archive.
+**mount-zip** automatically creates the target mount point if it doesn't exist
+yet. If no mount point is provided, **mount-zip** creates a mount point in the
+same directory as the ZIP archive.
 
 # OPTIONS
 
@@ -246,7 +241,7 @@ name, the file is the one getting renamed.
 encryption scheme, and the more recent AES encryption schemes.
 
 When **mount-zip** finds an encrypted file while mounting a ZIP archive, it asks
-for a password. If the given password doesn't allow to decrypt the file, then
+for a password. If the given password does not decrypt the file, then
 **mount-zip** refuses to mount the ZIP archive and returns an error:
 
 ```
@@ -342,9 +337,9 @@ cat: 'mnt/Encrypted AES-256.txt': Input/output error
 cat: 'mnt/Encrypted ZipCrypto.txt': Input/output error
 ```
 
-For security reasons, **mount-zip** doesn't allow to specify the password on the
-command line. However, it is possible to pipe the password to **mount-zip**'s
-standard input:
+For security reasons, **mount-zip** doesn't allow the password to be specified
+on the command line. However, it is possible to pipe the password to
+**mount-zip**'s standard input:
 
 ```
 $ echo password | mount-zip different-encryptions.zip mnt
@@ -638,13 +633,9 @@ file.
 
 # PERFORMANCE
 
-On small archives **mount-zip** has the same performance as commonly used
-virtual filesystems such as KIO, Gnome GVFS, mc vfs, unpackfs, avfs and
-fuse-zip. But on large archives containing many files, **mount-zip** is pretty
-quick.
-
-For example on my laptop, a ZIP archive containing more than 70,000 files is
-mounted in half a second:
+**mount-zip** works well with large archives containing many files. For example
+on my laptop, a ZIP archive containing more than 70,000 files is mounted in half
+a second:
 
 ```
 $ ls -lh linux-5.14.15.zip
@@ -825,7 +816,7 @@ related the ZIP archive itself:
 
 **37**
 :   Wrong password. The ZIP archive contains an encrypted file, and the provided
-    password does not allow to decrypt it. Use `--force` to bypass the password
+    password does not decrypt it. Use `--force` to bypass the password
     verification.
 
 **45**
@@ -852,11 +843,11 @@ Shows Symbolic Links         | ✅         | ✅
 Shows Hard Links             | ✅         | ✅
 Shows Special Files          | ✅         | ✅
 Shows Precise Timestamps     | ✅         | ✅
-Allows Random Access         | ✅         | ✅
-Can Cache in Memory          | ✅         | ✅
-Can Cache in Temp File       | ✅         | ❌
+Random Access                | ✅         | ✅
+Can Cache Data in Memory     | ✅         | ✅
+Can Cache Data in Temp File  | ✅         | ❌
 Smart Caching                | ✅         | ❌
-Decompresses Lazily          | ✅         | ❌
+Decompresses Data Lazily     | ✅         | ❌
 Handles Huge Files           | ✅         | ❌
 Decrypts Encrypted Files     | ✅         | ❌
 Detects Name Encoding        | ✅         | ❌
