@@ -16,6 +16,7 @@
 #ifndef TREE_H
 #define TREE_H
 
+#include <memory>
 #include <string>
 #include <string_view>
 

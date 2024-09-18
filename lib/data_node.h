@@ -18,6 +18,7 @@
 #ifndef DATA_NODE_H
 #define DATA_NODE_H
 
+#include <cassert>
 #include <ostream>
 #include <string>
 
