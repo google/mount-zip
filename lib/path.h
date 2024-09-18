@@ -58,6 +58,10 @@ class Path : public std::string_view {
   // An extension cannot be longer than 6 bytes, including the leading dot:
   // * "foo.tool" -> ".tool"
   // * "foo.toolong" -> no extension
+  size_type FinalExtensionPosition() const;
+
+  // Same as FinalExtensionPosition, but also takes in account some double
+  // extensions such as ".tar.gz".
   size_type ExtensionPosition() const;
 
   // Removes the extension, if any.

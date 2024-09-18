@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iomanip>
+#include <unordered_set>
 
 #include <limits.h>
 
@@ -62,7 +63,7 @@ Path Path::WithoutTrailingSeparator() const {
   return path;
 }
 
-Path::size_type Path::ExtensionPosition() const {
+Path::size_type Path::FinalExtensionPosition() const {
   const size_type last_dot = find_last_of("/. ");
   if (last_dot == npos || at(last_dot) != '.' || last_dot == 0 ||
       last_dot == size() - 1 || size() - last_dot > 6)
@@ -71,6 +72,29 @@ Path::size_type Path::ExtensionPosition() const {
   if (const size_type i = find_last_not_of('.', last_dot - 1);
       i == npos || at(i) == '/')
     return size();
+
+  return last_dot;
+}
+
+Path::size_type Path::ExtensionPosition() const {
+  const size_type last_dot = FinalExtensionPosition();
+  if (last_dot >= size())
+    return last_dot;
+
+  // Extract extension without dot and in ASCII lowercase.
+  assert(at(last_dot) == '.');
+  std::string ext(substr(last_dot + 1));
+  for (char& c : ext) {
+    if ('A' <= c && c <= 'Z')
+      c += 'a' - 'A';
+  }
+
+  // Is it a special extension?
+  static const std::unordered_set<std::string_view> special_exts = {
+      "z", "gz", "bz", "bz2", "xz", "zst", "lz", "lzma"};
+  if (special_exts.count(ext)) {
+    return Path(substr(0, last_dot)).FinalExtensionPosition();
+  }
 
   return last_dot;
 }
