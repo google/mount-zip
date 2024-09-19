@@ -436,13 +436,12 @@ void Tree::BuildTree() {
                          &total_extracted_size](const ssize_t chunk_size) {
     assert(chunk_size >= 0);
     total_extracted_size += chunk_size;
-    if (!should_display_progress)
-      return;
-    Log(LOG_INFO, "Loading ",
-        total_extracted_size < total_uncompressed_size
-            ? 100 * total_extracted_size / total_uncompressed_size
-            : 100,
-        "%");
+    if (should_display_progress)
+      Log(LOG_INFO, "Loading ",
+          total_extracted_size < total_uncompressed_size
+              ? 100 * total_extracted_size / total_uncompressed_size
+              : 100,
+          "%");
   };
 
   // Add zip entries for all items except hardlinks
@@ -861,12 +860,13 @@ FileNode* Tree::CreateDir(std::string_view path) {
   parent->AddChild(child.get());
   [[maybe_unused]] const auto [pos, ok] = files_by_path_.insert(*child);
   assert(ok);
+  FileNode* const ret = child.release();  // Now owned by |files_by_path_|.
   parent->link->nlink++;
 
   if (to_rename)
     Attach(std::move(to_rename));
 
-  return child.release();  // Now owned by |files_by_path_|.
+  return ret;
 }
 
 Tree::Ptr Tree::Init(const char* const filename, Options opts) {
