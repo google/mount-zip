@@ -64,7 +64,7 @@ General options:
     --help    -h           print help
     --version              print version
     --quiet   -q           print fewer log messages
-    --verbose              print more log messages
+    --verbose -v           print more log messages
     --redact               redact file names from log messages
     --force                mount ZIP even if password is wrong or missing, or
                            if the encryption or compression method is unsupported
