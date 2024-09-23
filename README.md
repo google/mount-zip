@@ -15,10 +15,10 @@ date: September 2024
 
 # DESCRIPTION
 
-**mount-zip** mounts a ZIP archive as a read-only [FUSE
-filesystem](https://en.wikipedia.org/wiki/Filesystem_in_Userspace). It starts
-quickly, uses little memory, decodes encrypted files, and provides on-the-go
-decompression and caching for maximum efficiency.
+**mount-zip** mounts a ZIP archive as a read-only
+[FUSE filesystem](https://en.wikipedia.org/wiki/Filesystem_in_Userspace). It
+starts quickly, uses little memory, decodes encrypted files, and provides
+on-the-go decompression and caching for maximum efficiency.
 
 **mount-zip** automatically creates the target mount point if it doesn't exist
 yet. If no mount point is provided, **mount-zip** creates a mount point in the
@@ -820,7 +820,8 @@ related the ZIP archive itself:
     verification.
 
 **45**
-:   Possibly truncated or corrupted ZIP archive.
+:   Possibly truncated or corrupted ZIP archive, as detected by **libzip** 1.11
+    or higher.
 
 # PROJECT HISTORY
 
@@ -870,4 +871,4 @@ later.
 
 # SEE ALSO
 
-fusermount(1), fuse(8), umount(8)
+fuse-zip(1), fusermount(1), fuse(8), umount(8)

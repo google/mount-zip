@@ -963,7 +963,8 @@ does not decrypt it.
 Use \f[V]--force\f[R] to bypass the password verification.
 .TP
 \f[B]45\f[R]
-Possibly truncated or corrupted ZIP archive.
+Possibly truncated or corrupted ZIP archive, as detected by
+\f[B]libzip\f[R] 1.11 or higher.
 .SH PROJECT HISTORY
 .PP
 \f[B]mount-zip\f[R] started as a fork of \f[B]fuse-zip\f[R].
@@ -1141,4 +1142,4 @@ Alexander Galanin (http://galanin.nnov.ru/~al/)
 Version 3 or later.
 .SH SEE ALSO
 .PP
-fusermount(1), fuse(8), umount(8)
+fuse-zip(1), fusermount(1), fuse(8), umount(8)
