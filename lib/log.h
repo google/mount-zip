@@ -25,9 +25,7 @@
 
 template <typename... Args>
 std::string StrCat(Args&&... args) {
-  std::ostringstream out;
-  (out << ... << std::forward<Args>(args));
-  return std::move(out).str();
+  return (std::ostringstream() << ... << std::forward<Args>(args)).str();
 }
 
 // Logs a debug or error message.
