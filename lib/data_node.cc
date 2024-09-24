@@ -26,7 +26,7 @@
 #include "extra_field.h"
 #include "file_node.h"
 
-std::ostream& operator<<(std::ostream& out, FileType t) {
+std::ostream& operator<<(std::ostream& out, const FileType t) {
   switch (t) {
     case FileType::BlockDevice:
       return out << "Block Device";
