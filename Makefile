@@ -16,9 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 DEST = mount-zip
-prefix = /usr
-exec_prefix = $(prefix)
-bindir = $(exec_prefix)/bin
+PREFIX = $(DESTDIR)/usr
+BINDIR = $(PREFIX)/bin
 PKG_CONFIG ?= pkg-config
 DEPS = fuse libzip icu-uc icu-i18n
 LDFLAGS += -Llib -lmountzip
@@ -34,11 +33,9 @@ LIB = lib/libmountzip.a
 SOURCES = main.cc
 OBJECTS = $(SOURCES:.cc=.o)
 MAN = $(DEST).1
-MANDIR = $(prefix)/share/man/man1
+MANDIR = $(PREFIX)/share/man/man1
 CLEANFILES = $(OBJECTS) $(DEST)
 INSTALL = install
-INSTALL_PROGRAM = $(INSTALL) -D
-INSTALL_DATA = $(INSTALL) -D -m 644
 
 all: $(DEST)
 
@@ -69,14 +66,15 @@ $(MAN): README.md
 	pandoc $< -s -t man -o $@
 
 install: $(DEST)
-	$(INSTALL_PROGRAM) "$(DEST)" "$(DESTDIR)$(bindir)/$(DEST)"
-	$(INSTALL_DATA) $(MAN) "$(DESTDIR)$(MANDIR)/$(MAN)"
+	$(INSTALL) -D "$(DEST)" "$(BINDIR)/$(DEST)"
+	$(INSTALL) -D -m 644 $(MAN) "$(MANDIR)/$(MAN)"
 
-install-strip:
-	$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install
+install-strip: $(DEST)
+	$(INSTALL) -D -s "$(DEST)" "$(BINDIR)/$(DEST)"
+	$(INSTALL) -D -m 644 $(MAN) "$(MANDIR)/$(MAN)"
 
 uninstall:
-	rm "$(DESTDIR)$(bindir)/$(DEST)" "$(DESTDIR)$(MANDIR)/$(MAN)"
+	rm "$(BINDIR)/$(DEST)" "$(MANDIR)/$(MAN)"
 
 debug:
 	$(MAKE) DEBUG=1 all
