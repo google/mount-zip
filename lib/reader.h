@@ -125,7 +125,7 @@ class StringReader : public Reader {
 // and don't require any buffering.
 class UnbufferedReader : public Reader {
  public:
-  ~UnbufferedReader() override { Log(LOG_DEBUG, *this, ": Closed"); }
+  ~UnbufferedReader() override { LOG(DEBUG) << *this << ": Closed"; }
 
   UnbufferedReader(ZipFile file,
                    const zip_int64_t file_id,

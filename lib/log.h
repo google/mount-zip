@@ -16,6 +16,7 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include <cerrno>
 #include <chrono>
 #include <sstream>
 #include <string>
@@ -28,22 +29,47 @@ std::string StrCat(Args&&... args) {
   return (std::ostringstream() << ... << std::forward<Args>(args)).str();
 }
 
-// Logs a debug or error message.
-//
-// |priority| is one of:
-// LOG_ERR        error conditions
-// LOG_WARNING    warning conditions
-// LOG_NOTICE     normal, but significant, condition
-// LOG_INFO       informational message
-// LOG_DEBUG      debug-level message
-template <typename... Args>
-void Log(int priority, Args&&... args) noexcept {
-  try {
-    syslog(priority, "%s", StrCat(std::forward<Args>(args)...).c_str());
-  } catch (const std::exception& e) {
-    syslog(LOG_ERR, "Cannot log message: %s", e.what());
+enum class LogLevel {
+  DEBUG = LOG_DEBUG,
+  INFO = LOG_INFO,
+  WARNING = LOG_WARNING,
+  ERROR = LOG_ERR,
+};
+
+extern LogLevel g_log_level;
+
+void SetLogLevel(LogLevel level);
+
+#define LOG_IS_ON(level) (LogLevel::level <= g_log_level)
+
+// Accumulates a log message and logs it.
+class Logger {
+ public:
+  ~Logger();
+
+  explicit Logger(LogLevel const level, error_t err = -1)
+      : level_(level), err_(err) {}
+
+  Logger(const Logger&) = delete;
+
+  Logger&& operator<<(const auto& a) && {
+    oss_ << a;
+    return std::move(*this);
   }
-}
+
+ private:
+  const LogLevel level_;
+  const error_t err_;
+  std::ostringstream oss_;
+};
+
+#define LOG(level)                    \
+  if (LogLevel::level <= g_log_level) \
+  Logger(LogLevel::level)
+
+#define PLOG(level)                   \
+  if (LogLevel::level <= g_log_level) \
+  Logger(LogLevel::level, errno)
 
 // Timer for debug logs.
 struct Timer {

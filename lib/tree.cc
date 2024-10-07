@@ -189,11 +189,11 @@ bool Tree::ReadPasswordFromStdIn() {
     password.pop_back();
 
   if (password.empty()) {
-    Log(LOG_DEBUG, "Got an empty password");
+    LOG(DEBUG) << "Got an empty password";
     return false;
   }
 
-  Log(LOG_DEBUG, "Got a password of ", password.size(), " bytes");
+  LOG(DEBUG) << "Got a password of " << password.size() << " bytes";
 
   if (zip_set_default_password(zip_, password.c_str()) < 0)
     throw ZipError("Cannot set password", zip_);
@@ -258,7 +258,7 @@ class ConverterToUtf8 {
                                         in.data(), in.size(), &error);
 
     if (U_FAILURE(error)) {
-      Log(LOG_ERR, "Cannot convert to UTF-16: ", u_errorName(error));
+      LOG(ERROR) << "Cannot convert to UTF-16: " << u_errorName(error);
       return {};
     }
 
@@ -266,7 +266,7 @@ class ConverterToUtf8 {
                                          utf16.data(), len16, &error);
 
     if (U_FAILURE(error)) {
-      Log(LOG_ERR, "Cannot convert to UTF-8: ", u_errorName(error));
+      LOG(ERROR) << "Cannot convert to UTF-8: " << u_errorName(error);
       return {};
     }
 
@@ -306,12 +306,12 @@ std::string DetectEncoding(const std::string_view bytes) {
   const UCharsetMatch* const ucm = ucsdet_detect(csd.get(), &error);
   const char* const encoding = ucsdet_getName(ucm, &error);
   if (U_FAILURE(error)) {
-    Log(LOG_ERR, "Cannot detect encoding: ", u_errorName(error));
+    LOG(ERROR) << "Cannot detect encoding: " << u_errorName(error);
     return std::string();
   }
 
-  Log(LOG_DEBUG, "Detected encoding ", encoding, " with ",
-      ucsdet_getConfidence(ucm, &error), "% confidence");
+  LOG(DEBUG) << "Detected encoding " << encoding << " with "
+             << ucsdet_getConfidence(ucm, &error) << "% confidence";
 
   // Check if we want to convert the detected encoding via ICU.
   const std::string_view candidates[] = {
@@ -340,7 +340,7 @@ Tree::~Tree() {
   files_by_path_.clear_and_dispose(std::default_delete<FileNode>());
 
   if (zip_close(zip_) != 0)
-    Log(LOG_ERR, "Error while closing archive: ", zip_strerror(zip_));
+    LOG(ERROR) << "Error while closing archive: " << zip_strerror(zip_);
 }
 
 size_t Tree::GetBucketCount(zip_t* zip) {
@@ -391,8 +391,8 @@ void Tree::BuildTree() {
       need_prefix_ = name.starts_with('/') || name.starts_with("../");
   }
 
-  Log(LOG_DEBUG, "Total uncompressed size = ", total_uncompressed_size,
-      " bytes");
+  LOG(DEBUG) << "Total uncompressed size = " << total_uncompressed_size
+             << " bytes";
 
   // Detect filename encoding.
   std::string encoding;
@@ -419,7 +419,7 @@ void Tree::BuildTree() {
         };
       zipFlags = ZIP_FL_ENC_RAW;
     } catch (const std::exception& e) {
-      Log(LOG_ERR, e.what());
+      LOG(ERROR) << e.what();
     }
   }
 
@@ -437,11 +437,11 @@ void Tree::BuildTree() {
     assert(chunk_size >= 0);
     total_extracted_size += chunk_size;
     if (should_display_progress)
-      Log(LOG_INFO, "Loading ",
-          total_extracted_size < total_uncompressed_size
-              ? 100 * total_extracted_size / total_uncompressed_size
-              : 100,
-          "%");
+      LOG(INFO) << "Loading "
+                << (total_extracted_size < total_uncompressed_size
+                        ? 100 * total_extracted_size / total_uncompressed_size
+                        : 100)
+                << "%";
   };
 
   // Add zip entries for all items except hardlinks
@@ -457,8 +457,8 @@ void Tree::BuildTree() {
 
     const Path original_path_utf8 = toUtf8(original_path);
     if (!Path::Normalize(&path, original_path_utf8, need_prefix_)) {
-      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ",
-          original_path_utf8);
+      LOG(ERROR) << "Skipped " << type << " [" << id
+                 << "]: Cannot normalize path " << original_path_utf8;
       assert(total_uncompressed_size >= size);
       total_uncompressed_size -= size;
       continue;
@@ -482,7 +482,7 @@ void Tree::BuildTree() {
     if (type != FileType::File &&
         (type == FileType::Symlink ? !opts_.include_symlinks
                                    : !opts_.include_special_files)) {
-      Log(LOG_INFO, "Skipped ", type, " [", id, "] ", Path(path));
+      LOG(INFO) << "Skipped " << type << " [" << id << "] " << Path(path);
       assert(total_uncompressed_size >= size);
       total_uncompressed_size -= size;
       continue;
@@ -492,7 +492,7 @@ void Tree::BuildTree() {
       if (opts_.include_hardlinks) {
         hardlinks.push_back({id, mode});
       } else {
-        Log(LOG_INFO, "Skipped ", type, " [", id, "] ", Path(path));
+        LOG(INFO) << "Skipped " << type << " [" << id << "] " << Path(path);
       }
       assert(total_uncompressed_size >= size);
       total_uncompressed_size -= size;
@@ -515,7 +515,7 @@ void Tree::BuildTree() {
                  ZIP_ER_ENCRNOTSUPP);
       if (opts_.check_compression)
         throw std::move(e);
-      Log(LOG_ERR, e.what());
+      LOG(ERROR) << e.what();
     }
 
     if (!zip_compression_method_supported(sb.comp_method, 1)) {
@@ -524,7 +524,7 @@ void Tree::BuildTree() {
                  ZIP_ER_COMPNOTSUPP);
       if (opts_.check_compression)
         throw std::move(e);
-      Log(LOG_ERR, e.what());
+      LOG(ERROR) << e.what();
     }
 
     // Check the password on encrypted files.
@@ -541,11 +541,10 @@ void Tree::BuildTree() {
           total_uncompressed_size -= size;
         }
       } catch (const ZipError& error) {
-        Log(LOG_ERR, "Cannot cache ", *node, ": ", error.what());
+        LOG(ERROR) << "Cannot cache " << *node << ": " << error.what();
         if (opts_.check_password) {
-          Log(LOG_INFO,
-              "Use the --force option to continue even if some files cannot be "
-              "cached");
+          LOG(INFO) << "Use the --force option to continue even if some files "
+                       "cannot be cached";
           throw;
         }
       }
@@ -559,8 +558,8 @@ void Tree::BuildTree() {
 
     const Path original_path_utf8 = toUtf8(original_path);
     if (!Path::Normalize(&path, original_path_utf8, need_prefix_)) {
-      Log(LOG_ERR, "Skipped ", type, " [", id, "]: Cannot normalize path ",
-          original_path_utf8);
+      LOG(ERROR) << "Skipped " << type << " [" << id
+                 << "]: Cannot normalize path " << original_path_utf8;
       continue;
     }
 
@@ -575,10 +574,10 @@ void Tree::BuildTree() {
   }
 
   if (should_display_progress.Count())
-    Log(LOG_INFO, "Loaded 100%");
+    LOG(INFO) << "Loaded 100%";
 
-  Log(LOG_DEBUG, "Nodes = ", GetNodeCount());
-  Log(LOG_DEBUG, "Blocks = ", total_block_count_);
+  LOG(DEBUG) << "Nodes = " << GetNodeCount();
+  LOG(DEBUG) << "Blocks = " << total_block_count_;
 }
 
 void Tree::CheckPassword(const FileNode* const node) {
@@ -587,11 +586,11 @@ void Tree::CheckPassword(const FileNode* const node) {
   if (checked_password_)
     return;
 
-  Log(LOG_INFO, "Need password for ", *node);
+  LOG(INFO) << "Need password for " << *node;
   ReadPasswordFromStdIn();
 
   try {
-    Log(LOG_DEBUG, "Checking password on ", *node, "...");
+    LOG(DEBUG) << "Checking password on " << *node << "...";
 
     // Try to open the file and read a few bytes from it.
     const ZipFile file(zip_fopen_index(zip_, node->id, 0));
@@ -602,18 +601,17 @@ void Tree::CheckPassword(const FileNode* const node) {
     if (zip_fread(file.get(), buf.data(), buf.size()) < 0)
       throw ZipError(StrCat("Cannot read ", *node), file.get());
 
-    Log(LOG_INFO, "Password is Ok");
+    LOG(INFO) << "Password is Ok";
   } catch (const ZipError& error) {
     if (opts_.check_password) {
-      Log(LOG_INFO,
-          "Use the --force option to mount an encrypted ZIP with a wrong "
-          "password");
+      LOG(INFO)
+          << "Use the --force option to mount an encrypted ZIP with a wrong "
+             "password";
       throw;
     }
 
-    Log(LOG_DEBUG, error.what());
-    Log(LOG_INFO,
-        "Continuing despite wrong password because of --force option");
+    LOG(DEBUG) << error.what();
+    LOG(INFO) << "Continuing despite wrong password because of --force option";
   }
 
   checked_password_ = true;
@@ -707,7 +705,7 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
     return node.release();  // Now owned by |files_by_path_|.
 
   // There is a name collision
-  Log(LOG_DEBUG, *node, " conflicts with ", *pos);
+  LOG(DEBUG) << *node << " conflicts with " << *pos;
 
   // Extract filename extension
   std::string& f = node->name;
@@ -726,11 +724,11 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
 
     const auto [pos, ok] = files_by_path_.insert(*node);
     if (ok) {
-      Log(LOG_DEBUG, "Resolved conflict for ", *node);
+      LOG(DEBUG) << "Resolved conflict for " << *node;
       return node.release();  // Now owned by |files_by_path_|.
     }
 
-    Log(LOG_DEBUG, *node, " conflicts with ", *pos);
+    LOG(DEBUG) << *node << " conflicts with " << *pos;
     if (!i)
       i = &pos->collision_count;
   }
@@ -772,7 +770,7 @@ FileNode* Tree::CreateHardlink(zip_int64_t id,
 
   if (!field) {
     // Ignoring hardlink without PKWARE UNIX field
-    Log(LOG_INFO, "Cannot find PkWare Unix field for hardlink ", *node);
+    LOG(INFO) << "Cannot find PkWare Unix field for hardlink " << *node;
     return CreateFile(id, parent, name, mode);
   }
 
@@ -785,12 +783,12 @@ FileNode* Tree::CreateHardlink(zip_int64_t id,
 
   if (!ExtraField::parsePkWareUnixField(len, field, mode, mt, at, uid, gid, dev,
                                         link, link_len)) {
-    Log(LOG_WARNING, "Cannot parse PkWare Unix field for hardlink ", *node);
+    LOG(WARNING) << "Cannot parse PkWare Unix field for hardlink " << *node;
     return CreateFile(id, parent, name, mode);
   }
 
   if (link_len == 0 || !link) {
-    Log(LOG_ERR, "Cannot get target for hardlink ", *node);
+    LOG(ERROR) << "Cannot get target for hardlink " << *node;
     return CreateFile(id, parent, name, mode);
   }
 
@@ -799,8 +797,8 @@ FileNode* Tree::CreateHardlink(zip_int64_t id,
   const auto it = files_by_original_path_.find(
       Path(target_path).WithoutTrailingSeparator());
   if (it == files_by_original_path_.end()) {
-    Log(LOG_ERR, "Cannot find target for hardlink ", *node, " -> ",
-        Path(target_path));
+    LOG(ERROR) << "Cannot find target for hardlink " << *node << " -> "
+               << Path(target_path);
     return CreateFile(id, parent, name, mode);
   }
 
@@ -809,7 +807,8 @@ FileNode* Tree::CreateHardlink(zip_int64_t id,
   if (target.type() != GetFileType(mode)) {
     // PkZip saves hard-link flag for symlinks with inode link count > 1.
     if (!S_ISLNK(mode))
-      Log(LOG_ERR, "Mismatched types for hardlink ", *node, " -> ", target);
+      LOG(ERROR) << "Mismatched types for hardlink " << *node << " -> "
+                 << target;
 
     return CreateFile(id, parent, name, mode);
   }
@@ -817,7 +816,7 @@ FileNode* Tree::CreateHardlink(zip_int64_t id,
   node->link = target.link;
   node->link->nlink++;
 
-  Log(LOG_DEBUG, "Created hardlink ", *node, " -> ", target);
+  LOG(DEBUG) << "Created hardlink " << *node << " -> " << target;
   return Attach(std::move(node));
 }
 
@@ -839,8 +838,8 @@ FileNode* Tree::CreateDir(std::string_view path) {
 
     // There is an existing node with the given name, but it's not a
     // directory.
-    Log(LOG_DEBUG, "Found conflicting ", *node, " while creating Dir ",
-        Path(path));
+    LOG(DEBUG) << "Found conflicting " << *node << " while creating Dir "
+               << Path(path);
     parent = node->parent;
 
     // Remove it from |files_by_path_|, in order to insert it again later with a

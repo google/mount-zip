@@ -262,7 +262,7 @@ bool DataNode::CacheAll(zip_t* const zip,
                         std::function<void(ssize_t)> progress) {
   assert(!cached_reader);
   if (size == 0) {
-    Log(LOG_DEBUG, "No need to cache ", file_node, ": Empty file");
+    LOG(DEBUG) << "No need to cache " << file_node << ": Empty file";
     return false;
   }
 
@@ -286,7 +286,7 @@ bool DataNode::CacheAll(zip_t* const zip,
 #endif
 
   if (seekable) {
-    Log(LOG_DEBUG, "No need to cache ", file_node, ": File is seekable");
+    LOG(DEBUG) << "No need to cache " << file_node << ": File is seekable";
     return false;
   }
 
@@ -297,8 +297,8 @@ bool DataNode::CacheAll(zip_t* const zip,
 Reader::Ptr DataNode::GetReader(zip_t* const zip,
                                 const FileNode& file_node) const {
   if (cached_reader) {
-    Log(LOG_DEBUG, *cached_reader, ": Reusing Cached ", *cached_reader, " for ",
-        file_node);
+    LOG(DEBUG) << *cached_reader << ": Reusing Cached " << *cached_reader
+               << " for " << file_node;
     return cached_reader->AddRef();
   }
 
@@ -328,7 +328,8 @@ Reader::Ptr DataNode::GetReader(zip_t* const zip,
                               : new BufferedReader(zip, std::move(file), id,
                                                    size, &cached_reader));
 
-  Log(LOG_DEBUG, *reader, ": Opened ", file_node, ", seekable = ", seekable);
+  LOG(DEBUG) << *reader << ": Opened " << file_node
+             << ", seekable = " << seekable;
   return reader;
 }
 

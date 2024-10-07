@@ -115,13 +115,13 @@ struct Operations : fuse_operations {
     try {
       throw;
     } catch (const std::bad_alloc&) {
-      Log(LOG_ERR, "Cannot ", action, ' ', path, ": No memory");
+      LOG(ERROR) << "Cannot " << action << ' ' << path << ": No memory";
       return -ENOMEM;
     } catch (const std::exception& e) {
-      Log(LOG_ERR, "Cannot ", action, ' ', path, ": ", e.what());
+      LOG(ERROR) << "Cannot " << action << ' ' << path << ": " << e.what();
       return -EIO;
     } catch (...) {
-      Log(LOG_ERR, "Cannot ", action, ' ', path, ": Unexpected error");
+      LOG(ERROR) << "Cannot " << action << ' ' << path << ": Unexpected error";
       return -EIO;
     }
   }
@@ -131,7 +131,7 @@ struct Operations : fuse_operations {
     assert(tree);
     const FileNode* const node = tree->Find(fname);
     if (!node)
-      Log(LOG_DEBUG, "Cannot find ", Path(fname));
+      LOG(DEBUG) << "Cannot find " << Path(fname);
     return node;
   }
 
@@ -335,11 +335,11 @@ static int ProcessArg(void* data,
       }
 
     case KEY_QUIET:
-      setlogmask(LOG_UPTO(LOG_ERR));
+      SetLogLevel(LogLevel::ERROR);
       return DISCARD;
 
     case KEY_VERBOSE:
-      setlogmask(LOG_UPTO(LOG_DEBUG));
+      SetLogLevel(LogLevel::DEBUG);
       return DISCARD;
 
     case KEY_REDACT:
@@ -389,10 +389,9 @@ struct Cleanup {
   ~Cleanup() {
     if (!mount_point.empty()) {
       if (unlinkat(dirfd, mount_point.c_str(), AT_REMOVEDIR) == 0) {
-        Log(LOG_DEBUG, "Removed mount point ", Path(mount_point));
+        LOG(DEBUG) << "Removed mount point " << Path(mount_point);
       } else {
-        Log(LOG_ERR, "Cannot remove mount point ", Path(mount_point), ": ",
-            strerror(errno));
+        PLOG(ERROR) << "Cannot remove mount point " << Path(mount_point);
       }
     }
 
@@ -400,7 +399,7 @@ struct Cleanup {
       fuse_opt_free_args(args);
 
     if (close(dirfd) < 0)
-      Log(LOG_ERR, "Cannot close file descriptor: ", strerror(errno));
+      PLOG(ERROR) << "Cannot close file descriptor";
   }
 };
 
@@ -417,7 +416,7 @@ int main(int argc, char* argv[]) try {
   // It makes big numbers much easier to read (eg sizes expressed in bytes).
   std::locale::global(std::locale(std::locale::classic(), new NumPunct));
   openlog(PROGRAM, LOG_PERROR, LOG_USER);
-  setlogmask(LOG_UPTO(LOG_INFO));
+  SetLogLevel(LogLevel::INFO);
 
   fuse_args args = FUSE_ARGS_INIT(argc, argv);
   Cleanup cleanup{.args = &args};
@@ -462,7 +461,7 @@ int main(int argc, char* argv[]) try {
   }
 
   // Open and index the ZIP archive.
-  Log(LOG_DEBUG, "Indexing ", Path(param.filename), "...");
+  LOG(DEBUG) << "Indexing " << Path(param.filename) << "...";
   Timer timer;
   Tree::Ptr tree_ptr = Tree::Init(param.filename.c_str(), param.opts);
   Tree& tree = *tree_ptr;
@@ -470,19 +469,18 @@ int main(int argc, char* argv[]) try {
   // For optimization, don't bother destructing the tree.
   tree_ptr.release();
 #endif
-  Log(LOG_DEBUG, "Indexed ", Path(param.filename), " in ", timer);
+  LOG(DEBUG) << "Indexed " << Path(param.filename) << " in " << timer;
 
   if (!param.mount_point.empty()) {
     // Try to create the mount point directory if it doesn't exist.
     if (mkdirat(cleanup.dirfd, param.mount_point.c_str(), 0777) == 0) {
-      Log(LOG_DEBUG, "Created mount point ", Path(param.mount_point));
+      LOG(DEBUG) << "Created mount point " << Path(param.mount_point);
       cleanup.mount_point = param.mount_point;
     } else if (errno == EEXIST) {
-      Log(LOG_DEBUG, "Mount point ", Path(param.mount_point),
-          " already exists");
+      LOG(DEBUG) << "Mount point " << Path(param.mount_point)
+                 << " already exists";
     } else {
-      Log(LOG_ERR, "Cannot create mount point ", Path(param.mount_point), ": ",
-          strerror(errno));
+      PLOG(ERROR) << "Cannot create mount point " << Path(param.mount_point);
     }
   } else {
     param.mount_point = Path(param.filename).WithoutExtension();
@@ -490,26 +488,25 @@ int main(int argc, char* argv[]) try {
 
     for (int i = 0;;) {
       if (mkdirat(cleanup.dirfd, param.mount_point.c_str(), 0777) == 0) {
-        Log(LOG_INFO, "Created mount point ", Path(param.mount_point));
+        LOG(INFO) << "Created mount point " << Path(param.mount_point);
         cleanup.mount_point = param.mount_point;
         fuse_opt_add_arg(&args, param.mount_point.c_str());
         break;
       }
 
       if (errno != EEXIST) {
-        Log(LOG_ERR, "Cannot create mount point ", Path(param.mount_point),
-            ": ", strerror(errno));
+        PLOG(ERROR) << "Cannot create mount point " << Path(param.mount_point);
         return EXIT_FAILURE;
       }
 
-      Log(LOG_DEBUG, "Mount point ", Path(param.mount_point),
-          " already exists");
+      LOG(DEBUG) << "Mount point " << Path(param.mount_point)
+                 << " already exists";
       param.mount_point.resize(n);
       param.mount_point += StrCat(" (", ++i, ")");
     }
   }
 
-  // Respect inodes number.
+  // Respect inode numbers.
   fuse_opt_add_arg(&args, "-ouse_ino");
 
   // Read-only mounting.
@@ -520,11 +517,11 @@ int main(int argc, char* argv[]) try {
 
   return fuse_main(args.argc, args.argv, &operations, &tree);
 } catch (const ZipError& e) {
-  Log(LOG_ERR, e.what());
+  LOG(ERROR) << e.what();
   // Shift libzip error codes in order to avoid collision with FUSE errors.
   const int ZIP_ER_BASE = 10;
   return ZIP_ER_BASE + e.code();
 } catch (const std::exception& e) {
-  Log(LOG_ERR, e.what());
+  LOG(ERROR) << e.what();
   return EXIT_FAILURE;
 }

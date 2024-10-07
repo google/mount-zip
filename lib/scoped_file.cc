@@ -28,14 +28,13 @@
 
 ScopedFile::~ScopedFile() {
   if (IsValid() && close(fd_) < 0)
-    Log(LOG_ERR, "Error while closing file descriptor ", fd_, ": ",
-        strerror(errno));
+    PLOG(ERROR) << "Cannot close file";
 }
 
 // Removes the memory mapping.
 FileMapping::~FileMapping() {
   if (munmap(data_, size_) < 0)
-    Log(LOG_ERR, "Cannot unmap file: ", strerror(errno));
+    PLOG(ERROR) << "Cannot unmap file";
 }
 
 // Maps a file to memory in read-only mode.

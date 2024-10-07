@@ -60,7 +60,7 @@ void Reader::SetCacheStrategy(const CacheStrategy strategy) {
 void Reader::SetCacheDir(const std::string_view dir) {
   SetCacheStrategy(CacheStrategy::InFile);
   cache_dir_ = dir;
-  Log(LOG_DEBUG, "Using cache dir ", Path(Reader::cache_dir_));
+  LOG(DEBUG) << "Using cache dir " << Path(Reader::cache_dir_);
 }
 
 ZipFile Reader::Open(zip_t* const zip, const zip_int64_t file_id) {
@@ -94,8 +94,8 @@ ssize_t UnbufferedReader::ReadAtCurrentPosition(char* dest, ssize_t size) {
 
 char* UnbufferedReader::Read(char* dest, char* dest_end, off_t offset) {
   if (pos_ != offset) {
-    Log(LOG_DEBUG, *this, ": Jump ", offset - pos_, " from ", pos_, " to ",
-        offset);
+    LOG(DEBUG) << *this << ": Jump " << offset - pos_ << " from " << pos_
+               << " to " << offset;
 
     if (zip_fseek(file_.get(), offset, SEEK_SET) < 0)
       throw ZipError("Cannot fseek file", file_.get());
@@ -142,7 +142,7 @@ class CacheFileReader : public UnbufferedReader {
           if (!file.IsValid())
             ThrowSystemError("Cannot create cache file in memory");
 
-          Log(LOG_DEBUG, "Created cache file in memory");
+          LOG(DEBUG) << "Created cache file in memory";
           return file;
         }
 
@@ -151,7 +151,7 @@ class CacheFileReader : public UnbufferedReader {
         if (ScopedFile file(
                 open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
             file.IsValid()) {
-          Log(LOG_DEBUG, "Created anonymous cache file in ", Path(cache_dir_));
+          LOG(DEBUG) << "Created anonymous cache file in " << Path(cache_dir_);
           return file;
         }
 
@@ -165,8 +165,8 @@ class CacheFileReader : public UnbufferedReader {
         // temp file, and unlink it immediately.
 
         assert(errno == ENOTSUP);
-        Log(LOG_DEBUG, "The filesystem of ", Path(cache_dir_),
-            " does not support O_TMPFILE");
+        LOG(DEBUG) << "The filesystem of " << Path(cache_dir_)
+                   << " does not support O_TMPFILE";
 
         std::string path = cache_dir_;
         Path::Append(&path, "XXXXXX");
@@ -176,7 +176,7 @@ class CacheFileReader : public UnbufferedReader {
           ThrowSystemError("Cannot create named cache file in ",
                            Path(cache_dir_));
 
-        Log(LOG_DEBUG, "Created cache file ", Path(path));
+        LOG(DEBUG) << "Created cache file " << Path(path);
 
         if (unlink(path.c_str()) < 0)
           ThrowSystemError("Cannot unlink cache file ", Path(path));
@@ -222,8 +222,8 @@ class CacheFileReader : public UnbufferedReader {
     }
 #endif
 
-    Log(LOG_DEBUG, "Reserved ", expected_size_,
-        " bytes in cache file at offset ", offset);
+    LOG(DEBUG) << "Reserved " << expected_size_
+               << " bytes in cache file at offset " << offset;
     return offset;
   }
 
@@ -255,8 +255,8 @@ class CacheFileReader : public UnbufferedReader {
 
     while (pos_ < offset) {
       if (should_log_progress)
-        Log(LOG_DEBUG, "Caching ", total_to_cache, " bytes... ",
-            100 * (pos_ - start_pos) / total_to_cache, "%");
+        LOG(DEBUG) << "Caching " << total_to_cache << " bytes... "
+                   << 100 * (pos_ - start_pos) / total_to_cache << "%";
 
       const ssize_t buf_size = 64 * 1024;
       char buf[buf_size];
@@ -273,8 +273,8 @@ class CacheFileReader : public UnbufferedReader {
     }
 
     if (should_log_progress.Count())
-      Log(LOG_DEBUG, "Cached ", pos_ - start_pos, " bytes from ", start_pos,
-          " to ", pos_, " in ", timer);
+      LOG(DEBUG) << "Cached " << pos_ - start_pos << " bytes from " << start_pos
+                 << " to " << pos_ << " in " << timer;
   }
 
   char* Read(char* dest, char* const dest_end, off_t offset) override {
@@ -285,8 +285,8 @@ class CacheFileReader : public UnbufferedReader {
     LimitSize(&count, expected_size_ - offset);
 
     if (pos_ < offset)
-      Log(LOG_DEBUG, *this, ": Jump ", offset - pos_, " from ", pos_, " to ",
-          offset);
+      LOG(DEBUG) << *this << ": Jump " << offset - pos_ << " from " << pos_
+                 << " to " << offset;
 
     EnsureCachedUpTo(offset + count);
 
@@ -313,7 +313,7 @@ Reader::Ptr CacheFile(ZipFile file,
   CacheFileReader* const p =
       new CacheFileReader(std::move(file), file_id, expected_size);
   Reader::Ptr r(p);
-  Log(LOG_DEBUG, *p, ": Caching ", expected_size, " bytes...");
+  LOG(DEBUG) << *p << ": Caching " << expected_size << " bytes...";
   p->CacheAll(std::move(progress));
   return r;
 }
@@ -326,7 +326,7 @@ class TooFar : public std::exception {
 };
 
 void BufferedReader::Restart() {
-  Log(LOG_DEBUG, *this, ": Rewind");
+  LOG(DEBUG) << *this << ": Rewind";
 
   // Restart from the file beginning.
   file_ = Open(zip_, file_id_);
@@ -336,16 +336,16 @@ void BufferedReader::Restart() {
 
 bool BufferedReader::CreateCachedReader() const noexcept {
   if (cached_reader_) {
-    Log(LOG_DEBUG, *this, ": Switched to Cached ", *cached_reader_);
+    LOG(DEBUG) << *this << ": Switched to Cached " << *cached_reader_;
     return true;
   }
 
   try {
     cached_reader_.reset(new CacheFileReader(zip_, file_id_, expected_size_));
-    Log(LOG_DEBUG, *this, ": Created Cached ", *cached_reader_);
+    LOG(DEBUG) << *this << ": Created Cached " << *cached_reader_;
     return true;
   } catch (const std::exception& e) {
-    Log(LOG_ERR, *this, ": Cannot create Cached Reader: ", e.what());
+    LOG(ERROR) << *this << ": Cannot create Cached Reader: " << e.what();
     return false;
   }
 }
@@ -366,8 +366,8 @@ void BufferedReader::Advance(off_t jump) {
 
   do {
     if (should_log_progress)
-      Log(LOG_DEBUG, "Skipping ", total_to_cache, " bytes... ",
-          100 * (pos_ - start_pos) / total_to_cache, "%");
+      LOG(DEBUG) << "Skipping " << total_to_cache << " bytes... "
+                 << 100 * (pos_ - start_pos) / total_to_cache << "%";
 
     ssize_t count = buffer_size_ - buffer_start_;
     LimitSize(&count, jump);
@@ -387,8 +387,8 @@ void BufferedReader::Advance(off_t jump) {
   } while (jump > 0);
 
   if (should_log_progress.Count())
-    Log(LOG_DEBUG, *this, ": Skipped ", pos_ - start_pos, " bytes from ",
-        start_pos, " to ", pos_, " in ", timer);
+    LOG(DEBUG) << *this << ": Skipped " << pos_ - start_pos << " bytes from "
+               << start_pos << " to " << pos_ << " in " << timer;
 }
 
 char* BufferedReader::ReadFromBufferAndAdvance(char* dest,
@@ -430,8 +430,8 @@ char* BufferedReader::ReadFromBufferAndAdvance(char* dest,
     LimitSize(&size, dest_end - dest);
     assert(size > 0);
 
-    Log(LOG_DEBUG, *this, ": Read ", size, " bytes from cache position ",
-        i - buffer_start_);
+    LOG(DEBUG) << *this << ": Read " << size << " bytes from cache position "
+               << i - buffer_start_;
 
     std::memcpy(dest, &buffer_[start], size);
     dest += size;
