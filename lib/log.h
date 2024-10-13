@@ -18,6 +18,7 @@
 
 #include <cerrno>
 #include <chrono>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <utility>
