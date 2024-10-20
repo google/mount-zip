@@ -45,7 +45,7 @@ struct FileNode {
   // Index of the entry represented by this node in the ZIP archive, or -1 if it
   // is not directly represented in the ZIP archive (like the root directory, or
   // any intermediate directory).
-  const zip_int64_t id = -1;
+  const i64 id = -1;
 
   // Inode data of this entry.
   DataNode data;

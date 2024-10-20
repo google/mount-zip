@@ -93,13 +93,13 @@ class Tree {
   FileNode* CreateDir(std::string_view path);
 
   // Creates and attaches a node for an existing file or dir entry.
-  FileNode* CreateFile(zip_int64_t id,
+  FileNode* CreateFile(i64 id,
                        FileNode* parent,
                        std::string_view name,
                        mode_t mode);
 
   // Creates and attaches a hardlink node.
-  FileNode* CreateHardlink(zip_int64_t id,
+  FileNode* CreateHardlink(i64 id,
                            FileNode* parent,
                            std::string_view name,
                            mode_t mode);

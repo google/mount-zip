@@ -238,7 +238,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 }
 
 DataNode DataNode::Make(zip_t* const zip,
-                        const zip_int64_t id,
+                        const i64 id,
                         const mode_t mode) {
   assert(zip);
   zip_stat_t st;

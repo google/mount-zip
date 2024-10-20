@@ -17,6 +17,7 @@
 #define READER_H
 
 #include <cassert>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <ostream>
@@ -25,6 +26,8 @@
 #include <zip.h>
 
 #include "log.h"
+
+using i64 = std::int64_t;
 
 struct ZipClose {
   void operator()(zip_file_t* const file) const { zip_fclose(file); }
@@ -78,7 +81,7 @@ class Reader {
   }
 
   // Opens the file at index |file_id|. Throws ZipError in case of error.
-  static ZipFile Open(zip_t* zip, zip_int64_t file_id);
+  static ZipFile Open(zip_t* zip, i64 file_id);
 
   // Sets the cache strategy.
   static void SetCacheStrategy(CacheStrategy strategy);
@@ -96,10 +99,10 @@ class Reader {
   static std::string cache_dir_;
 
   // Number of created Reader objects.
-  static zip_int64_t reader_count_;
+  static i64 reader_count_;
 
   // ID of this Reader (for debug traces).
-  const zip_int64_t reader_id_ = ++reader_count_;
+  const i64 reader_id_ = ++reader_count_;
 
   // Reference count.
   int ref_count_ = 1;
@@ -127,9 +130,7 @@ class UnbufferedReader : public Reader {
  public:
   ~UnbufferedReader() override { LOG(DEBUG) << *this << ": Closed"; }
 
-  UnbufferedReader(ZipFile file,
-                   const zip_int64_t file_id,
-                   const off_t expected_size)
+  UnbufferedReader(ZipFile file, const i64 file_id, const off_t expected_size)
       : file_id_(file_id),
         expected_size_(expected_size),
         file_(std::move(file)) {
@@ -147,7 +148,7 @@ class UnbufferedReader : public Reader {
   ssize_t ReadAtCurrentPosition(char* dest, ssize_t size);
 
   // ID of the file being read.
-  const zip_int64_t file_id_;
+  const i64 file_id_;
 
   // Expected size of the file being read.
   const off_t expected_size_;
@@ -172,7 +173,7 @@ class BufferedReader : public UnbufferedReader {
  public:
   BufferedReader(zip_t* const zip,
                  ZipFile file,
-                 const zip_int64_t file_id,
+                 const i64 file_id,
                  const off_t expected_size,
                  Reader::Ptr* const cached_reader)
       : UnbufferedReader(std::move(file), file_id, expected_size),
@@ -234,7 +235,7 @@ class BufferedReader : public UnbufferedReader {
 // Cache the whole file contents. Returns a Reader that will be able to serve
 // the cached contents.
 Reader::Ptr CacheFile(ZipFile file,
-                      zip_int64_t file_id,
+                      i64 file_id,
                       off_t expected_size,
                       std::function<void(ssize_t)> progress = {});
 

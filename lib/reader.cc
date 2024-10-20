@@ -41,7 +41,7 @@ static std::string GetTmpDir() {
 
 CacheStrategy Reader::cache_strategy_ = CacheStrategy::Unspecified;
 std::string Reader::cache_dir_ = GetTmpDir();
-zip_int64_t Reader::reader_count_ = 0;
+i64 Reader::reader_count_ = 0;
 
 static void LimitSize(ssize_t* const a, off_t b) {
   if (*a > b)
@@ -63,7 +63,7 @@ void Reader::SetCacheDir(const std::string_view dir) {
   LOG(DEBUG) << "Using cache dir " << Path(Reader::cache_dir_);
 }
 
-ZipFile Reader::Open(zip_t* const zip, const zip_int64_t file_id) {
+ZipFile Reader::Open(zip_t* const zip, const i64 file_id) {
   ZipFile file(zip_fopen_index(zip, file_id, 0));
   if (!file)
     throw ZipError(StrCat("Cannot open File [", file_id, "]"), zip);
@@ -118,7 +118,7 @@ class CacheFileReader : public UnbufferedReader {
  public:
   using UnbufferedReader::UnbufferedReader;
   CacheFileReader(zip_t* const zip,
-                  const zip_int64_t file_id,
+                  const i64 file_id,
                   const off_t expected_size)
       : UnbufferedReader(Open(zip, file_id), file_id, expected_size) {}
 
@@ -307,7 +307,7 @@ class CacheFileReader : public UnbufferedReader {
 };
 
 Reader::Ptr CacheFile(ZipFile file,
-                      const zip_int64_t file_id,
+                      const i64 file_id,
                       const off_t expected_size,
                       std::function<void(ssize_t)> progress) {
   CacheFileReader* const p =

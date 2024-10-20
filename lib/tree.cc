@@ -344,14 +344,14 @@ Tree::~Tree() {
 }
 
 size_t Tree::GetBucketCount(zip_t* zip) {
-  const size_t n = std::min<zip_int64_t>(zip_get_num_entries(zip, 0),
-                                         std::numeric_limits<ssize_t>::max());
+  const size_t n = std::min<i64>(zip_get_num_entries(zip, 0),
+                                 std::numeric_limits<ssize_t>::max());
   // Floor the number of elements to a power of 2 with a minimum of 16.
   return std::bit_floor(n | 16u);
 }
 
 void Tree::BuildTree() {
-  const zip_int64_t n = zip_get_num_entries(zip_, 0);
+  const i64 n = zip_get_num_entries(zip_, 0);
 
   FileNode::Ptr root(new FileNode{
       .zip = zip_, .data = {.nlink = 2, .mode = S_IFDIR | 0755}, .name = "/"});
@@ -370,7 +370,7 @@ void Tree::BuildTree() {
   size_t max_name_length = 0;
 
   // search for absolute or parent-relative paths
-  for (zip_int64_t id = 0; id < n; ++id) {
+  for (i64 id = 0; id < n; ++id) {
     if (zip_stat_index(zip_, id, ZIP_FL_ENC_RAW, &sb) < 0)
       throw ZipError(StrCat("Cannot read entry #", id), zip_);
 
@@ -424,7 +424,7 @@ void Tree::BuildTree() {
   }
 
   struct Hardlink {
-    zip_int64_t id;
+    i64 id;
     mode_t mode;
   };
 
@@ -445,7 +445,7 @@ void Tree::BuildTree() {
   };
 
   // Add zip entries for all items except hardlinks
-  for (zip_int64_t id = 0; id < n; ++id) {
+  for (i64 id = 0; id < n; ++id) {
     if (zip_stat_index(zip_, id, zipFlags, &sb) < 0)
       throw ZipError(StrCat("Cannot read entry #", id), zip_);
 
@@ -725,7 +725,7 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
   }
 }
 
-FileNode* Tree::CreateFile(zip_int64_t id,
+FileNode* Tree::CreateFile(i64 id,
                            FileNode* parent,
                            std::string_view name,
                            mode_t mode) {
@@ -740,7 +740,7 @@ FileNode* Tree::CreateFile(zip_int64_t id,
                                  .name = std::string(name)}));
 }
 
-FileNode* Tree::CreateHardlink(zip_int64_t id,
+FileNode* Tree::CreateHardlink(i64 id,
                                FileNode* parent,
                                std::string_view name,
                                mode_t mode) {

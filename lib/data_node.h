@@ -63,7 +63,7 @@ struct DataNode {
   static ino_t ino_count;
   ino_t ino = ++ino_count;
   mutable nlink_t nlink = 1;
-  zip_int64_t id = -1;
+  i64 id = -1;
   mode_t mode = 0;
   uid_t uid = g_uid;
   gid_t gid = g_gid;
@@ -86,7 +86,7 @@ struct DataNode {
 
   Reader::Ptr GetReader(zip_t* zip, const FileNode& file_node) const;
 
-  static DataNode Make(zip_t* zip, zip_int64_t id, mode_t mode);
+  static DataNode Make(zip_t* zip, i64 id, mode_t mode);
 
   static timespec Now();
 };
