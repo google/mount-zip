@@ -19,6 +19,9 @@
 
 #define FUSE_USE_VERSION 27
 #define PROGRAM "mount-zip"
-#define VERSION "1.0.15"
+
+// Odd minor versions (e.g. 1.1 or 1.3) are development versions.
+// Even minor versions (e.g. 1.2 or 1.4) are stable versions.
+#define VERSION "1.1"
 
 #endif
