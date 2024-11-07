@@ -72,7 +72,6 @@ class Tree {
  private:
   // Constructor.
   Tree(zip_t* zip, Options opts) : zip_(zip), opts_(std::move(opts)) {}
-  Tree(zip_t* zip) : zip_(zip) {}
 
   // Builds internal tree structure.
   void BuildTree();
