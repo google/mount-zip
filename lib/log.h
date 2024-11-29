@@ -27,7 +27,9 @@
 
 template <typename... Args>
 std::string StrCat(Args&&... args) {
-  return (std::ostringstream() << ... << std::forward<Args>(args)).str();
+  std::ostringstream out;
+  (out << ... << std::forward<Args>(args));
+  return std::move(out).str();
 }
 
 enum class LogLevel {
