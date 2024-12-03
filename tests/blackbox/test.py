@@ -228,12 +228,10 @@ def GenerateReferenceData():
 def TestZipWithDefaultOptions():
   want_trees = {
       'absolute-path.zip': {
-          'ROOT': {'mode': 'drwxr-xr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'ROOT': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'ROOT/rootname.ext': {
               'mode': '-rw-rw-r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1371478408000000000,
               'mtime': 1371478408000000000,
               'ctime': 1371478408000000000,
@@ -271,8 +269,6 @@ def TestZipWithDefaultOptions():
           'bzip2.txt': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635811418000000000,
               'mtime': 1635811418000000000,
               'ctime': 1635811418000000000,
@@ -369,12 +365,10 @@ def TestZipWithDefaultOptions():
           },
       },
       'dos-perm.zip': {
-          'dir': {'mode': 'drwxr-xr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'dir': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'dir/hidden.txt': {
               'mode': '-rw-rw-r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1388826134000000000,
               'mtime': 1388826134000000000,
               'ctime': 1388826134000000000,
@@ -384,8 +378,6 @@ def TestZipWithDefaultOptions():
           'dir/normal.txt': {
               'mode': '-rw-rw-r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1388826120000000000,
               'mtime': 1388826120000000000,
               'ctime': 1388826120000000000,
@@ -395,8 +387,6 @@ def TestZipWithDefaultOptions():
           'dir/readonly.txt': {
               'mode': '-r--r--r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1388826146000000000,
               'mtime': 1388826146000000000,
               'ctime': 1388826146000000000,
@@ -422,8 +412,6 @@ def TestZipWithDefaultOptions():
           '-': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1564403758000000000,
               'mtime': 1564403758000000000,
               'ctime': 1564403758000000000,
@@ -443,13 +431,11 @@ def TestZipWithDefaultOptions():
           },
       },
       'file-dir-same-name.zip': {
-          'pet': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'pet/cat': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
+          'pet': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'pet/cat': {'mode': 'drwxr-xr-x', 'nlink': 3},
           'pet/cat/fish': {
               'mode': 'drwxrwxr-x',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635479490000000000,
               'mtime': 1635479490000000000,
               'ctime': 1635479490000000000,
@@ -457,8 +443,6 @@ def TestZipWithDefaultOptions():
           'pet/cat/fish (1)': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635479490000000000,
               'mtime': 1635479490000000000,
               'ctime': 1635479490000000000,
@@ -468,8 +452,6 @@ def TestZipWithDefaultOptions():
           'pet/cat/fish (2)': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635479490000000000,
               'mtime': 1635479490000000000,
               'ctime': 1635479490000000000,
@@ -479,8 +461,6 @@ def TestZipWithDefaultOptions():
           'pet/cat (1)': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635479490000000000,
               'mtime': 1635479490000000000,
               'ctime': 1635479490000000000,
@@ -490,8 +470,6 @@ def TestZipWithDefaultOptions():
           'pet/cat (2)': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635479490000000000,
               'mtime': 1635479490000000000,
               'ctime': 1635479490000000000,
@@ -501,8 +479,6 @@ def TestZipWithDefaultOptions():
           'pet (1)': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635479490000000000,
               'mtime': 1635479490000000000,
               'ctime': 1635479490000000000,
@@ -512,8 +488,6 @@ def TestZipWithDefaultOptions():
           'pet (2)': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635479490000000000,
               'mtime': 1635479490000000000,
               'ctime': 1635479490000000000,
@@ -538,8 +512,6 @@ def TestZipWithDefaultOptions():
           '0hlink': {
               'mode': '-rw-r-----',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -549,8 +521,6 @@ def TestZipWithDefaultOptions():
           '1regular': {
               'mode': '-rw-r-----',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -562,8 +532,6 @@ def TestZipWithDefaultOptions():
           '0regular': {
               'mode': '-rw-r-----',
               'nlink': 3,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -573,8 +541,6 @@ def TestZipWithDefaultOptions():
           'hlink1': {
               'mode': '-rw-r-----',
               'nlink': 3,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -584,8 +550,6 @@ def TestZipWithDefaultOptions():
           'hlink2': {
               'mode': '-rw-r-----',
               'nlink': 3,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -597,8 +561,6 @@ def TestZipWithDefaultOptions():
           'dir': {
               'mode': 'drwxrwxrwx',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -606,8 +568,6 @@ def TestZipWithDefaultOptions():
           'dir/regular': {
               'mode': '-rw-r-----',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -617,8 +577,6 @@ def TestZipWithDefaultOptions():
           'hlink': {
               'mode': '-rwxrwxrwx',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -630,8 +588,6 @@ def TestZipWithDefaultOptions():
           'dir': {
               'mode': 'drwxrwxrwx',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1567323446000000000,
               'mtime': 1567323446000000000,
               'ctime': 1567323446000000000,
@@ -639,8 +595,6 @@ def TestZipWithDefaultOptions():
           'dir/regular': {
               'mode': '-rw-r-----',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1567323446000000000,
               'mtime': 1567323446000000000,
               'ctime': 1567323446000000000,
@@ -650,8 +604,6 @@ def TestZipWithDefaultOptions():
           'hlink': {
               'mode': 'drwxrwxrwx',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1567348646000000000,
               'mtime': 1567348646000000000,
               'ctime': 1567323446000000000,
@@ -661,8 +613,6 @@ def TestZipWithDefaultOptions():
           'hlink': {
               'mode': '-rw-r-----',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -674,8 +624,6 @@ def TestZipWithDefaultOptions():
           'hlink1': {
               'mode': '-rw-r-----',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -685,8 +633,6 @@ def TestZipWithDefaultOptions():
           'hlink2': {
               'mode': '-rw-r-----',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -695,12 +641,10 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-relative.zip': {
-          'UP': {'mode': 'drwxr-xr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'UP': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'UP/0regular': {
               'mode': '-rw-r-----',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1567323446000000000,
               'mtime': 1567323446000000000,
               'ctime': 1567323446000000000,
@@ -710,8 +654,6 @@ def TestZipWithDefaultOptions():
           'UP/hlink': {
               'mode': '-rw-r-----',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1567323446000000000,
               'mtime': 1567323446000000000,
               'ctime': 1567323446000000000,
@@ -723,8 +665,6 @@ def TestZipWithDefaultOptions():
           '0block': {
               'mode': 'brw-r--r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -733,8 +673,6 @@ def TestZipWithDefaultOptions():
           '0fifo': {
               'mode': 'prw-r--r--',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -742,8 +680,6 @@ def TestZipWithDefaultOptions():
           '0socket': {
               'mode': 'srw-r--r--',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -751,8 +687,6 @@ def TestZipWithDefaultOptions():
           'hlink-block': {
               'mode': 'brw-r--r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -761,8 +695,6 @@ def TestZipWithDefaultOptions():
           'hlink-fifo': {
               'mode': 'prw-r--r--',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -770,8 +702,6 @@ def TestZipWithDefaultOptions():
           'hlink-socket': {
               'mode': 'srw-r--r--',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -781,8 +711,6 @@ def TestZipWithDefaultOptions():
           '0regular': {
               'mode': '-rw-r-----',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565781818000000000,
               'mtime': 1565781818000000000,
               'ctime': 1565781818000000000,
@@ -792,8 +720,6 @@ def TestZipWithDefaultOptions():
           '1symlink': {
               'mode': 'lrwxrwxrwx',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -802,8 +728,6 @@ def TestZipWithDefaultOptions():
           'hlink': {
               'mode': 'lrwxrwxrwx',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -814,8 +738,6 @@ def TestZipWithDefaultOptions():
           'hlink1': {
               'mode': '-rw-r-----',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1565807019000000000,
               'mtime': 1565807019000000000,
               'ctime': 1565781818000000000,
@@ -835,12 +757,12 @@ def TestZipWithDefaultOptions():
               'size': 760,
               'md5': 'f196d610d1cdf9191b4440863e8d31ab',
           },
-          'a': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'a/b': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'a/b/c': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'a/b/c/d': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'a/b/c/d/e': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'a/b/c/d/e/f': {'mode': 'drwxr-xr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'a': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'a/b': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'a/b/c': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'a/b/c/d': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'a/b/c/d/e': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'a/b/c/d/e/f': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'a/b/c/d/e/f/g': {
               'mode': '-rw-rw-r--',
               'nlink': 1,
@@ -868,8 +790,6 @@ def TestZipWithDefaultOptions():
           'lzma.txt': {
               'mode': '-rw-------',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1635812732000000000,
               'mtime': 1635812732000000000,
               'ctime': 1635812732000000000,
@@ -1176,8 +1096,6 @@ def TestZipWithDefaultOptions():
           'README': {
               'mode': '-rw-r--r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1265493078000000000,
               'mtime': 1265493078000000000,
               'ctime': 1265493078000000000,
@@ -1186,19 +1104,15 @@ def TestZipWithDefaultOptions():
           }
       },
       'not-full-path-deep.zip': {
-          'sim': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'sim/salabim': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
+          'sim': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'sim/salabim': {'mode': 'drwxr-xr-x', 'nlink': 3},
           'sim/salabim/rahat': {
               'mode': 'drwxr-xr-x',
               'nlink': 2,
-              'uid': 0,
-              'gid': 0,
           },
           'sim/salabim/rahat/lukum': {
               'mode': '-rw-rw-rw-',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1389126376000000000,
               'mtime': 1389126376000000000,
               'ctime': 1389126376000000000,
@@ -1208,8 +1122,6 @@ def TestZipWithDefaultOptions():
           'sim/salabim/rahat-lukum': {
               'mode': '-rw-rw-rw-',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1389126376000000000,
               'mtime': 1389126376000000000,
               'ctime': 1389126376000000000,
@@ -1229,7 +1141,7 @@ def TestZipWithDefaultOptions():
               'size': 5,
               'md5': '655dba24211af27d85c3cc4a910cc2ef',
           },
-          'foo': {'mode': 'drwxr-xr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'foo': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'foo/bar': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1246,8 +1158,6 @@ def TestZipWithDefaultOptions():
           'test.txt': {
               'mode': '-rw-rw-r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1560435723770100400,
               'mtime': 1560435721722114700,
               'ctime': 1560417720000000000,
@@ -1256,8 +1166,8 @@ def TestZipWithDefaultOptions():
           }
       },
       'parent-relative-paths.zip': {
-          'UP': {'mode': 'drwxr-xr-x', 'nlink': 3, 'uid': 0, 'gid': 0},
-          'UP/other': {'mode': 'drwxr-xr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'UP': {'mode': 'drwxr-xr-x', 'nlink': 3},
+          'UP/other': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'UP/other/LICENSE': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1269,7 +1179,7 @@ def TestZipWithDefaultOptions():
               'size': 7639,
               'md5': '6a6a8e020838b23406c81b19c1d46df6',
           },
-          'UPUP': {'mode': 'drwxr-xr-x', 'nlink': 2, 'uid': 0, 'gid': 0},
+          'UPUP': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'UPUP/INSTALL': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1450,8 +1360,6 @@ def TestZipWithDefaultOptions():
           '新しいテキスト ドキュメント.txt': {
               'mode': '-rw-rw-r--',
               'nlink': 1,
-              'uid': 0,
-              'gid': 0,
               'atime': 1601539972000000000,
               'mtime': 1601539972000000000,
               'ctime': 1601539972000000000,
@@ -1777,8 +1685,6 @@ def TestEncryptedZip():
       'Encrypted ZipCrypto.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594095000000000,
           'mtime': 1598592187000000000,
           'ctime': 1598592188000000000,
@@ -1788,8 +1694,6 @@ def TestEncryptedZip():
       'Encrypted AES-256.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594134000000000,
           'mtime': 1598592213000000000,
           'ctime': 1598592214000000000,
@@ -1799,8 +1703,6 @@ def TestEncryptedZip():
       'Encrypted AES-192.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594124000000000,
           'mtime': 1598592206000000000,
           'ctime': 1598592206000000000,
@@ -1810,8 +1712,6 @@ def TestEncryptedZip():
       'Encrypted AES-128.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594117000000000,
           'mtime': 1598592200000000000,
           'ctime': 1598592200000000000,
@@ -1821,8 +1721,6 @@ def TestEncryptedZip():
       'ClearText.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598592142000000000,
           'mtime': 1598592138000000000,
           'ctime': 1598592138000000000,
@@ -1855,8 +1753,6 @@ def TestEncryptedZip():
       'Encrypted ZipCrypto.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594095000000000,
           'mtime': 1598592187000000000,
           'ctime': 1598592188000000000,
@@ -1866,8 +1762,6 @@ def TestEncryptedZip():
       'Encrypted AES-256.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594134000000000,
           'mtime': 1598592213000000000,
           'ctime': 1598592214000000000,
@@ -1877,8 +1771,6 @@ def TestEncryptedZip():
       'Encrypted AES-192.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594124000000000,
           'mtime': 1598592206000000000,
           'ctime': 1598592206000000000,
@@ -1888,8 +1780,6 @@ def TestEncryptedZip():
       'Encrypted AES-128.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598594117000000000,
           'mtime': 1598592200000000000,
           'ctime': 1598592200000000000,
@@ -1899,8 +1789,6 @@ def TestEncryptedZip():
       'ClearText.txt': {
           'mode': '-rw-r-----',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1598592142000000000,
           'mtime': 1598592138000000000,
           'ctime': 1598592138000000000,
@@ -1929,8 +1817,6 @@ def TestZipFileNameEncoding():
       'Дата': {
           'mode': '-rw-rw-r--',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1265363324000000000,
           'mtime': 1265363324000000000,
           'ctime': 1265363324000000000,
@@ -1940,8 +1826,6 @@ def TestZipFileNameEncoding():
       'Текстовый документ.txt': {
           'mode': '-rw-rw-r--',
           'nlink': 1,
-          'uid': 0,
-          'gid': 0,
           'atime': 1265362564000000000,
           'mtime': 1265362564000000000,
           'ctime': 1265362564000000000,

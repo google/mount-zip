@@ -47,6 +47,8 @@ std::ostream& operator<<(std::ostream& out, const FileType t) {
   }
 }
 
+const uid_t DataNode::g_uid = getuid();
+const gid_t DataNode::g_gid = getgid();
 ino_t DataNode::ino_count = 0;
 
 static void ProcessPkWareUnixField(DataNode* const node,

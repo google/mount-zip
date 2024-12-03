@@ -54,13 +54,15 @@ struct FileNode;
 
 // Represents an inode.
 struct DataNode {
+  static const uid_t g_uid;
+  static const gid_t g_gid;
   static ino_t ino_count;
   ino_t ino = ++ino_count;
   mutable nlink_t nlink = 1;
   zip_int64_t id = -1;
   mode_t mode = 0;
-  uid_t uid = 0;
-  gid_t gid = 0;
+  uid_t uid = g_uid;
+  gid_t gid = g_gid;
   dev_t dev = 0;
   zip_uint64_t size = 0;
   timespec mtime = Now();
