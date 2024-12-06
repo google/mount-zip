@@ -60,10 +60,15 @@
 
 // Prints usage information.
 void PrintUsage() {
-  std::cerr << R"(Mounts a ZIP archive as a FUSE filesystem
+  std::cerr << R"(Mounts one or several ZIP archives as a read-only FUSE file system.
 
-Usage: )" PROGRAM_NAME
-               R"( [options] <archive_file> [mount_point]
+Usage:
+    )" PROGRAM_NAME
+               R"( [options] zip-file
+    )" PROGRAM_NAME
+               R"( [options] zip-file mount-point
+    )" PROGRAM_NAME
+               R"( [options] zip-file-1 zip-file-2 ... mount-point
 
 General options:
     -h   --help            print help
@@ -92,13 +97,9 @@ General options:
 
 // Parameters for command-line argument processing function.
 struct Param {
-  // Number of string arguments
-  int str_arg_count = 0;
-  // ZIP file name
-  std::string filename;
-  // Mount point
-  std::string mount_point;
-  // Cache dir
+  // ZIP file paths.
+  std::vector<std::string> paths;
+  // Cache dir.
   char* cache_dir = nullptr;
   // Access mask for directories.
   unsigned int dmask = 0022;
@@ -463,22 +464,11 @@ static int ProcessArg(void* data,
       std::exit(EXIT_SUCCESS);
 
     case FUSE_OPT_KEY_NONOPT:
-      switch (++param.str_arg_count) {
-        case 1:
-          // zip file name
-          param.filename = arg;
-          return DISCARD;
-
-        case 2:
-          // mountpoint
-          param.mount_point = arg;
-          // keep it and then pass to FUSE initializer
-          return KEEP;
-
-        default:
-          LOG(ERROR) << "Only two arguments allowed: filename and mountpoint";
-          return ERROR;
+      if (param.paths.emplace_back(arg).empty()) {
+        LOG(ERROR) << "Empty path";
+        return ERROR;
       }
+      return DISCARD;
 
     case KEY_QUIET:
       SetLogLevel(LogLevel::ERROR);
@@ -619,11 +609,19 @@ int main(int argc, char* argv[]) try {
   DataNode::dmask = param.dmask & 0777;
   DataNode::fmask = param.fmask & 0777;
 
-  // No ZIP archive name.
-  if (param.filename.empty()) {
+  // No ZIP archive paths.
+  if (param.paths.empty()) {
     PrintUsage();
     return EXIT_FAILURE;
   }
+
+  std::string mount_point;
+  if (param.paths.size() > 1) {
+    mount_point = std::move(param.paths.back());
+    param.paths.pop_back();
+  }
+
+  assert(!param.paths.empty());
 
   // Resolve path of cache dir if provided.
   if (param.cache_dir) {
@@ -635,51 +633,56 @@ int main(int argc, char* argv[]) try {
     Reader::SetCacheDir(p);
   }
 
-  // Open and index the ZIP archive.
-  LOG(DEBUG) << "Indexing " << Path(param.filename) << "...";
+  // Open and index the ZIP archives.
+  if (param.paths.size() == 1) {
+    LOG(DEBUG) << "Indexing " << Path(param.paths.front()) << "...";
+  } else {
+    LOG(DEBUG) << "Indexing " << Path(param.paths.front()) << " and "
+               << (param.paths.size() - 1) << " other archives...";
+  }
   Timer timer;
-  Tree::Ptr tree = Tree::Init(param.filename.c_str(), param.opts);
+  Tree::Ptr tree = Tree::Init(param.paths, param.opts);
   g_tree = tree.get();
 #ifdef NDEBUG
   // For optimization, don't bother destructing the tree.
   tree.release();
 #endif
-  LOG(DEBUG) << "Indexed " << Path(param.filename) << " in " << timer;
+  LOG(DEBUG) << "Indexed in " << timer;
 
-  if (!param.mount_point.empty()) {
+  if (!mount_point.empty()) {
     // Try to create the mount point directory if it doesn't exist.
-    if (mkdirat(cleanup.dirfd, param.mount_point.c_str(), 0777) == 0) {
-      LOG(DEBUG) << "Created mount point " << Path(param.mount_point);
-      cleanup.mount_point = param.mount_point;
+    if (mkdirat(cleanup.dirfd, mount_point.c_str(), 0777) == 0) {
+      LOG(DEBUG) << "Created mount point " << Path(mount_point);
+      cleanup.mount_point = mount_point;
     } else if (errno == EEXIST) {
-      LOG(DEBUG) << "Mount point " << Path(param.mount_point)
-                 << " already exists";
+      LOG(DEBUG) << "Mount point " << Path(mount_point) << " already exists";
     } else {
-      PLOG(ERROR) << "Cannot create mount point " << Path(param.mount_point);
+      PLOG(ERROR) << "Cannot create mount point " << Path(mount_point);
     }
   } else {
-    param.mount_point = Path(param.filename).Split().second.WithoutExtension();
-    const auto n = param.mount_point.size();
+    assert(!param.paths.empty());
+    mount_point = Path(param.paths.front()).Split().second.WithoutExtension();
+    const auto n = mount_point.size();
 
     for (int i = 0;;) {
-      if (mkdirat(cleanup.dirfd, param.mount_point.c_str(), 0777) == 0) {
-        LOG(INFO) << "Created mount point " << Path(param.mount_point);
-        cleanup.mount_point = param.mount_point;
-        fuse_opt_add_arg(&args, param.mount_point.c_str());
+      if (mkdirat(cleanup.dirfd, mount_point.c_str(), 0777) == 0) {
+        LOG(INFO) << "Created mount point " << Path(mount_point);
+        cleanup.mount_point = mount_point;
         break;
       }
 
       if (errno != EEXIST) {
-        PLOG(ERROR) << "Cannot create mount point " << Path(param.mount_point);
+        PLOG(ERROR) << "Cannot create mount point " << Path(mount_point);
         return EXIT_FAILURE;
       }
 
-      LOG(DEBUG) << "Mount point " << Path(param.mount_point)
-                 << " already exists";
-      param.mount_point.resize(n);
-      param.mount_point += StrCat(" (", ++i, ")");
+      LOG(DEBUG) << "Mount point " << Path(mount_point) << " already exists";
+      mount_point.resize(n);
+      mount_point += StrCat(" (", ++i, ")");
     }
   }
+
+  fuse_opt_add_arg(&args, mount_point.c_str());
 
 #if FUSE_USE_VERSION < 30
   // Respect inode numbers.

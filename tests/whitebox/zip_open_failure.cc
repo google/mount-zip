@@ -167,7 +167,7 @@ int main() {
 
   bool thrown = false;
   try {
-    std::unique_ptr<Tree> data = Tree::Init("test.zip");
+    Tree::Ptr data = Tree::Init("test.zip");
   } catch (const std::runtime_error& e) {
     assert(
         e.what() ==

@@ -40,7 +40,7 @@ struct FileNode {
   using Ptr = std::unique_ptr<FileNode>;
 
   // Reference to the ZIP archive.
-  zip_t* const zip;
+  zip_t* const zip = nullptr;
 
   // Index of the entry represented by this node in the ZIP archive, or -1 if it
   // is not directly represented in the ZIP archive (like the root directory, or

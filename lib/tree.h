@@ -17,8 +17,10 @@
 #define TREE_H
 
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "file_node.h"
 
@@ -56,10 +58,19 @@ class Tree {
 
   using Ptr = std::unique_ptr<Tree>;
 
-  // Opens ZIP file and constructs the internal tree structure.
+  struct CloseZip {
+    void operator()(zip_t* z) const { zip_close(z); }
+  };
+
+  using Zip = std::unique_ptr<zip_t, CloseZip>;
+  using Zips = std::vector<Zip>;
+
+  // Opens ZIP files and constructs the internal tree structure.
   // Throws an std::runtime_error in case of error.
-  static Ptr Init(const char* filename, Options opts);
-  static Ptr Init(const char* filename) { return Init(filename, Options{}); }
+  static Ptr Init(std::span<const std::string> paths, Options opts);
+  static Ptr Init(const std::string& path) {
+    return Init(std::span(&path, 1), Options{});
+  }
 
   // Finds an existing node with the given |path|.
   // Returns a null pointer if no matching node can be found.
@@ -71,7 +82,8 @@ class Tree {
 
  private:
   // Constructor.
-  Tree(zip_t* zip, Options opts) : zip_(zip), opts_(std::move(opts)) {}
+  Tree(Zips zips, Options opts)
+      : zips_(std::move(zips)), opts_(std::move(opts)) {}
 
   // Builds internal tree structure.
   void BuildTree();
@@ -84,7 +96,8 @@ class Tree {
 
   // Gets the UNIX mode and the PkWare hardlink flag from the entry external
   // attributes field.
-  EntryAttributes GetEntryAttributes(zip_uint64_t id,
+  EntryAttributes GetEntryAttributes(zip_t* z,
+                                     i64 id,
                                      std::string_view original_path);
 
   // Finds an existing dir node with the given |path|, or create one (and all
@@ -92,13 +105,15 @@ class Tree {
   FileNode* CreateDir(std::string_view path);
 
   // Creates and attaches a node for an existing file or dir entry.
-  FileNode* CreateFile(i64 id,
+  FileNode* CreateFile(zip_t* z,
+                       i64 id,
                        FileNode* parent,
                        std::string_view name,
                        mode_t mode);
 
   // Creates and attaches a hardlink node.
-  FileNode* CreateHardlink(i64 id,
+  FileNode* CreateHardlink(zip_t* z,
+                           i64 id,
                            FileNode* parent,
                            std::string_view name,
                            mode_t mode);
@@ -116,11 +131,11 @@ class Tree {
   void CheckPassword(const FileNode* node);
 
   // Computes the optimal number of buckets for the hash tables indexing the
-  // given ZIP archive.
-  static size_t GetBucketCount(zip_t* zip);
+  // given ZIP archives.
+  static size_t GetBucketCount(const Zips& zips);
 
-  // ZIP archive.
-  zip_t* const zip_;
+  // ZIP archives.
+  Zips zips_;
 
   // Extraction options.
   const Options opts_;
@@ -159,7 +174,7 @@ class Tree {
       bi::equal<std::equal_to<std::string_view>>,
       bi::hash<std::hash<std::string_view>>>;
 
-  const size_t bucket_count_ = GetBucketCount(zip_);
+  const size_t bucket_count_ = GetBucketCount(zips_);
 
   using BucketByPath = FilesByPath::bucket_type;
   const std::unique_ptr<BucketByPath[]> buckets_by_path_{

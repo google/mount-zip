@@ -29,11 +29,11 @@
 
 using i64 = std::int64_t;
 
-struct ZipClose {
-  void operator()(zip_file_t* const file) const { zip_fclose(file); }
+struct CloseZipFile {
+  void operator()(zip_file_t* f) const { zip_fclose(f); }
 };
 
-using ZipFile = std::unique_ptr<zip_file_t, ZipClose>;
+using ZipFile = std::unique_ptr<zip_file_t, CloseZipFile>;
 
 enum class CacheStrategy {
   Unspecified,

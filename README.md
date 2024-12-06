@@ -3,26 +3,28 @@ title: MOUNT-ZIP
 section: 1
 header: User Manual
 footer: mount-zip 1.9
-date: February 2025
+date: June 2025
 ---
 # NAME
 
-**mount-zip** - Mount a ZIP archive as a FUSE filesystem.
+**mount-zip** - Mount ZIP archives as FUSE file systems.
 
 # SYNOPSIS
 
-**mount-zip** [*options*] *zip-file* [*mount-point*]
+*   **mount-zip** [*options*] *zip-file*
+*   **mount-zip** [*options*] *zip-file* *mount-point*
+*   **mount-zip** [*options*] *zip-file-1* *zip-file-2* ... *mount-point*
 
 # DESCRIPTION
 
-**mount-zip** mounts a ZIP archive as a read-only
-[FUSE filesystem](https://en.wikipedia.org/wiki/Filesystem_in_Userspace). It
+**mount-zip** mounts one or several ZIP archives as a read-only
+[FUSE file system](https://en.wikipedia.org/wiki/Filesystem_in_Userspace). It
 starts quickly, uses little memory, decodes encrypted files, and provides
 on-the-go decompression and caching for maximum efficiency.
 
-**mount-zip** automatically creates the target mount point if it doesn't exist
-yet. If no mount point is provided, **mount-zip** creates a mount point in the
-current working directory.
+**mount-zip** automatically creates the target mount point if needed. If no
+mount point is specified, **mount-zip** creates a mount point in the current
+working directory.
 
 # OPTIONS
 
@@ -30,32 +32,32 @@ current working directory.
 :   Print help
 
 **-\-version** or **-V**
-:   Print version
+:   Print program version
 
 **-o quiet** or **-q**
 :   Print fewer log messages
 
 **-o verbose** or **-v**
-:   Print more log messages
+:   Print more detailed log messages
 
 **-o redact**
 :   Redact file names from log messages
 
 **-o force**
-:   Mount ZIP even if password is wrong or missing, or if the encryption or
-    compression method is unsupported
+:   Continue even if the given password is wrong or missing, or if the
+    encryption or compression method is unsupported
 
 **-o precache**
-:   Preemptively decompress and cache data
+:   Preemptively decompress and cache the whole ZIP archives
 
 **-o cache=DIR**
-:   Cache directory (default is `$TMPDIR` or `/tmp`)
+:   Use a different cache directory (default is `$TMPDIR` or `/tmp`)
 
 **-o memcache**
-:   Cache decompressed data in memory
+:   Cache the decompressed data in memory
 
 **-o nocache**
-:   No caching of decompressed data
+:   Do not cache the decompressed data
 
 **-o encoding=CHARSET**
 :   Original encoding of file names
@@ -76,16 +78,16 @@ current working directory.
 :   File permission mask in octal (default 0022)
 
 **-o uid=N**
-:   Set the file owner of all the items in the mounted archive (default is
-    current user)
+:   Set the user ID of all the items in the mounted archive (default is current
+    user)
 
 **-o gid=N**
-:   Set file group of all the items in the mounted archive (default is current
+:   Set the group ID of all the items in the mounted archive (default is current
     group)
 
 **-o default_permissions**
-:   Use the file owner (UID), group (GID) and permissions stored with each item
-    in the archive.
+:   Use the user ID, group ID and permissions stored with each item in the
+    archive
 
 **-f**
 :   Foreground mode
@@ -250,13 +252,14 @@ mnt
 3 directories, 6 files
 ```
 
-Directories are never renamed. If a file name is colliding with a directory
-name, the file is the one getting renamed.
+Directories are never renamed. If a file is colliding with a directory, the file
+will be the one getting renamed.
 
 ## Encrypted Archives
 
-**mount-zip** supports encrypted ZIP archives. It understand both the legacy ZIP
-encryption scheme, and the more recent AES encryption schemes.
+**mount-zip** supports encrypted ZIP archives. It understands the legacy ZIP
+encryption scheme, as well as the more recent AES encryption schemes (AES-128,
+AES-192 and AES-256).
 
 When **mount-zip** finds an encrypted file while mounting a ZIP archive, it asks
 for a password. If the given password does not decrypt the file, then
@@ -797,29 +800,30 @@ developed by [François Degros](https://github.com/fdegros). The ability to writ
 and modify ZIP archives has been removed, but a number of optimisations and
 features have been added:
 
-Feature                      | mount-zip | fuse-zip
-:--------------------------- | :-------: | :------:
-Read-Write Mode              | ❌         | ✅
-Read-Only Mode               | ✅         | ✅
-Shows Symbolic Links         | ✅         | ✅
-Shows Hard Links             | ✅         | ✅
-Shows Special Files          | ✅         | ✅
-Shows Precise Timestamps     | ✅         | ✅
-Random Access                | ✅         | ✅
-Can Cache Data in Memory     | ✅         | ✅
-Can Cache Data in Temp File  | ✅         | ❌
-Smart Caching                | ✅         | ❌
-Decompresses Data Lazily     | ✅         | ❌
-Handles Huge Files           | ✅         | ❌
-Decrypts Encrypted Files     | ✅         | ❌
-Detects Name Encoding        | ✅         | ❌
-Deduplicates Names           | ✅         | ❌
-Can Hide Symlinks            | ✅         | ❌
-Can Hide Hard Links          | ✅         | ❌
-Can Hide Special Files       | ✅         | ❌
-Can Redact Log Messages      | ✅         | ❌
-Can use FUSE 3               | ✅         | ❌
-Returns Distinct Error Codes | ✅         | ❌
+Feature                       | mount-zip | fuse-zip
+:---------------------------- | :-------: | :------:
+Read-Write Mode               | ❌         | ✅
+Read-Only Mode                | ✅         | ✅
+Shows Symbolic Links          | ✅         | ✅
+Shows Hard Links              | ✅         | ✅
+Shows Special Files           | ✅         | ✅
+Shows Precise Timestamps      | ✅         | ✅
+Random Access                 | ✅         | ✅
+Can Cache Data in Memory      | ✅         | ✅
+Can Cache Data in Temp File   | ✅         | ❌
+Smart Caching                 | ✅         | ❌
+Decompresses Data Lazily      | ✅         | ❌
+Handles Huge Files            | ✅         | ❌
+Handles Encrypted Files       | ✅         | ❌
+Handles Name Collisions       | ✅         | ❌
+Detects Name Encoding         | ✅         | ❌
+Can mount several ZIPs        | ✅         | ❌
+Can Hide Symlinks             | ✅         | ❌
+Can Hide Hard Links           | ✅         | ❌
+Can Hide Special Files        | ✅         | ❌
+Can Redact Log Messages       | ✅         | ❌
+Can Use FUSE 3                | ✅         | ❌
+Returns Distinct Error Codes  | ✅         | ❌
 
 # AUTHORS
 
@@ -833,4 +837,4 @@ later.
 
 # SEE ALSO
 
-fuse-zip(1), fusermount(1), fuse(8), umount(8)
+fuse-archive(1), fuse-zip(1), fusermount(1), fuse(8), umount(8)
