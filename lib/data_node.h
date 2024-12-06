@@ -38,11 +38,11 @@ enum class FileType : mode_t {
   Symlink = S_IFLNK,      // Symbolic link
 };
 
-inline FileType GetFileType(mode_t mode) {
+inline FileType GetFileType(const mode_t mode) {
   return FileType(mode & S_IFMT);
 }
 
-inline void SetFileType(mode_t* mode, FileType type) {
+inline void SetFileType(mode_t* const mode, const FileType type) {
   assert(mode);
   *mode &= ~static_cast<mode_t>(S_IFMT);
   *mode |= static_cast<mode_t>(type);
@@ -56,6 +56,10 @@ struct FileNode;
 struct DataNode {
   static const uid_t g_uid;
   static const gid_t g_gid;
+  static mode_t fmask;
+  static mode_t dmask;
+  static bool original_permissions;
+
   static ino_t ino_count;
   ino_t ino = ++ino_count;
   mutable nlink_t nlink = 1;
@@ -74,28 +78,7 @@ struct DataNode {
 
   // Get attributes.
   using Stat = struct stat;
-  operator Stat() const {
-    Stat st = {};
-    st.st_ino = ino;
-    st.st_nlink = nlink;
-    st.st_mode = mode;
-    st.st_blksize = block_size;
-    st.st_blocks = (size + block_size - 1) / block_size;
-    st.st_size = size;
-#if __APPLE__
-    st.st_atimespec = atime;
-    st.st_mtimespec = mtime;
-    st.st_ctimespec = ctime;
-#else
-    st.st_atim = atime;
-    st.st_mtim = mtime;
-    st.st_ctim = ctime;
-#endif
-    st.st_uid = uid;
-    st.st_gid = gid;
-    st.st_rdev = dev;
-    return st;
-  }
+  operator Stat() const;
 
   bool CacheAll(zip_t* zip,
                 const FileNode& file_node,

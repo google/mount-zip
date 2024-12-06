@@ -49,6 +49,10 @@ std::ostream& operator<<(std::ostream& out, const FileType t) {
 
 const uid_t DataNode::g_uid = getuid();
 const gid_t DataNode::g_gid = getgid();
+mode_t DataNode::fmask = 0022;
+mode_t DataNode::dmask = 0022;
+bool DataNode::original_permissions = false;
+
 ino_t DataNode::ino_count = 0;
 
 static void ProcessPkWareUnixField(DataNode* const node,
@@ -118,7 +122,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
     for (zip_int16_t i = 0; i < count; ++i) {
       timespec mt, at, cret;
       zip_uint16_t type, len;
-      const zip_uint8_t* field = zip_file_extra_field_get(
+      const zip_uint8_t* const field = zip_file_extra_field_get(
           zip, node->id, i, &type, &len, ZIP_FL_CENTRAL);
 
       switch (type) {
@@ -259,6 +263,47 @@ DataNode DataNode::Make(zip_t* const zip,
   return node;
 }
 
+DataNode::operator Stat() const {
+  Stat st = {};
+  st.st_ino = ino;
+  st.st_nlink = nlink;
+  st.st_mode = mode;
+  st.st_blksize = block_size;
+  st.st_blocks = (size + block_size - 1) / block_size;
+  st.st_size = size;
+#if __APPLE__
+  st.st_atimespec = atime;
+  st.st_mtimespec = mtime;
+  st.st_ctimespec = ctime;
+#else
+  st.st_atim = atime;
+  st.st_mtim = mtime;
+  st.st_ctim = ctime;
+#endif
+  if (original_permissions) {
+    st.st_uid = uid;
+    st.st_gid = gid;
+  } else {
+    st.st_uid = g_uid;
+    st.st_gid = g_gid;
+    st.st_mode = 0666;
+    const mode_t xbits = 0111;
+    if (S_ISDIR(mode)) {
+      st.st_mode |= xbits;
+      st.st_mode &= ~dmask;
+      st.st_mode |= S_IFDIR;
+    } else {
+      if ((mode & xbits) != 0) {
+        st.st_mode |= xbits;
+      }
+      st.st_mode &= ~fmask;
+      st.st_mode |= mode & S_IFMT;
+    }
+  }
+  st.st_rdev = dev;
+  return st;
+}
+
 bool DataNode::CacheAll(zip_t* const zip,
                         const FileNode& file_node,
                         std::function<void(ssize_t)> progress) {
@@ -271,10 +316,10 @@ bool DataNode::CacheAll(zip_t* const zip,
   ZipFile file = Reader::Open(zip, id);
   assert(file);
 
-#if LIBZIP_VERSION_MAJOR > 1 ||                             \
-  LIBZIP_VERSION_MAJOR == 1 &&                              \
-  (LIBZIP_VERSION_MINOR > 9 ||                              \
-   LIBZIP_VERSION_MINOR == 9 && LIBZIP_VERSION_MICRO >= 1)
+#if LIBZIP_VERSION_MAJOR > 1 ||      \
+    LIBZIP_VERSION_MAJOR == 1 &&     \
+        (LIBZIP_VERSION_MINOR > 9 || \
+         LIBZIP_VERSION_MINOR == 9 && LIBZIP_VERSION_MICRO >= 1)
   // For libzip >= 1.9.1
   const bool seekable = zip_file_is_seekable(file.get()) > 0;
 #else
