@@ -626,8 +626,7 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
   zip_uint32_t attr;
   zip_file_get_external_attributes(zip_, id, 0, &opsys, &attr);
 
-  mode_t unix_mode = attr >> 16;
-  mode_t mode;
+  mode_t mode = attr >> 16;
   bool is_hardlink = false;
 
   /*
@@ -637,27 +636,20 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
    * and can be read by PKZIP for DOS version 2.04g then this value will be
    * zero.
    */
-  if (opsys == ZIP_OPSYS_DOS && GetFileType(unix_mode) != FileType::Unknown)
+  if (opsys == ZIP_OPSYS_DOS && GetFileType(mode) != FileType::Unknown)
     opsys = ZIP_OPSYS_UNIX;
 
   const zip_uint32_t FZ_ATTR_HARDLINK = 0x800;
 
   switch (opsys) {
     case ZIP_OPSYS_UNIX:
-      mode = unix_mode;
-
       // force is_dir value
       if (is_dir) {
         SetFileType(&mode, FileType::Directory);
-      } else {
-        switch (GetFileType(mode)) {
-          case FileType::Unknown:    // treat unknown file types as regular
-          case FileType::Directory:  // mislabeled as directory
-            SetFileType(&mode, FileType::File);
-            break;
-          default:
-            break;
-        }
+      } else if (const FileType ft = GetFileType(mode);
+                 ft == FileType::Unknown || ft == FileType::Directory) {
+        // If unknown type or mislabeled as directory, relabel as regular file.
+        SetFileType(&mode, FileType::File);
       }
 
       // Always ignore hardlink flag for dirs
@@ -667,18 +659,17 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
     case ZIP_OPSYS_DOS:
     case ZIP_OPSYS_WINDOWS_NTFS:
     case ZIP_OPSYS_MVS:
-      /*
-       * Both WINDOWS_NTFS and OPSYS_MVS used here because of
-       * difference in constant assignment by PKWARE and Info-ZIP
-       */
+      // Both WINDOWS_NTFS and OPSYS_MVS used here because of difference in
+      // constant assignment by PKWARE and Info-ZIP.
       mode = 0444;
+
       // http://msdn.microsoft.com/en-us/library/windows/desktop/gg258117%28v=vs.85%29.aspx
       // http://en.wikipedia.org/wiki/File_Allocation_Table#attributes
       // FILE_ATTRIBUTE_READONLY
       if ((attr & 1) == 0) {
         mode |= 0220;
       }
-      // directory
+
       if (is_dir) {
         mode |= S_IFDIR | 0111;
       } else {
