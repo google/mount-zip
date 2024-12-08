@@ -286,6 +286,7 @@ enum {
   KEY_NO_SPECIALS,
   KEY_NO_SYMLINKS,
   KEY_NO_HARDLINKS,
+  KEY_DEFAULT_PERMISSIONS,
 };
 
 // Processes command line arguments.
@@ -382,6 +383,10 @@ static int ProcessArg(void* data,
       param.opts.include_hardlinks = false;
       return DISCARD;
 
+    case KEY_DEFAULT_PERMISSIONS:
+      DataNode::original_permissions = true;
+      return KEEP;
+
     default:
       return KEEP;
   }
@@ -445,6 +450,7 @@ int main(int argc, char* argv[]) try {
       FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
       FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
       FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),
+      FUSE_OPT_KEY("default_permissions", KEY_DEFAULT_PERMISSIONS),
       {"--cache=%s", offsetof(Param, cache_dir)},
       {"encoding=%s", offsetof(Param, opts.encoding)},
       {"dmask=%o", offsetof(Param, dmask)},
