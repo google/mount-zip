@@ -39,6 +39,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "data_node.h"
 #include "error.h"
 #include "log.h"
 #include "path.h"
@@ -72,6 +73,8 @@ General options:
     --cache=DIR            cache dir (default is $TMPDIR or /tmp)
     --memcache             cache decompressed data in memory
     --nocache              no caching of decompressed data
+    -o dmask=M             directory permission mask in octal (default 0022)
+    -o fmask=M             file permission mask in octal (default 0022)
     -o encoding=CHARSET    original encoding of file names
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links
@@ -96,6 +99,10 @@ struct Param {
   std::string mount_point;
   // Cache dir
   char* cache_dir = nullptr;
+  // Access mask for directories.
+  unsigned int dmask = 0022;
+  // Access mask for files.
+  unsigned int fmask = 0022;
   // Conversion options.
   Tree::Options opts;
 
@@ -422,27 +429,34 @@ int main(int argc, char* argv[]) try {
   Cleanup cleanup{.args = &args};
   Param param;
 
-  const fuse_opt opts[] = {FUSE_OPT_KEY("--help", KEY_HELP),
-                           FUSE_OPT_KEY("-h", KEY_HELP),
-                           FUSE_OPT_KEY("--version", KEY_VERSION),
-                           FUSE_OPT_KEY("--quiet", KEY_QUIET),
-                           FUSE_OPT_KEY("-q", KEY_QUIET),
-                           FUSE_OPT_KEY("--verbose", KEY_VERBOSE),
-                           FUSE_OPT_KEY("-v", KEY_VERBOSE),
-                           FUSE_OPT_KEY("--redact", KEY_REDACT),
-                           FUSE_OPT_KEY("--force", KEY_FORCE),
-                           FUSE_OPT_KEY("--precache", KEY_PRE_CACHE),
-                           FUSE_OPT_KEY("--memcache", KEY_MEM_CACHE),
-                           FUSE_OPT_KEY("--nocache", KEY_NO_CACHE),
-                           FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
-                           FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
-                           FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),
-                           {"--cache=%s", offsetof(Param, cache_dir), 0},
-                           {"encoding=%s", offsetof(Param, opts.encoding), 0},
-                           {nullptr, 0, 0}};
+  const fuse_opt opts[] = {
+      FUSE_OPT_KEY("--help", KEY_HELP),
+      FUSE_OPT_KEY("-h", KEY_HELP),
+      FUSE_OPT_KEY("--version", KEY_VERSION),
+      FUSE_OPT_KEY("--quiet", KEY_QUIET),
+      FUSE_OPT_KEY("-q", KEY_QUIET),
+      FUSE_OPT_KEY("--verbose", KEY_VERBOSE),
+      FUSE_OPT_KEY("-v", KEY_VERBOSE),
+      FUSE_OPT_KEY("--redact", KEY_REDACT),
+      FUSE_OPT_KEY("--force", KEY_FORCE),
+      FUSE_OPT_KEY("--precache", KEY_PRE_CACHE),
+      FUSE_OPT_KEY("--memcache", KEY_MEM_CACHE),
+      FUSE_OPT_KEY("--nocache", KEY_NO_CACHE),
+      FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
+      FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
+      FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),
+      {"--cache=%s", offsetof(Param, cache_dir)},
+      {"encoding=%s", offsetof(Param, opts.encoding)},
+      {"dmask=%o", offsetof(Param, dmask)},
+      {"fmask=%o", offsetof(Param, fmask)},
+      FUSE_OPT_END,
+  };
 
   if (fuse_opt_parse(&args, &param, opts, ProcessArg))
     return EXIT_FAILURE;
+
+  DataNode::dmask = param.dmask & 0777;
+  DataNode::fmask = param.fmask & 0777;
 
   // No ZIP archive name.
   if (param.filename.empty()) {
