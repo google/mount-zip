@@ -1,3 +1,12 @@
+2024-12-09 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.2:
+	- Default file UID/GID is the UID/GID of the user running mount-zip
+	- Add dmask and fmask options
+	- Sensible default access bits
+	- Better handling of default_permissions option
+	- Better handling of double filename extensions (e.g. .tar.gz)
+
 2024-06-02 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.0.15:
