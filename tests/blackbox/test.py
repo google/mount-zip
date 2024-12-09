@@ -95,8 +95,6 @@ def CheckTree(got_tree, want_tree, strict=False):
     try:
       got_entry = got_tree.pop(name)
       for key, want_value in want_entry.items():
-        if key in ('atime', 'ctime'):
-          continue  # For the time being
         got_value = got_entry.get(key)
         if got_value != want_value:
           LogError(
@@ -239,7 +237,6 @@ def TestZipWithDefaultOptions():
           'ROOT': {'nlink': 2},
           'ROOT/rootname.ext': {
               'nlink': 1,
-              'mtime': 1371478408000000000,
               'size': 22,
               'md5': '8b4cc90d421780e7674e2a25db33b770',
           },
@@ -266,7 +263,6 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'bzip2.txt': {
               'nlink': 1,
-              'mtime': 1635811418000000000,
               'size': 36,
               'md5': 'f28623c0be8da636e6c53ead06ce0731',
           }
@@ -326,19 +322,16 @@ def TestZipWithDefaultOptions():
           'dir': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'dir/hidden.txt': {
               'nlink': 1,
-              'mtime': 1388826134000000000,
               'size': 11,
               'md5': 'fa29ea74a635e3be468256f9007b1bb6',
           },
           'dir/normal.txt': {
               'nlink': 1,
-              'mtime': 1388826120000000000,
               'size': 11,
               'md5': '050256c2ac1d77494b9fddaa933f5eda',
           },
           'dir/readonly.txt': {
               'nlink': 1,
-              'mtime': 1388826146000000000,
               'size': 14,
               'md5': '6f651ad751dadd4e76c8f46b6fae0c48',
           },
@@ -360,7 +353,6 @@ def TestZipWithDefaultOptions():
           '-': {
               'mode': '-rw-r--r--',
               'nlink': 1,
-              'mtime': 1564403758000000000,
               'size': 14,
               'md5': '42e16527aee5fe43ffa78a89d36a244c',
           },
@@ -378,41 +370,34 @@ def TestZipWithDefaultOptions():
           'pet/cat': {'nlink': 3},
           'pet/cat/fish': {
               'nlink': 2,
-              'mtime': 1635479490000000000,
-          },
+              },
           'pet/cat/fish (1)': {
               'nlink': 1,
-              'mtime': 1635479490000000000,
               'size': 30,
               'md5': '47661a04dfd111f95ec5b02c4a1dab05',
           },
           'pet/cat/fish (2)': {
               'nlink': 1,
-              'mtime': 1635479490000000000,
               'size': 31,
               'md5': '4969fad4edba3582a114f17000583344',
           },
           'pet/cat (1)': {
               'nlink': 1,
-              'mtime': 1635479490000000000,
               'size': 25,
               'md5': '3a3cd8d02b1a2a232e2684258f38c882',
           },
           'pet/cat (2)': {
               'nlink': 1,
-              'mtime': 1635479490000000000,
               'size': 26,
               'md5': '07691c6ecc5be713b8d1224446f20970',
           },
           'pet (1)': {
               'nlink': 1,
-              'mtime': 1635479490000000000,
               'size': 21,
               'md5': '185743d56c5a917f02e2193a96effb25',
           },
           'pet (2)': {
               'nlink': 1,
-              'mtime': 1635479490000000000,
               'size': 22,
               'md5': 'ec5ffb0de216fb1e9578bc17a169399a',
           },
@@ -430,13 +415,11 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '0hlink': {
               'nlink': 2,
-              'mtime': 1565781818000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
           '1regular': {
               'nlink': 2,
-              'mtime': 1565781818000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
@@ -445,19 +428,16 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '0regular': {
               'nlink': 3,
-              'mtime': 1565781818000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
           'hlink1': {
               'nlink': 3,
-              'mtime': 1565781818000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
           'hlink2': {
               'nlink': 3,
-              'mtime': 1565781818000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
@@ -466,17 +446,14 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'dir': {
               'nlink': 2,
-              'mtime': 1565781818000000000,
-          },
+              },
           'dir/regular': {
               'nlink': 1,
-              'mtime': 1565781818000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
           'hlink': {
               'nlink': 1,
-              'mtime': 1565807019000000000,
               'size': 0,
               'md5': 'd41d8cd98f00b204e9800998ecf8427e',
           },
@@ -485,18 +462,15 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 4},
           'dir': {
               'nlink': 2,
-              'mtime': 1567323446000000000,
-          },
+              },
           'dir/regular': {
               'nlink': 1,
-              'mtime': 1567323446000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
           'hlink': {
               'nlink': 2,
-              'mtime': 1567348646000000000,
-          },
+              },
       },
       'hlink-recursive-one.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -527,13 +501,11 @@ def TestZipWithDefaultOptions():
           'UP': {'nlink': 2},
           'UP/0regular': {
               'nlink': 2,
-              'mtime': 1567323446000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
           'UP/hlink': {
               'nlink': 2,
-              'mtime': 1567323446000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
@@ -578,7 +550,6 @@ def TestZipWithDefaultOptions():
           '0regular': {
               'mode': '-rw-r--r--',
               'nlink': 1,
-              'mtime': 1565781818000000000,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
@@ -636,7 +607,6 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'lzma.txt': {
               'nlink': 1,
-              'mtime': 1635812732000000000,
               'size': 35,
               # 'md5': 'afcc577cec75357c61cc360e3bca0ac6',
           }
@@ -942,7 +912,6 @@ def TestZipWithDefaultOptions():
           'README': {
               'mode': '-rw-r--r--',
               'nlink': 1,
-              'mtime': 1265493078000000000,
               'size': 760,
               'md5': 'f196d610d1cdf9191b4440863e8d31ab',
           }
@@ -956,13 +925,11 @@ def TestZipWithDefaultOptions():
           },
           'sim/salabim/rahat/lukum': {
               'nlink': 1,
-              'mtime': 1389126376000000000,
               'size': 10,
               'md5': '16c52c6e8326c071da771e66dc6e9e57',
           },
           'sim/salabim/rahat-lukum': {
               'nlink': 1,
-              'mtime': 1389126376000000000,
               'size': 10,
               'md5': '38b18761d3d0c217371967a98d545c2e',
           },
@@ -1117,7 +1084,6 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '新しいテキスト ドキュメント.txt': {
               'nlink': 1,
-              'mtime': 1601539972000000000,
               'size': 0,
               'md5': 'd41d8cd98f00b204e9800998ecf8427e',
           }
@@ -1751,13 +1717,11 @@ def TestZipFileNameEncoding():
       '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'Дата': {
           'nlink': 1,
-          'mtime': 1265363324000000000,
           'size': 5,
           'md5': 'a9564ebc3289b7a14551baf8ad5ec60a',
       },
       'Текстовый документ.txt': {
           'nlink': 1,
-          'mtime': 1265362564000000000,
           'size': 8,
           'md5': 'f75b8179e4bbe7e2b4a074dcef62de95',
       },
