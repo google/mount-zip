@@ -42,41 +42,35 @@ def md5(path):
 def GetTree(root, use_md5=True):
   result = {}
 
-  def scan(dir):
-    for entry in os.scandir(dir):
-      path = entry.path
-      st = entry.stat(follow_symlinks=False)
-      mode = st.st_mode
-      line = {
-          'ino': st.st_ino,
-          'mode': stat.filemode(mode),
-          'nlink': st.st_nlink,
-          'uid': st.st_uid,
-          'gid': st.st_gid,
-          'atime': st.st_atime_ns,
-          'mtime': st.st_mtime_ns,
-          'ctime': st.st_ctime_ns,
-      }
-      result[os.path.relpath(path, root)] = line
-      if stat.S_ISREG(mode):
-        line['size'] = st.st_size
-        try:
-          if use_md5:
-            line['md5'] = md5(path)
-        except OSError as e:
-          line['errno'] = e.errno
-        continue
-      if stat.S_ISDIR(mode):
-        scan(path)
-        continue
-      if stat.S_ISLNK(mode):
-        line['target'] = os.readlink(path)
-        continue
-      if stat.S_ISBLK(mode) or stat.S_ISCHR(mode):
-        line['rdev'] = st.st_rdev
-        continue
+  def scan(path, st):
+    mode = st.st_mode
+    line = {
+        'ino': st.st_ino,
+        'mode': stat.filemode(mode),
+        'nlink': st.st_nlink,
+        'uid': st.st_uid,
+        'gid': st.st_gid,
+        'atime': st.st_atime_ns,
+        'mtime': st.st_mtime_ns,
+        'ctime': st.st_ctime_ns,
+    }
+    result[os.path.relpath(path, root)] = line
+    if stat.S_ISREG(mode):
+      line['size'] = st.st_size
+      try:
+        if use_md5:
+          line['md5'] = md5(path)
+      except OSError as e:
+        line['errno'] = e.errno
+    elif stat.S_ISLNK(mode):
+      line['target'] = os.readlink(path)
+    elif stat.S_ISBLK(mode) or stat.S_ISCHR(mode):
+      line['rdev'] = st.st_rdev
+    elif stat.S_ISDIR(mode):
+      for entry in os.scandir(path):
+        scan(entry.path, entry.stat(follow_symlinks=False))
 
-  scan(root)
+  scan(root, os.stat(root, follow_symlinks=False))
   return result
 
 
@@ -161,7 +155,12 @@ def MountZipAndCheckTree(
     strict=True,
     use_md5=True,
 ):
-  logging.info(f'Checking {zip_name!r}...')
+  s = f'Test {zip_name!r}'
+  if options:
+    s += f', options = {" ".join(options)!r}'
+  if password:
+    s += f', password = {password!r}'
+  logging.info(s)
   try:
     got_tree, st = MountZipAndGetTree(
         zip_name, options=options, password=password, use_md5=use_md5
@@ -203,7 +202,12 @@ def MountZipAndCheckTree(
 # Try to mount the given ZIP archive, and expects an error.
 # Logs an error if the ZIP can be mounted, or if the returned error code doesn't match.
 def CheckZipMountingError(zip_name, want_error_code, options=[], password=''):
-  logging.info(f'Checking {zip_name!r}...')
+  s = f'Test {zip_name!r}'
+  if options:
+    s += f', options = {" ".join(options)!r}'
+  if password:
+    s += f', password = {password!r}'
+  logging.info(s)
   try:
     got_tree, _ = MountZipAndGetTree(
         zip_name, options=options, password=password
@@ -228,6 +232,7 @@ def GenerateReferenceData():
 def TestZipWithDefaultOptions():
   want_trees = {
       'absolute-path.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'ROOT': {'nlink': 2},
           'ROOT/rootname.ext': {
               'nlink': 1,
@@ -239,6 +244,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'bad-archive.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'bash.txt': {
               'nlink': 1,
               'atime': 1265257350000000000,
@@ -249,6 +255,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'bad-crc.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'bash.txt': {
               'nlink': 1,
               'atime': 1265262326000000000,
@@ -259,6 +266,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'bzip2.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'bzip2.txt': {
               'nlink': 1,
               'atime': 1635811418000000000,
@@ -269,6 +277,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'comment-utf8.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'dir': {
               'nlink': 2,
               'atime': 1563727175000000000,
@@ -301,6 +310,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'comment.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'dir': {
               'nlink': 2,
               'atime': 1563727175000000000,
@@ -333,6 +343,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'dos-perm.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'dir': {'mode': 'drwxr-xr-x', 'nlink': 2},
           'dir/hidden.txt': {
               'nlink': 1,
@@ -359,8 +370,11 @@ def TestZipWithDefaultOptions():
               'md5': '6f651ad751dadd4e76c8f46b6fae0c48',
           },
       },
-      'empty.zip': {},
+      'empty.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
+      },
       'extrafld.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'README': {
               'nlink': 1,
               'atime': 1388831602000000000,
@@ -371,6 +385,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'fifo.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '-': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -391,6 +406,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'file-dir-same-name.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'pet': {'nlink': 3},
           'pet/cat': {'nlink': 3},
           'pet/cat/fish': {
@@ -449,6 +465,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'foobar.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'foo': {
               'nlink': 1,
               'atime': 1565484162000000000,
@@ -459,6 +476,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'hlink-before-target.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '0hlink': {
               'nlink': 2,
               'atime': 1565781818000000000,
@@ -477,6 +495,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-chain.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '0regular': {
               'nlink': 3,
               'atime': 1565781818000000000,
@@ -503,6 +522,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-different-types.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'dir': {
               'nlink': 2,
               'atime': 1565781818000000000,
@@ -527,6 +547,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-dir.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 4},
           'dir': {
               'nlink': 2,
               'atime': 1567323446000000000,
@@ -549,6 +570,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-recursive-one.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'hlink': {
               'nlink': 1,
               'atime': 1565807019000000000,
@@ -559,6 +581,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'hlink-recursive-two.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'hlink1': {
               'nlink': 2,
               'atime': 1565807019000000000,
@@ -577,6 +600,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-relative.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'UP': {'nlink': 2},
           'UP/0regular': {
               'nlink': 2,
@@ -596,6 +620,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-special.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '0block': {
               'mode': 'brw-r--r--',
               'nlink': 1,
@@ -642,6 +667,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-symlink.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '0regular': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -669,6 +695,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-without-target.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'hlink1': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -680,6 +707,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'issue-43.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'README': {
               'nlink': 1,
               'atime': 1425892392000000000,
@@ -712,6 +740,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'lzma.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'lzma.txt': {
               'nlink': 1,
               'atime': 1635812732000000000,
@@ -722,6 +751,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'mixed-paths.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 7},
           'CUR': {},
           "CUR/Quote ' (1)": {'md5': '3ca0f2a7d572f3ad256fcd13e39bd8da'},
           "CUR/Quote ' (2)": {'md5': '60e20f9b84bf0fe96e7d226341aaf72d'},
@@ -1017,6 +1047,7 @@ def TestZipWithDefaultOptions():
           'UPUPUP/Three Levels Up': {'md5': '77798d1b2b8f820dbf742a6416d2fd51'},
       },
       'no-owner-info.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'README': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1028,6 +1059,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'not-full-path-deep.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'sim': {'nlink': 3},
           'sim/salabim': {'nlink': 3},
           'sim/salabim/rahat': {
@@ -1051,6 +1083,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'not-full-path.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'bebebe': {
               'nlink': 1,
               'atime': 1291639841000000000,
@@ -1070,6 +1103,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'ntfs-extrafld.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'test.txt': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1081,6 +1115,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'parent-relative-paths.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 4},
           'UP': {'nlink': 3},
           'UP/other': {'nlink': 2},
           'UP/other/LICENSE': {
@@ -1102,6 +1137,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'pkware-specials.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'block': {
               'mode': 'brw-r--r--',
               'nlink': 1,
@@ -1215,6 +1251,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'pkware-symlink.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'regular': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1234,6 +1271,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'sjis-filename.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '新しいテキスト ドキュメント.txt': {
               'nlink': 1,
               'atime': 1601539972000000000,
@@ -1244,6 +1282,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'symlink.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'date': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1263,6 +1302,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'unix-perm.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           '640': {
               'mode': '-rw-r--r--',
               'nlink': 1,
@@ -1310,6 +1350,7 @@ def TestZipWithDefaultOptions():
           },
       },
       'with-and-without-precise-time.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'unmodified': {
               'nlink': 1,
               'atime': 1564327465000000000,
@@ -1429,7 +1470,10 @@ def TestZipWithManyFiles():
 # Tests that a big file can be accessed in random order.
 def TestBigZip(options=[]):
   zip_name = 'big.zip'
-  logging.info(f'Checking {zip_name!r}...')
+  s = f'Test {zip_name!r}'
+  if options:
+    s += f', options = {" ".join(options)!r}'
+  logging.info(s)
   with tempfile.TemporaryDirectory() as mount_point:
     zip_path = os.path.join(script_dir, 'data', zip_name)
     logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
@@ -1484,14 +1528,17 @@ def TestBigZip(options=[]):
 
 # Tests that a big file can be accessed in somewhat random order even with no
 # cache file.
-def TestBigZipNoCache():
+def TestBigZipNoCache(options=['--nocache']):
   zip_name = 'big.zip'
-  logging.info(f'Checking {zip_name!r}...')
+  s = f'Test {zip_name!r}'
+  if options:
+    s += f', options = {" ".join(options)!r}'
+  logging.info(s)
   with tempfile.TemporaryDirectory() as mount_point:
     zip_path = os.path.join(script_dir, 'data', zip_name)
     logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
     subprocess.run(
-        [mount_program, '--nocache', zip_path, mount_point],
+        [mount_program] + options + [zip_path, mount_point],
         check=True,
         capture_output=True,
         input='',
@@ -1529,6 +1576,7 @@ def TestEncryptedZip():
 
   # With correct password.
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'Encrypted ZipCrypto.txt': {
           'nlink': 1,
           'atime': 1598594095000000000,
@@ -1592,6 +1640,7 @@ def TestEncryptedZip():
   CheckZipMountingError(zip_name, 36)
 
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'Encrypted ZipCrypto.txt': {
           'nlink': 1,
           'atime': 1598594095000000000,
@@ -1651,6 +1700,7 @@ def TestEncryptedZip():
 # Tests mounting ZIP with explicit file name encoding.
 def TestZipFileNameEncoding():
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'Дата': {
           'nlink': 1,
           'atime': 1265363324000000000,
@@ -1671,6 +1721,7 @@ def TestZipFileNameEncoding():
   MountZipAndCheckTree('cp866.zip', want_tree, options=['-o', 'encoding=cp866'])
 
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
       '±≥≤⌠⌡÷≈°∙·√ⁿ²■\xa0\xa0': {'size': 0},
       'ßΓπΣσμτΦΘΩδ∞φε∩≡': {'size': 0},
       '╤╥╙╘╒╓╫╪┘┌█▄▌▐▀α': {'size': 0},
@@ -1715,6 +1766,7 @@ def TestZipWithSpecialFiles():
   zip_name = 'pkware-specials.zip'
 
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'z-hardlink2': {
           'mode': '-rw-r--r--',
           'nlink': 3,
@@ -1843,6 +1895,7 @@ def TestZipWithSpecialFiles():
 
   # Test -o nosymlinks
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'z-hardlink2': {
           'mode': '-rw-r--r--',
           'nlink': 3,
@@ -1942,6 +1995,7 @@ def TestZipWithSpecialFiles():
 
   # Test -o nohardlinks
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'z-hardlink-socket': {
           'mode': 'srw-r--r--',
           'nlink': 1,
@@ -2031,6 +2085,7 @@ def TestZipWithSpecialFiles():
 
   # Test -o nospecials
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'z-hardlink2': {
           'mode': '-rw-r--r--',
           'nlink': 3,
@@ -2094,6 +2149,7 @@ def TestZipWithSpecialFiles():
 
   # Tests -o nosymlinks nohardlinks and nospecials together
   want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'regular': {
           'mode': '-rw-r--r--',
           'nlink': 1,
@@ -2137,7 +2193,7 @@ TestBigZip(options=['--precache'])
 TestBigZipNoCache()
 
 if error_count:
-  LogError(f'There were {error_count} errors')
+  LogError(f'FAIL: There were {error_count} errors')
   sys.exit(1)
 else:
-  logging.info('All tests passed Ok')
+  logging.info('PASS: All tests passed')
