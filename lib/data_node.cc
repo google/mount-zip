@@ -237,9 +237,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
   return has_pkware_field;
 }
 
-DataNode DataNode::Make(zip_t* const zip,
-                        const i64 id,
-                        const mode_t mode) {
+DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
   assert(zip);
   zip_stat_t st;
   if (zip_stat_index(zip, id, 0, &st) < 0)
@@ -267,10 +265,11 @@ DataNode::operator Stat() const {
   Stat st = {};
   st.st_ino = ino;
   st.st_nlink = nlink;
-  st.st_mode = mode;
   st.st_blksize = block_size;
   st.st_blocks = (size + block_size - 1) / block_size;
   st.st_size = size;
+  st.st_rdev = dev;
+
 #if __APPLE__
   st.st_atimespec = atime;
   st.st_mtimespec = mtime;
@@ -280,27 +279,34 @@ DataNode::operator Stat() const {
   st.st_mtim = mtime;
   st.st_ctim = ctime;
 #endif
+
   if (original_permissions) {
     st.st_uid = uid;
     st.st_gid = gid;
+    st.st_mode = mode;
   } else {
     st.st_uid = g_uid;
     st.st_gid = g_gid;
-    st.st_mode = 0666;
-    const mode_t xbits = 0111;
-    if (S_ISDIR(mode)) {
-      st.st_mode |= xbits;
-      st.st_mode &= ~dmask;
-      st.st_mode |= S_IFDIR;
-    } else {
-      if ((mode & xbits) != 0) {
-        st.st_mode |= xbits;
-      }
-      st.st_mode &= ~fmask;
-      st.st_mode |= mode & S_IFMT;
+    const FileType ft = GetFileType(mode);
+    switch (ft) {
+      case FileType::Directory:
+        st.st_mode = S_IFDIR | (0777 & ~dmask);
+        break;
+
+      case FileType::Symlink:
+        st.st_mode = S_IFLNK | 0777;
+        break;
+
+      default:
+        st.st_mode = 0666;
+        if (const mode_t xbits = 0111; (mode & xbits) != 0) {
+          st.st_mode |= xbits;
+        }
+        st.st_mode &= ~fmask;
+        SetFileType(&st.st_mode, ft);
     }
   }
-  st.st_rdev = dev;
+
   return st;
 }
 

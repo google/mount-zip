@@ -583,13 +583,13 @@ def TestZipWithDefaultOptions():
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
           '1symlink': {
-              'mode': 'lrwxr-xr-x',
+              'mode': 'lrwxrwxrwx',
               'nlink': 2,
               'mtime': 1565807019000000000,
               'target': '0regular',
           },
           'hlink': {
-              'mode': 'lrwxr-xr-x',
+              'mode': 'lrwxrwxrwx',
               'nlink': 2,
               'mtime': 1565807019000000000,
               'target': '0regular',
@@ -1043,13 +1043,13 @@ def TestZipWithDefaultOptions():
               'mtime': 1564834444000000000,
           },
           'symlink': {
-              'mode': 'lrwxr-xr-x',
+              'mode': 'lrwxrwxrwx',
               'nlink': 1,
               'mtime': 1564834729000000000,
               'target': 'regular',
           },
           'symlink2': {
-              'mode': 'lrwxr-xr-x',
+              'mode': 'lrwxrwxrwx',
               'nlink': 1,
               'mtime': 1566731354000000000,
               'target': 'regular',
@@ -1077,7 +1077,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1564834444000000000,
           },
           'z-hardlink-symlink': {
-              'mode': 'lrwxr-xr-x',
+              'mode': 'lrwxrwxrwx',
               'nlink': 1,
               'mtime': 1564834729000000000,
               'target': 'regular',
@@ -1107,7 +1107,7 @@ def TestZipWithDefaultOptions():
               'md5': '4404716d8a90c37fdc18d88b70d09fa3',
           },
           'symlink': {
-              'mode': 'lrwxr-xr-x',
+              'mode': 'lrwxrwxrwx',
               'nlink': 1,
               'mtime': 1566730517000000000,
               'target': 'regular',
@@ -1132,7 +1132,7 @@ def TestZipWithDefaultOptions():
               'md5': 'e84bea37a02d9285935368412725b442',
           },
           'symlink': {
-              'mode': 'lrwxr-xr-x',
+              'mode': 'lrwxrwxrwx',
               'nlink': 1,
               'mtime': 1388943650000000000,
               'target': '../tmp/date',
@@ -1203,7 +1203,7 @@ def TestZipWithDefaultOptions():
     MountZipAndCheckTree(zip_name, want_tree, options=['--force'])
 
 
-# Tests dmask and fmask.
+# Tests -o dmask, fmask and default_permissions.
 def TestMasks():
   want_tree = {
       '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 24},
@@ -1826,13 +1826,13 @@ def TestZipWithSpecialFiles():
           'md5': '456e611a5420b7dd09bae143a7b2deb0',
       },
       'z-hardlink-symlink': {
-          'mode': 'lrwxr-xr-x',
+          'mode': 'lrwxrwxrwx',
           'nlink': 1,
           'mtime': 1564834729000000000,
           'target': 'regular',
       },
       'symlink': {
-          'mode': 'lrwxr-xr-x',
+          'mode': 'lrwxrwxrwx',
           'nlink': 1,
           'mtime': 1564834729000000000,
           'target': 'regular',
@@ -1860,7 +1860,7 @@ def TestZipWithSpecialFiles():
           'rdev': 2049,
       },
       'symlink2': {
-          'mode': 'lrwxr-xr-x',
+          'mode': 'lrwxrwxrwx',
           'nlink': 1,
           'mtime': 1566731354000000000,
           'target': 'regular',
@@ -2013,7 +2013,7 @@ def TestZipWithSpecialFiles():
           'rdev': 2049,
       },
       'symlink2': {
-          'mode': 'lrwxr-xr-x',
+          'mode': 'lrwxrwxrwx',
           'nlink': 1,
           'mtime': 1566731354000000000,
           'target': 'regular',
@@ -2075,19 +2075,19 @@ def TestZipWithSpecialFiles():
           'md5': '456e611a5420b7dd09bae143a7b2deb0',
       },
       'z-hardlink-symlink': {
-          'mode': 'lrwxr-xr-x',
+          'mode': 'lrwxrwxrwx',
           'nlink': 1,
           'mtime': 1564834729000000000,
           'target': 'regular',
       },
       'symlink': {
-          'mode': 'lrwxr-xr-x',
+          'mode': 'lrwxrwxrwx',
           'nlink': 1,
           'mtime': 1564834729000000000,
           'target': 'regular',
       },
       'symlink2': {
-          'mode': 'lrwxr-xr-x',
+          'mode': 'lrwxrwxrwx',
           'nlink': 1,
           'mtime': 1566731354000000000,
           'target': 'regular',
