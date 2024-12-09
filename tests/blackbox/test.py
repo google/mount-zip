@@ -67,8 +67,11 @@ def GetTree(root, use_md5=True):
     elif stat.S_ISBLK(mode) or stat.S_ISCHR(mode):
       line['rdev'] = st.st_rdev
     elif stat.S_ISDIR(mode):
-      for entry in os.scandir(path):
-        scan(entry.path, entry.stat(follow_symlinks=False))
+      try:
+        for entry in os.scandir(path):
+          scan(entry.path, entry.stat(follow_symlinks=False))
+      except OSError as e:
+        line['errno'] = e.errno
 
   scan(root, os.stat(root, follow_symlinks=False))
   return result
@@ -1402,6 +1405,56 @@ def TestMasks():
 
   MountZipAndCheckTree('permissions.zip', want_tree, use_md5=False, options=['-o', 'dmask=0,fmask=0'])
 
+  want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 24},
+      'Dir000': {'mode': 'd---------'},
+      'Dir001': {'mode': 'd--------x'},
+      'Dir002': {'mode': 'd-------w-'},
+      'Dir003': {'mode': 'd-------wx'},
+      'Dir004': {'mode': 'd------r--'},
+      'Dir005': {'mode': 'd------r-x'},
+      'Dir006': {'mode': 'd------rw-'},
+      'Dir007': {'mode': 'd------rwx'},
+      'Dir010': {'mode': 'd-----x---'},
+      'Dir020': {'mode': 'd----w----'},
+      'Dir030': {'mode': 'd----wx---'},
+      'Dir040': {'mode': 'd---r-----'},
+      'Dir050': {'mode': 'd---r-x---'},
+      'Dir060': {'mode': 'd---rw----'},
+      'Dir070': {'mode': 'd---rwx---'},
+      'Dir100': {'mode': 'd--x------'},
+      'Dir200': {'mode': 'd-w-------'},
+      'Dir300': {'mode': 'd-wx------'},
+      'Dir400': {'mode': 'dr--------'},
+      'Dir500': {'mode': 'dr-x------'},
+      'Dir600': {'mode': 'drw-------'},
+      'Dir700': {'mode': 'drwx------'},
+      'File000': {'mode': '----------'},
+      'File001': {'mode': '---------x'},
+      'File002': {'mode': '--------w-'},
+      'File003': {'mode': '--------wx'},
+      'File004': {'mode': '-------r--'},
+      'File005': {'mode': '-------r-x'},
+      'File006': {'mode': '-------rw-'},
+      'File007': {'mode': '-------rwx'},
+      'File010': {'mode': '------x---'},
+      'File020': {'mode': '-----w----'},
+      'File030': {'mode': '-----wx---'},
+      'File040': {'mode': '----r-----'},
+      'File050': {'mode': '----r-x---'},
+      'File060': {'mode': '----rw----'},
+      'File070': {'mode': '----rwx---'},
+      'File100': {'mode': '---x------'},
+      'File200': {'mode': '--w-------'},
+      'File300': {'mode': '--wx------'},
+      'File400': {'mode': '-r--------'},
+      'File500': {'mode': '-r-x------'},
+      'File600': {'mode': '-rw-------'},
+      'File700': {'mode': '-rwx------'},
+  }
+
+  MountZipAndCheckTree('permissions.zip', want_tree, use_md5=False, options=['-o', 'default_permissions'])
+
 
 # Tests the ZIP with lots of files.
 def TestZipWithManyFiles():
@@ -2074,6 +2127,105 @@ def TestZipWithSpecialFiles():
       want_blocks=3,
       want_inodes=2,
       options=['-o', 'nosymlinks,nohardlinks,nospecials'],
+  )
+
+  # Tests -o default_permissions
+  want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
+      'z-hardlink2': {
+          'mode': '-rw-r--r--',
+          'uid' : 1000,
+          'gid' : 1000,
+          'nlink': 3,
+          'size': 32,
+          'md5': '456e611a5420b7dd09bae143a7b2deb0',
+      },
+      'z-hardlink1': {
+          'mode': '-rw-r--r--',
+          'uid' : 1000,
+          'gid' : 1000,
+          'nlink': 3,
+          'size': 32,
+          'md5': '456e611a5420b7dd09bae143a7b2deb0',
+      },
+      'z-hardlink-symlink': {
+          'mode': 'lrwxrwxrwx',
+          'uid' : 1000,
+          'gid' : 1000,
+          'target': 'regular',
+      },
+      'symlink': {
+          'mode': 'lrwxrwxrwx',
+          'uid' : 1000,
+          'gid' : 1000,
+          'target': 'regular',
+      },
+      'z-hardlink-socket': {
+          'mode': 'srw-------',
+          'uid' : 1000,
+          'gid' : 1000,
+      },
+      'z-hardlink-fifo': {
+          'mode': 'prw-r--r--',
+          'uid' : 1000,
+          'gid' : 1000,
+      },
+      'z-hardlink-char': {
+          'mode': 'crw--w----',
+          'uid' : 0,
+          'gid' : 5,
+          'rdev': 1024,
+      },
+      'z-hardlink-block': {
+          'mode': 'brw-rw----',
+          'uid' : 0,
+          'gid' : 6,
+          'rdev': 2049,
+      },
+      'symlink2': {
+          'mode': 'lrwxrwxrwx',
+          'target': 'regular',
+          'uid' : 1000,
+          'gid' : 1000,
+      },
+      'socket': {
+          'mode': 'srw-------',
+          'uid' : 1000,
+          'gid' : 1000,
+      },
+      'regular': {
+          'mode': '-rw-r--r--',
+          'uid' : 1000,
+          'gid' : 1000,
+          'nlink': 3,
+          'size': 32,
+          'md5': '456e611a5420b7dd09bae143a7b2deb0',
+      },
+      'fifo': {
+          'mode': 'prw-r--r--',
+          'uid' : 1000,
+          'gid' : 1000,
+      },
+      'char': {
+          'mode': 'crw--w----',
+          'uid' : 0,
+          'gid' : 5,
+          'rdev': 1024,
+      },
+      'block': {
+          'mode': 'brw-rw----',
+          'uid' : 0,
+          'gid' : 6,
+          'rdev': 2049,
+      },
+  }
+
+  MountZipAndCheckTree(
+      zip_name,
+      want_tree,
+      want_blocks=17,
+      want_inodes=15,
+      options=['-o', 'default_permissions'],
   )
 
 
