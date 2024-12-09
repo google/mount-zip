@@ -92,7 +92,7 @@ def CheckTree(got_tree, want_tree, strict=False):
     try:
       got_entry = got_tree.pop(name)
       for key, want_value in want_entry.items():
-        if key in ('atime', 'ctime', 'mtime'):
+        if key in ('atime', 'ctime'):
           continue  # For the time being
         got_value = got_entry.get(key)
         if got_value != want_value:
