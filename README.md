@@ -3,7 +3,7 @@ title: MOUNT-ZIP
 section: 1
 header: User Manual
 footer: mount-zip 1.0
-date: September 2024
+date: December 2024
 ---
 # NAME
 
@@ -68,6 +68,21 @@ same directory as the ZIP archive.
 
 **-o nohardlinks**
 :   hide hard links
+
+**-o dmask=M**
+:   Directory permission mask in octal (default 0022)
+
+**-o fmask=M**
+:   File permission mask in octal (default 0022)
+
+**-o uid=N**
+:   Set the file owner of all the items in the mounted archive (default is current user)
+
+**-o gid=N**
+:   Set file group of all the items in the mounted archive (default is current group)
+
+**-o default_permissions**
+:   Use the file owner (UID), group (GID) and permissions stored with each item in the archive.
 
 **-f**
 :   foreground mode
@@ -383,7 +398,7 @@ mnt
 devices) recorded in the ZIP archive:
 
 ```
-$ mount-zip pkware-specials.zip mnt
+$ mount-zip -o default_permissions pkware-specials.zip mnt
 
 $ ls -n mnt
 brw-rw---- 1    0    6 8, 1 Aug  3  2019 block
@@ -405,7 +420,7 @@ lrwxrwxrwx 1 1000 1000    7 Aug  3  2019 z-hardlink-symlink -> regular
 Special files can be suppressed with the `-o nospecials` option:
 
 ```
-$ mount-zip -o nospecials pkware-specials.zip mnt
+$ mount-zip -o default_permissions -o nospecials pkware-specials.zip mnt
 Skipped Block Device [0] '/block'
 Skipped Character Device [1] '/char'
 Skipped Pipe [2] '/fifo'
@@ -432,12 +447,12 @@ In this example, the three file entries `0regular`, `hlink1` and `hlink2` point
 to the same inode number (2) and their reference count is 3:
 
 ```
-$ mount-zip -o use_ino hlink-chain.zip mnt
+$ mount-zip hlink-chain.zip mnt
 
 $ ls -ni mnt
-2 -rw-r----- 3 0 0 10 Aug 14  2019 0regular
-2 -rw-r----- 3 0 0 10 Aug 14  2019 hlink1
-2 -rw-r----- 3 0 0 10 Aug 14  2019 hlink2
+2 -rw-r--r-- 3 0 0 10 Aug 14  2019 0regular
+2 -rw-r--r-- 3 0 0 10 Aug 14  2019 hlink1
+2 -rw-r--r-- 3 0 0 10 Aug 14  2019 hlink2
 
 $ md5sum mnt/*
 e09c80c42fda55f9d992e59ca6b3307d  mnt/0regular
@@ -459,20 +474,20 @@ Duplicated hard links can be suppressed with the `-o nohardlinks` option:
 
 ```
 $ mount-zip -o nohardlinks hlink-chain.zip mnt
-Skipped File [1]: Hardlinks are ignored
-Skipped File [2]: Hardlinks are ignored
+mount-zip: Skipped File [1] '/hlink1'
+mount-zip: Skipped File [2] '/hlink2'
 
 $ ls -ni mnt
-2 -rw-r----- 1 0 0 10 Aug 14  2019 0regular
+2 -rw-r--r-- 1 0 0 10 Aug 14  2019 0regular
 ```
 
 ## File Permissions
 
-**mount-zip** shows the Unix file permissions and ownership (UIDs and GIDs) as
-recorded in the ZIP archive:
+**mount-zip** can show the Unix file permissions and ownership (UIDs and GIDs)
+as recorded in the ZIP archive when used with `-o default_permissions`:
 
 ```
-$ mount-zip unix-perm.zip mnt
+$ mount-zip -o default_permissions unix-perm.zip mnt
 
 $ ls -n mnt
 -rw-r----- 1 1000 1000 0 Jan  5  2014 640
@@ -480,26 +495,6 @@ $ ls -n mnt
 -rw-rw-rw- 1 1000 1000 0 Jan  5  2014 666
 -rwsrwsr-x 1 1000 1000 0 Jan  5  2014 6775
 -rwxrwxrwx 1 1000 1000 0 Jan  5  2014 777
-```
-
-Note that these access permissions are not enforced by default. In this example,
-I am able to read the file `640` even though I don't own it and I don't have the
-read permission:
-
-```
-$ md5sum mnt/*
-d41d8cd98f00b204e9800998ecf8427e  mnt/640
-d41d8cd98f00b204e9800998ecf8427e  mnt/642
-d41d8cd98f00b204e9800998ecf8427e  mnt/666
-d41d8cd98f00b204e9800998ecf8427e  mnt/6775
-d41d8cd98f00b204e9800998ecf8427e  mnt/777
-```
-
-To enforce the access permission check, use the `-o default_permissions` mount
-option:
-
-```
-$ mount-zip -o default_permissions unix-perm.zip mnt
 
 $ md5sum mnt/*
 md5sum: mnt/640: Permission denied

@@ -15,7 +15,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "MOUNT-ZIP" "1" "September 2024" "mount-zip 1.0" "User Manual"
+.TH "MOUNT-ZIP" "1" "December 2024" "mount-zip 1.0" "User Manual"
 .hy
 .SH NAME
 .PP
@@ -79,6 +79,24 @@ hide symbolic links
 .TP
 \f[B]-o nohardlinks\f[R]
 hide hard links
+.TP
+\f[B]-o dmask=M\f[R]
+Directory permission mask in octal (default 0022)
+.TP
+\f[B]-o fmask=M\f[R]
+File permission mask in octal (default 0022)
+.TP
+\f[B]-o uid=N\f[R]
+Set the file owner of all the items in the mounted archive (default is
+current user)
+.TP
+\f[B]-o gid=N\f[R]
+Set file group of all the items in the mounted archive (default is
+current group)
+.TP
+\f[B]-o default_permissions\f[R]
+Use the file owner (UID), group (GID) and permissions stored with each
+item in the archive.
 .TP
 \f[B]-f\f[R]
 foreground mode
@@ -465,7 +483,7 @@ character and block devices) recorded in the ZIP archive:
 .IP
 .nf
 \f[C]
-$ mount-zip pkware-specials.zip mnt
+$ mount-zip -o default_permissions pkware-specials.zip mnt
 
 $ ls -n mnt
 brw-rw---- 1    0    6 8, 1 Aug  3  2019 block
@@ -489,7 +507,7 @@ Special files can be suppressed with the \f[V]-o nospecials\f[R] option:
 .IP
 .nf
 \f[C]
-$ mount-zip -o nospecials pkware-specials.zip mnt
+$ mount-zip -o default_permissions -o nospecials pkware-specials.zip mnt
 Skipped Block Device [0] \[aq]/block\[aq]
 Skipped Character Device [1] \[aq]/char\[aq]
 Skipped Pipe [2] \[aq]/fifo\[aq]
@@ -518,12 +536,12 @@ and their reference count is 3:
 .IP
 .nf
 \f[C]
-$ mount-zip -o use_ino hlink-chain.zip mnt
+$ mount-zip hlink-chain.zip mnt
 
 $ ls -ni mnt
-2 -rw-r----- 3 0 0 10 Aug 14  2019 0regular
-2 -rw-r----- 3 0 0 10 Aug 14  2019 hlink1
-2 -rw-r----- 3 0 0 10 Aug 14  2019 hlink2
+2 -rw-r--r-- 3 0 0 10 Aug 14  2019 0regular
+2 -rw-r--r-- 3 0 0 10 Aug 14  2019 hlink1
+2 -rw-r--r-- 3 0 0 10 Aug 14  2019 hlink2
 
 $ md5sum mnt/*
 e09c80c42fda55f9d992e59ca6b3307d  mnt/0regular
@@ -550,21 +568,22 @@ Duplicated hard links can be suppressed with the
 .nf
 \f[C]
 $ mount-zip -o nohardlinks hlink-chain.zip mnt
-Skipped File [1]: Hardlinks are ignored
-Skipped File [2]: Hardlinks are ignored
+mount-zip: Skipped File [1] \[aq]/hlink1\[aq]
+mount-zip: Skipped File [2] \[aq]/hlink2\[aq]
 
 $ ls -ni mnt
-2 -rw-r----- 1 0 0 10 Aug 14  2019 0regular
+2 -rw-r--r-- 1 0 0 10 Aug 14  2019 0regular
 \f[R]
 .fi
 .SS File Permissions
 .PP
-\f[B]mount-zip\f[R] shows the Unix file permissions and ownership (UIDs
-and GIDs) as recorded in the ZIP archive:
+\f[B]mount-zip\f[R] can show the Unix file permissions and ownership
+(UIDs and GIDs) as recorded in the ZIP archive when used with
+\f[V]-o default_permissions\f[R]:
 .IP
 .nf
 \f[C]
-$ mount-zip unix-perm.zip mnt
+$ mount-zip -o default_permissions unix-perm.zip mnt
 
 $ ls -n mnt
 -rw-r----- 1 1000 1000 0 Jan  5  2014 640
@@ -572,30 +591,6 @@ $ ls -n mnt
 -rw-rw-rw- 1 1000 1000 0 Jan  5  2014 666
 -rwsrwsr-x 1 1000 1000 0 Jan  5  2014 6775
 -rwxrwxrwx 1 1000 1000 0 Jan  5  2014 777
-\f[R]
-.fi
-.PP
-Note that these access permissions are not enforced by default.
-In this example, I am able to read the file \f[V]640\f[R] even though I
-don\[cq]t own it and I don\[cq]t have the read permission:
-.IP
-.nf
-\f[C]
-$ md5sum mnt/*
-d41d8cd98f00b204e9800998ecf8427e  mnt/640
-d41d8cd98f00b204e9800998ecf8427e  mnt/642
-d41d8cd98f00b204e9800998ecf8427e  mnt/666
-d41d8cd98f00b204e9800998ecf8427e  mnt/6775
-d41d8cd98f00b204e9800998ecf8427e  mnt/777
-\f[R]
-.fi
-.PP
-To enforce the access permission check, use the
-\f[V]-o default_permissions\f[R] mount option:
-.IP
-.nf
-\f[C]
-$ mount-zip -o default_permissions unix-perm.zip mnt
 
 $ md5sum mnt/*
 md5sum: mnt/640: Permission denied
