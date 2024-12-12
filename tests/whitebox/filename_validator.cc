@@ -41,6 +41,8 @@ int main() {
   checkConversion("normal.name", true, "/CUR/normal.name");
   checkConversion("path/to/normal.name", false, "/path/to/normal.name");
   checkConversion("path/to/normal.name", true, "/CUR/path/to/normal.name");
+  checkConversion("./normal.name", false, "/normal.name");
+  checkConversion("./path/to/normal.name", false, "/path/to/normal.name");
 
   checkConvertException(".", false);
   checkConvertException("./", false);

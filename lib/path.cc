@@ -165,6 +165,10 @@ bool Path::Normalize(std::string* const dest_path,
     assert(need_prefix);
     Append(dest_path, "ROOT");
     in.remove_prefix(1);
+  } else if (in.starts_with("./")) {
+    in.remove_prefix(2);
+    if (in.empty())
+      return false;
   } else {
     bool parentRelative = false;
     while (in.starts_with("../")) {
