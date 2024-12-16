@@ -1,3 +1,9 @@
+2024-12-16 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.4:
+	- Handle file paths starting with "./" (https://github.com/google/mount-zip/issues/29)
+	- Adjust blackbox tests so that they can successfully run in a different time zone than the author's time zone
+
 2024-12-09 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.2:
@@ -19,8 +25,8 @@
 
 	* Released mount-zip 1.0.14:
 	- Add --memcache option for in-memory cache file
-	- Add workaround for cache file on filesystems that don't support O_TMPFILE
-	- Support older versions of libzip than 1.9.1
+	- Add workaround for cache file on filesystems that don't support O_TMPFILE (https://github.com/google/mount-zip/issues/23)
+	- Support older versions of libzip than 1.9.1 (https://github.com/google/mount-zip/issues/20)
 
 2024-03-27 François Degros <fdegros@chromium.org>
 
