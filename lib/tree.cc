@@ -429,7 +429,6 @@ void Tree::BuildTree() {
   };
 
   std::vector<Hardlink> hardlinks;
-  std::string path;
   Beat should_display_progress;
   uint64_t total_extracted_size = 0;
   const auto progress = [&should_display_progress, &total_uncompressed_size,
@@ -451,18 +450,10 @@ void Tree::BuildTree() {
 
     const Path original_path =
         (sb.valid & ZIP_STAT_NAME) != 0 && sb.name && *sb.name ? sb.name : "-";
+    const std::string path = Path(toUtf8(original_path)).Normalize(need_prefix_);
     const uint64_t size = (sb.valid & ZIP_STAT_SIZE) != 0 ? sb.size : 0;
     const auto [mode, is_hardlink] = GetEntryAttributes(id, original_path);
     const FileType type = GetFileType(mode);
-
-    const Path original_path_utf8 = toUtf8(original_path);
-    if (!Path::Normalize(&path, original_path_utf8, need_prefix_)) {
-      LOG(ERROR) << "Skipped " << type << " [" << id
-                 << "]: Cannot normalize path " << original_path_utf8;
-      assert(total_uncompressed_size >= size);
-      total_uncompressed_size -= size;
-      continue;
-    }
 
     if (type == FileType::Directory) {
       FileNode* const node = CreateDir(path);
@@ -554,15 +545,7 @@ void Tree::BuildTree() {
   // Add hardlinks
   for (const auto [id, mode] : hardlinks) {
     const Path original_path = zip_get_name(zip_, id, zipFlags);
-    const FileType type = GetFileType(mode);
-
-    const Path original_path_utf8 = toUtf8(original_path);
-    if (!Path::Normalize(&path, original_path_utf8, need_prefix_)) {
-      LOG(ERROR) << "Skipped " << type << " [" << id
-                 << "]: Cannot normalize path " << original_path_utf8;
-      continue;
-    }
-
+    const std::string path = Path(toUtf8(original_path)).Normalize(need_prefix_);
     const auto [parent_path, name] = Path(path).Split();
     FileNode* const parent = CreateDir(parent_path);
     FileNode* node = CreateHardlink(id, parent, name, mode);

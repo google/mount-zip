@@ -152,37 +152,47 @@ void Path::Append(std::string* const head, const std::string_view tail) {
   *head += tail;
 }
 
-bool Path::Normalize(std::string* const dest_path,
-                     std::string_view in,
-                     const bool need_prefix) {
-  assert(!in.empty());
-  assert(dest_path);
+std::string Path::Normalize(const bool need_prefix) const {
+  std::string_view in = *this;
 
-  *dest_path = "/";
+  if (in.empty()) {
+    return "/?";
+  }
+
+  std::string result = "/";
 
   // Add prefix
   if (in.starts_with('/')) {
-    assert(need_prefix);
-    Append(dest_path, "ROOT");
+    Append(&result, "ROOT");
     in.remove_prefix(1);
   } else {
     bool parentRelative = false;
+
+    while (in.starts_with("./")) {
+      in.remove_prefix(2);
+      while (in.starts_with('/')) {
+        in.remove_prefix(1);
+      }
+    }
+
     while (in.starts_with("../")) {
-      assert(need_prefix);
-      *dest_path += "UP";
+      result += "UP";
       in.remove_prefix(3);
       parentRelative = true;
+      while (in.starts_with('/')) {
+        in.remove_prefix(1);
+      }
     }
 
     if (need_prefix && !parentRelative)
-      Append(dest_path, "CUR");
+      Append(&result, "CUR");
   }
 
   // Extract part after part
   while (true) {
     size_type i = in.find_first_not_of('/');
     if (i == npos)
-      return true;
+      return result;
 
     in.remove_prefix(i);
     assert(!in.empty());
@@ -203,12 +213,12 @@ bool Path::Normalize(std::string* const dest_path,
         0, Path(part).TruncationPosition(NAME_MAX - extension.size()));
 
     if (part.empty() || part == "." || part == "..")
-      return false;
+      part = "?";
 
     if (extension.empty()) {
-      Append(dest_path, part);
+      Append(&result, part);
     } else {
-      Append(dest_path, StrCat(part, extension));
+      Append(&result, StrCat(part, extension));
     }
   }
 }

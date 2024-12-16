@@ -85,9 +85,7 @@ class Path : public std::string_view {
   static void Append(std::string* head, std::string_view tail);
 
   // Normalizes path.
-  static bool Normalize(std::string* dest_path,
-                        std::string_view original_path,
-                        bool need_prefix);
+  std::string Normalize(bool need_prefix) const;
 
   // Should paths be redacted from logs?
   static bool redact;

@@ -22,16 +22,10 @@
 
 #include "path.h"
 
-void checkConvertException(const char* fname, bool needPrefix) {
-  std::string res;
-  bool ok = Path::Normalize(&res, fname, needPrefix);
-  assert(!ok);
-}
-
-void checkConversion(const char* fname, bool needPrefix, const char* expected) {
-  std::string res;
-  bool ok = Path::Normalize(&res, fname, needPrefix);
-  assert(ok);
+void checkConversion(const std::string_view fname,
+                     bool needPrefix,
+                     const std::string_view expected) {
+  const std::string res = Path(fname).Normalize(needPrefix);
   assert(res == expected);
 }
 
@@ -42,40 +36,60 @@ int main() {
   checkConversion("path/to/normal.name", false, "/path/to/normal.name");
   checkConversion("path/to/normal.name", true, "/CUR/path/to/normal.name");
 
-  checkConvertException(".", false);
-  checkConvertException("./", false);
-  checkConvertException("abc/./cde", false);
-  checkConvertException("abc/.", false);
+  checkConversion("", false, "/?");
+  checkConversion("", true, "/?");
+
+  checkConversion("./", false, "/");
+  checkConversion("./", true, "/CUR");
+  checkConversion(".///", false, "/");
+  checkConversion(".///", true, "/CUR");
+  checkConversion("././/.///", false, "/");
+  checkConversion("././/.///", true, "/CUR");
+  checkConversion("././/.///a/b/c", false, "/a/b/c");
+  checkConversion("././/.///a/b/c", true, "/CUR/a/b/c");
+  checkConversion("././/.///a/b/c", false, "/a/b/c");
+  checkConversion("././/.///a/b/c", true, "/CUR/a/b/c");
+
+  checkConversion("a/./c", false, "/a/?/c");
+  checkConversion("a/./c", true, "/CUR/a/?/c");
+  checkConversion("a/../c", false, "/a/?/c");
+  checkConversion("a/../c", true, "/CUR/a/?/c");
+  checkConversion("a/.", false, "/a/?");
+  checkConversion("a/.", true, "/CUR/a/?");
+  checkConversion("a/..", false, "/a/?");
+  checkConversion("a/..", true, "/CUR/a/?");
+
+  checkConversion(".", false, "/?");
+  checkConversion(".", true, "/CUR/?");
+  checkConversion("..", false, "/?");
+  checkConversion("..", true, "/CUR/?");
+
+  checkConversion("/.", false, "/ROOT/?");
+  checkConversion("/.", true, "/ROOT/?");
+  checkConversion("/..", false, "/ROOT/?");
+  checkConversion("/..", true, "/ROOT/?");
+  checkConversion("/./a", false, "/ROOT/?/a");
+  checkConversion("/./a", true, "/ROOT/?/a");
+  checkConversion("/../a", false, "/ROOT/?/a");
+  checkConversion("/../a", true, "/ROOT/?/a");
 
   checkConversion(".hidden", false, "/.hidden");
   checkConversion("path/to/.hidden", false, "/path/to/.hidden");
   checkConversion("path/to/.hidden/dir", false, "/path/to/.hidden/dir");
 
-  checkConvertException(".", true);
-  checkConvertException(".", true);
-  checkConvertException("/.", true);
-  checkConvertException("./", false);
-  checkConvertException("./", false);
-  checkConvertException("..", true);
-
   checkConversion("../", true, "/UP");
   checkConversion("../../../", true, "/UPUPUP");
 
-  checkConvertException("/..", true);
-  checkConvertException("/../blah", true);
-
   checkConversion("../abc", true, "/UP/abc");
   checkConversion("../../../abc", true, "/UPUPUP/abc");
-
-  checkConvertException("abc/../cde", false);
-  checkConvertException("abc/../cde", true);
-  checkConvertException("abc/..", false);
-  checkConvertException("abc/..", true);
-  checkConvertException("../abc/..", true);
+  checkConversion("..///..//..//abc", true, "/UPUPUP/abc");
 
   checkConversion("/", true, "/ROOT");
+  checkConversion("///", true, "/ROOT");
   checkConversion("/rootname", true, "/ROOT/rootname");
+  checkConversion("///rootname", true, "/ROOT/rootname");
   checkConversion("/path/name", true, "/ROOT/path/name");
+  checkConversion("///path///name", true, "/ROOT/path/name");
 
   return EXIT_SUCCESS;
 }
