@@ -163,7 +163,6 @@ std::string Path::Normalize(const bool need_prefix) const {
 
   // Add prefix
   if (in.Consume('/')) {
-    Append(&result, "ROOT");
   } else {
     bool parentRelative = false;
 

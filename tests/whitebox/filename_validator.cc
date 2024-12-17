@@ -64,14 +64,14 @@ int main() {
   checkConversion("..", false, "/?");
   checkConversion("..", true, "/CUR/?");
 
-  checkConversion("/.", false, "/ROOT/?");
-  checkConversion("/.", true, "/ROOT/?");
-  checkConversion("/..", false, "/ROOT/?");
-  checkConversion("/..", true, "/ROOT/?");
-  checkConversion("/./a", false, "/ROOT/?/a");
-  checkConversion("/./a", true, "/ROOT/?/a");
-  checkConversion("/../a", false, "/ROOT/?/a");
-  checkConversion("/../a", true, "/ROOT/?/a");
+  checkConversion("/.", false, "/?");
+  checkConversion("/.", true, "/?");
+  checkConversion("/..", false, "/?");
+  checkConversion("/..", true, "/?");
+  checkConversion("/./a", false, "/?/a");
+  checkConversion("/./a", true, "/?/a");
+  checkConversion("/../a", false, "/?/a");
+  checkConversion("/../a", true, "/?/a");
 
   checkConversion(".hidden", false, "/.hidden");
   checkConversion("path/to/.hidden", false, "/path/to/.hidden");
@@ -84,12 +84,12 @@ int main() {
   checkConversion("../../../abc", true, "/UPUPUP/abc");
   checkConversion("..///..//..//abc", true, "/UPUPUP/abc");
 
-  checkConversion("/", true, "/ROOT");
-  checkConversion("///", true, "/ROOT");
-  checkConversion("/rootname", true, "/ROOT/rootname");
-  checkConversion("///rootname", true, "/ROOT/rootname");
-  checkConversion("/path/name", true, "/ROOT/path/name");
-  checkConversion("///path///name", true, "/ROOT/path/name");
+  checkConversion("/", true, "/");
+  checkConversion("///", true, "/");
+  checkConversion("/rootname", true, "/rootname");
+  checkConversion("///rootname", true, "/rootname");
+  checkConversion("/path/name", true, "/path/name");
+  checkConversion("///path///name", true, "/path/name");
 
   return EXIT_SUCCESS;
 }
