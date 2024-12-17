@@ -153,7 +153,7 @@ void Path::Append(std::string* const head, const std::string_view tail) {
 }
 
 std::string Path::Normalize(const bool need_prefix) const {
-  std::string_view in = *this;
+  Path in = *this;
 
   if (in.empty()) {
     return "/?";
@@ -162,26 +162,19 @@ std::string Path::Normalize(const bool need_prefix) const {
   std::string result = "/";
 
   // Add prefix
-  if (in.starts_with('/')) {
+  if (in.Consume('/')) {
     Append(&result, "ROOT");
-    in.remove_prefix(1);
   } else {
     bool parentRelative = false;
 
-    while (in.starts_with("./")) {
-      in.remove_prefix(2);
-      while (in.starts_with('/')) {
-        in.remove_prefix(1);
-      }
+    while (in.Consume("./")) {
+      while (in.Consume('/')) {}
     }
 
-    while (in.starts_with("../")) {
+    while (in.Consume("../")) {
       result += "UP";
-      in.remove_prefix(3);
       parentRelative = true;
-      while (in.starts_with('/')) {
-        in.remove_prefix(1);
-      }
+      while (in.Consume('/')) {}
     }
 
     if (need_prefix && !parentRelative)
@@ -212,8 +205,9 @@ std::string Path::Normalize(const bool need_prefix) const {
     part = part.substr(
         0, Path(part).TruncationPosition(NAME_MAX - extension.size()));
 
-    if (part.empty() || part == "." || part == "..")
+    if (part.empty() || part == "." || part == "..") {
       part = "?";
+    }
 
     if (extension.empty()) {
       Append(&result, part);

@@ -87,6 +87,22 @@ class Path : public std::string_view {
   // Normalizes path.
   std::string Normalize(bool need_prefix) const;
 
+  bool Consume(std::string_view const prefix) {
+    const bool ok = starts_with(prefix);
+    if (ok) {
+      remove_prefix(prefix.size());
+    }
+    return ok;
+  }
+
+  bool Consume(char const prefix) {
+    const bool ok = starts_with(prefix);
+    if (ok) {
+      remove_prefix(1);
+    }
+    return ok;
+  }
+
   // Should paths be redacted from logs?
   static bool redact;
 };
