@@ -465,7 +465,6 @@ void Tree::BuildTree() {
       node->data.ino = ino;
       node->data.nlink = nlink;
       node->original_path = Path(original_path).WithoutTrailingSeparator();
-      files_by_original_path_.insert(*node);
       total_block_count_ += 1;
       assert(total_uncompressed_size >= size);
       total_uncompressed_size -= size;

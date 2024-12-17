@@ -18,6 +18,8 @@
 #include "../config.h"
 
 #include <cassert>
+#include <iomanip>
+#include <iostream>
 #include <string>
 
 #include "path.h"
@@ -26,43 +28,46 @@ void checkConversion(const std::string_view fname,
                      bool needPrefix,
                      const std::string_view expected) {
   const std::string res = Path(fname).Normalize(needPrefix);
+  if (res != expected) {
+    std::cerr << "got " << std::quoted(res) << ", want " << std::quoted(expected) << std::endl;
+  }
   assert(res == expected);
 }
 
 int main() {
   // converter
   checkConversion("normal.name", false, "/normal.name");
-  checkConversion("normal.name", true, "/CUR/normal.name");
+  checkConversion("normal.name", true, "/normal.name");
   checkConversion("path/to/normal.name", false, "/path/to/normal.name");
-  checkConversion("path/to/normal.name", true, "/CUR/path/to/normal.name");
+  checkConversion("path/to/normal.name", true, "/path/to/normal.name");
 
   checkConversion("", false, "/?");
   checkConversion("", true, "/?");
 
   checkConversion("./", false, "/");
-  checkConversion("./", true, "/CUR");
+  checkConversion("./", true, "/");
   checkConversion(".///", false, "/");
-  checkConversion(".///", true, "/CUR");
+  checkConversion(".///", true, "/");
   checkConversion("././/.///", false, "/");
-  checkConversion("././/.///", true, "/CUR");
+  checkConversion("././/.///", true, "/");
   checkConversion("././/.///a/b/c", false, "/a/b/c");
-  checkConversion("././/.///a/b/c", true, "/CUR/a/b/c");
+  checkConversion("././/.///a/b/c", true, "/a/b/c");
   checkConversion("././/.///a/b/c", false, "/a/b/c");
-  checkConversion("././/.///a/b/c", true, "/CUR/a/b/c");
+  checkConversion("././/.///a/b/c", true, "/a/b/c");
 
   checkConversion("a/./c", false, "/a/?/c");
-  checkConversion("a/./c", true, "/CUR/a/?/c");
+  checkConversion("a/./c", true, "/a/?/c");
   checkConversion("a/../c", false, "/a/?/c");
-  checkConversion("a/../c", true, "/CUR/a/?/c");
+  checkConversion("a/../c", true, "/a/?/c");
   checkConversion("a/.", false, "/a/?");
-  checkConversion("a/.", true, "/CUR/a/?");
+  checkConversion("a/.", true, "/a/?");
   checkConversion("a/..", false, "/a/?");
-  checkConversion("a/..", true, "/CUR/a/?");
+  checkConversion("a/..", true, "/a/?");
 
   checkConversion(".", false, "/?");
-  checkConversion(".", true, "/CUR/?");
+  checkConversion(".", true, "/?");
   checkConversion("..", false, "/?");
-  checkConversion("..", true, "/CUR/?");
+  checkConversion("..", true, "/?");
 
   checkConversion("/.", false, "/?");
   checkConversion("/.", true, "/?");

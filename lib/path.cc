@@ -152,7 +152,7 @@ void Path::Append(std::string* const head, const std::string_view tail) {
   *head += tail;
 }
 
-std::string Path::Normalize(const bool need_prefix) const {
+std::string Path::Normalize(const bool) const {
   Path in = *this;
 
   if (in.empty()) {
@@ -164,20 +164,14 @@ std::string Path::Normalize(const bool need_prefix) const {
   // Add prefix
   if (in.Consume('/')) {
   } else {
-    bool parentRelative = false;
-
     while (in.Consume("./")) {
       while (in.Consume('/')) {}
     }
 
     while (in.Consume("../")) {
       result += "UP";
-      parentRelative = true;
       while (in.Consume('/')) {}
     }
-
-    if (need_prefix && !parentRelative)
-      Append(&result, "CUR");
   }
 
   // Extract part after part
