@@ -30,6 +30,10 @@ def MakeZipWithManySmallFiles():
 
 
 def MakeOtherZips():
+  with ZipFile(os.path.join(dir, 'data', 'relative-to-current.zip'), 'w') as z:
+    z.writestr('./', '')
+    z.writestr('./hi.txt', 'This is ./hi.txt\n')
+
   with ZipFile(os.path.join(dir, 'data', 'file-dir-same-name.zip'), 'w') as z:
     z.writestr('pet/cat', 'This is my first pet cat\n')
     z.writestr('pet', 'This is my first pet\n')
