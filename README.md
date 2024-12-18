@@ -2,7 +2,7 @@
 title: MOUNT-ZIP
 section: 1
 header: User Manual
-footer: mount-zip 1.2
+footer: mount-zip 1.6
 date: December 2024
 ---
 # NAME
@@ -502,43 +502,6 @@ md5sum: mnt/642: Permission denied
 d41d8cd98f00b204e9800998ecf8427e  mnt/666
 d41d8cd98f00b204e9800998ecf8427e  mnt/6775
 d41d8cd98f00b204e9800998ecf8427e  mnt/777
-```
-
-## Absolute and Parent-Relative Paths
-
-**mount-zip** supports absolute and parent-relative paths in file names.
-Absolute paths are displayed under the `ROOT` directory. For parent-relative
-paths, every `..` is replaced by `UP`. Finally, ordinary relative paths are
-placed under the `CUR` directory:
-
-```
-$ unzip -l mixed-paths.zip
- Length      Date    Time   Name
---------  ---------- -----  ----
-      49  2021-11-02 13:55  normal.txt
-      29  2021-11-02 13:55  ../up-1.txt
-      30  2021-11-02 13:55  ../../up-2.txt
-      40  2021-11-02 13:55  /top.txt
-      45  2021-11-02 13:55  /../over-the-top.txt
---------                    -------
-     193                    5 files
-
-$ mount-zip mixed-paths.zip mnt
-mount-zip[2886935]: Bad file name: '/../over-the-top.txt'
-mount-zip[2886935]: Skipped File [4]: Cannot normalize path
-
-$ tree mnt
-mnt
-├── CUR
-│   └── normal.txt
-├── ROOT
-│   └── top.txt
-├── UP
-│   └── up-1.txt
-└── UPUP
-    └── up-2.txt
-
-4 directories, 4 files
 ```
 
 ## Smart Caching

@@ -15,7 +15,7 @@
 . ftr VB CB
 . ftr VBI CBI
 .\}
-.TH "MOUNT-ZIP" "1" "December 2024" "mount-zip 1.2" "User Manual"
+.TH "MOUNT-ZIP" "1" "December 2024" "mount-zip 1.6" "User Manual"
 .hy
 .SH NAME
 .PP
@@ -598,47 +598,6 @@ md5sum: mnt/642: Permission denied
 d41d8cd98f00b204e9800998ecf8427e  mnt/666
 d41d8cd98f00b204e9800998ecf8427e  mnt/6775
 d41d8cd98f00b204e9800998ecf8427e  mnt/777
-\f[R]
-.fi
-.SS Absolute and Parent-Relative Paths
-.PP
-\f[B]mount-zip\f[R] supports absolute and parent-relative paths in file
-names.
-Absolute paths are displayed under the \f[V]ROOT\f[R] directory.
-For parent-relative paths, every \f[V]..\f[R] is replaced by
-\f[V]UP\f[R].
-Finally, ordinary relative paths are placed under the \f[V]CUR\f[R]
-directory:
-.IP
-.nf
-\f[C]
-$ unzip -l mixed-paths.zip
- Length      Date    Time   Name
---------  ---------- -----  ----
-      49  2021-11-02 13:55  normal.txt
-      29  2021-11-02 13:55  ../up-1.txt
-      30  2021-11-02 13:55  ../../up-2.txt
-      40  2021-11-02 13:55  /top.txt
-      45  2021-11-02 13:55  /../over-the-top.txt
---------                    -------
-     193                    5 files
-
-$ mount-zip mixed-paths.zip mnt
-mount-zip[2886935]: Bad file name: \[aq]/../over-the-top.txt\[aq]
-mount-zip[2886935]: Skipped File [4]: Cannot normalize path
-
-$ tree mnt
-mnt
-├── CUR
-│\ \  └── normal.txt
-├── ROOT
-│\ \  └── top.txt
-├── UP
-│\ \  └── up-1.txt
-└── UPUP
-    └── up-2.txt
-
-4 directories, 4 files
 \f[R]
 .fi
 .SS Smart Caching
