@@ -84,8 +84,8 @@ class Path : public std::string_view {
   // end with one.
   static void Append(std::string* head, std::string_view tail);
 
-  // Normalizes path.
-  std::string Normalize(bool need_prefix) const;
+  // Gets normalized path.
+  std::string Normalized() const;
 
   bool Consume(std::string_view const prefix) {
     const bool ok = starts_with(prefix);

@@ -25,76 +25,47 @@
 #include "path.h"
 
 void checkConversion(const std::string_view fname,
-                     bool needPrefix,
                      const std::string_view expected) {
-  const std::string res = Path(fname).Normalize(needPrefix);
+  const std::string res = Path(fname).Normalized();
   if (res != expected) {
-    std::cerr << "got " << std::quoted(res) << ", want " << std::quoted(expected) << std::endl;
+    std::cerr << "got " << std::quoted(res) << ", want "
+              << std::quoted(expected) << std::endl;
   }
   assert(res == expected);
 }
 
 int main() {
-  // converter
-  checkConversion("normal.name", false, "/normal.name");
-  checkConversion("normal.name", true, "/normal.name");
-  checkConversion("path/to/normal.name", false, "/path/to/normal.name");
-  checkConversion("path/to/normal.name", true, "/path/to/normal.name");
-
-  checkConversion("", false, "/?");
-  checkConversion("", true, "/?");
-
-  checkConversion("./", false, "/");
-  checkConversion("./", true, "/");
-  checkConversion(".///", false, "/");
-  checkConversion(".///", true, "/");
-  checkConversion("././/.///", false, "/");
-  checkConversion("././/.///", true, "/");
-  checkConversion("././/.///a/b/c", false, "/a/b/c");
-  checkConversion("././/.///a/b/c", true, "/a/b/c");
-  checkConversion("././/.///a/b/c", false, "/a/b/c");
-  checkConversion("././/.///a/b/c", true, "/a/b/c");
-
-  checkConversion("a/./c", false, "/a/?/c");
-  checkConversion("a/./c", true, "/a/?/c");
-  checkConversion("a/../c", false, "/a/?/c");
-  checkConversion("a/../c", true, "/a/?/c");
-  checkConversion("a/.", false, "/a/?");
-  checkConversion("a/.", true, "/a/?");
-  checkConversion("a/..", false, "/a/?");
-  checkConversion("a/..", true, "/a/?");
-
-  checkConversion(".", false, "/?");
-  checkConversion(".", true, "/?");
-  checkConversion("..", false, "/?");
-  checkConversion("..", true, "/?");
-
-  checkConversion("/.", false, "/?");
-  checkConversion("/.", true, "/?");
-  checkConversion("/..", false, "/?");
-  checkConversion("/..", true, "/?");
-  checkConversion("/./a", false, "/?/a");
-  checkConversion("/./a", true, "/?/a");
-  checkConversion("/../a", false, "/?/a");
-  checkConversion("/../a", true, "/?/a");
-
-  checkConversion(".hidden", false, "/.hidden");
-  checkConversion("path/to/.hidden", false, "/path/to/.hidden");
-  checkConversion("path/to/.hidden/dir", false, "/path/to/.hidden/dir");
-
-  checkConversion("../", true, "/");
-  checkConversion("../../../", true, "/");
-
-  checkConversion("../abc", true, "/abc");
-  checkConversion("../../../abc", true, "/abc");
-  checkConversion("..///..//..//abc", true, "/abc");
-
-  checkConversion("/", true, "/");
-  checkConversion("///", true, "/");
-  checkConversion("/rootname", true, "/rootname");
-  checkConversion("///rootname", true, "/rootname");
-  checkConversion("/path/name", true, "/path/name");
-  checkConversion("///path///name", true, "/path/name");
+  checkConversion("normal.name", "/normal.name");
+  checkConversion("path/to/normal.name", "/path/to/normal.name");
+  checkConversion("", "/?");
+  checkConversion("./", "/");
+  checkConversion(".///", "/");
+  checkConversion("./..//.///", "/");
+  checkConversion("./..//.///a/b/c", "/a/b/c");
+  checkConversion("a/./c", "/a/?/c");
+  checkConversion("a/../c", "/a/?/c");
+  checkConversion("a/.", "/a/?");
+  checkConversion("a/..", "/a/?");
+  checkConversion(".", "/?");
+  checkConversion("..", "/?");
+  checkConversion("/.", "/?");
+  checkConversion("/..", "/?");
+  checkConversion("/./a", "/?/a");
+  checkConversion("/../a", "/?/a");
+  checkConversion(".hidden", "/.hidden");
+  checkConversion("path/to/.hidden", "/path/to/.hidden");
+  checkConversion("path/to/.hidden/dir", "/path/to/.hidden/dir");
+  checkConversion("../", "/");
+  checkConversion("../../../", "/");
+  checkConversion("../abc", "/abc");
+  checkConversion("../../../abc", "/abc");
+  checkConversion("..///..//..//abc", "/abc");
+  checkConversion("/", "/");
+  checkConversion("///", "/");
+  checkConversion("/rootname", "/rootname");
+  checkConversion("///rootname", "/rootname");
+  checkConversion("/path/name", "/path/name");
+  checkConversion("///path///name", "/path/name");
 
   return EXIT_SUCCESS;
 }

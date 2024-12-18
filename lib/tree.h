@@ -179,9 +179,6 @@ class Tree {
 
   blkcnt_t total_block_count_ = 1;
 
-  // Does NormalizePath add a prefix?
-  bool need_prefix_ = false;
-
   // Has the password been verified?
   bool checked_password_ = false;
 };

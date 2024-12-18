@@ -152,7 +152,7 @@ void Path::Append(std::string* const head, const std::string_view tail) {
   *head += tail;
 }
 
-std::string Path::Normalize(const bool) const {
+std::string Path::Normalized() const {
   Path in = *this;
 
   if (in.empty()) {
