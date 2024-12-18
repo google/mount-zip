@@ -458,9 +458,11 @@ void Tree::BuildTree() {
     if (type == FileType::Directory) {
       FileNode* const node = CreateDir(path);
       assert(node->link == &node->data);
+      const ino_t ino = node->data.ino;
       const nlink_t nlink = node->data.nlink;
       assert(nlink >= 2);
       node->data = DataNode::Make(zip_, id, mode);
+      node->data.ino = ino;
       node->data.nlink = nlink;
       node->original_path = Path(original_path).WithoutTrailingSeparator();
       files_by_original_path_.insert(*node);
