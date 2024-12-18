@@ -161,16 +161,8 @@ std::string Path::Normalize(const bool) const {
 
   std::string result = "/";
 
-  // Add prefix
-  if (in.Consume('/')) {
-  } else {
-    while (in.Consume("./")) {
-      while (in.Consume('/')) {}
-    }
-
-    while (in.Consume("../")) {
-      result += "UP";
-      while (in.Consume('/')) {}
+  while (in.Consume("./") || in.Consume("../")) {
+    while (in.Consume('/')) {
     }
   }
 

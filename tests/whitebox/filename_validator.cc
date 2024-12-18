@@ -82,12 +82,12 @@ int main() {
   checkConversion("path/to/.hidden", false, "/path/to/.hidden");
   checkConversion("path/to/.hidden/dir", false, "/path/to/.hidden/dir");
 
-  checkConversion("../", true, "/UP");
-  checkConversion("../../../", true, "/UPUPUP");
+  checkConversion("../", true, "/");
+  checkConversion("../../../", true, "/");
 
-  checkConversion("../abc", true, "/UP/abc");
-  checkConversion("../../../abc", true, "/UPUPUP/abc");
-  checkConversion("..///..//..//abc", true, "/UPUPUP/abc");
+  checkConversion("../abc", true, "/abc");
+  checkConversion("../../../abc", true, "/abc");
+  checkConversion("..///..//..//abc", true, "/abc");
 
   checkConversion("/", true, "/");
   checkConversion("///", true, "/");

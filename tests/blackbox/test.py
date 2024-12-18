@@ -496,14 +496,13 @@ def TestZipWithDefaultOptions():
           },
       },
       'hlink-relative.zip': {
-          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
-          'UP': {'nlink': 2},
-          'UP/0regular': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
+          '0regular': {
               'nlink': 2,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
           },
-          'UP/hlink': {
+          'hlink': {
               'nlink': 2,
               'size': 10,
               'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
@@ -611,7 +610,7 @@ def TestZipWithDefaultOptions():
           }
       },
       'mixed-paths.zip': {
-          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 11},
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 8},
           "Quote ' (1)": {'md5': '3ca0f2a7d572f3ad256fcd13e39bd8da'},
           "Quote ' (2)": {'md5': '60e20f9b84bf0fe96e7d226341aaf72d'},
           "Quote '": {'md5': '71e103fda7cffdb58b4aa44fa540efce'},
@@ -919,18 +918,15 @@ def TestZipWithDefaultOptions():
           'dev/null (1)': {'md5': '0542f8d179a0a5812cca12f9d1a20768'},
           'dev/null (2)': {'md5': '146840ea79bf74bd86d1e73c3a166d4b'},
           'dev/null': {'md5': '2a62812a0e6f22b55507ef85c0e3e3e4'},
-          'UP': {'mode': 'drwxr-xr-x'},
-          'UP/One Level Up (1)': {'md5': '5cfff7eb216252fd9edd35ad58f65807'},
-          'UP/One Level Up (2)': {'md5': '8926cc7e8073e1079320f2e0b4b2a05c'},
-          'UP/One Level Up': {'md5': 'd530362d8793bd2213702f7a8b9eb391'},
-          'UPUP': {'mode': 'drwxr-xr-x'},
-          'UPUP/Two Levels Up (1)': {'md5': 'c1c08ba600c42750bb25007bd93fcd37'},
-          'UPUP/Two Levels Up (2)': {'md5': '35bdc6589118dee115df941fd9775282'},
-          'UPUP/Two Levels Up': {'md5': 'fefd04175ab55cbf25f4e59a62b44c2a'},
-          'UPUPUP': {'mode': 'drwxr-xr-x'},
-          'UPUPUP/Three Levels Up (1)': {'md5': '5d7122fa28bb1886d90cdbaee7b8b630'},
-          'UPUPUP/Three Levels Up (2)': {'md5': '69baf719bc3af25f12c86a2c146ab491'},
-          'UPUPUP/Three Levels Up': {'md5': '77798d1b2b8f820dbf742a6416d2fd51'},
+          'One Level Up (1)': {'md5': '5cfff7eb216252fd9edd35ad58f65807'},
+          'One Level Up (2)': {'md5': '8926cc7e8073e1079320f2e0b4b2a05c'},
+          'One Level Up': {'md5': 'd530362d8793bd2213702f7a8b9eb391'},
+          'Two Levels Up (1)': {'md5': 'c1c08ba600c42750bb25007bd93fcd37'},
+          'Two Levels Up (2)': {'md5': '35bdc6589118dee115df941fd9775282'},
+          'Two Levels Up': {'md5': 'fefd04175ab55cbf25f4e59a62b44c2a'},
+          'Three Levels Up (1)': {'md5': '5d7122fa28bb1886d90cdbaee7b8b630'},
+          'Three Levels Up (2)': {'md5': '69baf719bc3af25f12c86a2c146ab491'},
+          'Three Levels Up': {'md5': '77798d1b2b8f820dbf742a6416d2fd51'},
       },
       'no-owner-info.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -986,17 +982,15 @@ def TestZipWithDefaultOptions():
           }
       },
       'parent-relative-paths.zip': {
-          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 4},
-          'UP': {'nlink': 3},
-          'UP/other': {'nlink': 2},
-          'UP/other/LICENSE': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
+          'other': {'nlink': 2},
+          'other/LICENSE': {
               'nlink': 1,
               'mtime': 1371459156000000000,
               'size': 7639,
               'md5': '6a6a8e020838b23406c81b19c1d46df6',
           },
-          'UPUP': {'nlink': 2},
-          'UPUP/INSTALL': {
+          'INSTALL': {
               'nlink': 1,
               'mtime': 1371459066000000000,
               'size': 454,
