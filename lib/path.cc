@@ -161,10 +161,9 @@ std::string Path::Normalized() const {
 
   std::string result = "/";
 
-  while (in.Consume("./") || in.Consume("../")) {
-    while (in.Consume('/')) {
-    }
-  }
+  do {
+    while (in.Consume('/'));
+  } while (in.Consume("./") || in.Consume("../"));
 
   // Extract part after part
   while (true) {
