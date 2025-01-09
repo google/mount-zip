@@ -532,7 +532,7 @@ void Tree::BuildTree() {
       } catch (const ZipError& error) {
         LOG(ERROR) << "Cannot cache " << *node << ": " << error.what();
         if (opts_.check_password) {
-          LOG(INFO) << "Use the --force option to continue even if some files "
+          LOG(INFO) << "Use the -o force option to continue even if some files "
                        "cannot be cached";
           throw;
         }
@@ -585,14 +585,13 @@ void Tree::CheckPassword(const FileNode* const node) {
     LOG(INFO) << "Password is Ok";
   } catch (const ZipError& error) {
     if (opts_.check_password) {
-      LOG(INFO)
-          << "Use the --force option to mount an encrypted ZIP with a wrong "
-             "password";
+      LOG(INFO) << "Use the -o force option to mount an encrypted ZIP with a "
+                   "wrong password";
       throw;
     }
 
     LOG(DEBUG) << error.what();
-    LOG(INFO) << "Continuing despite wrong password because of --force option";
+    LOG(INFO) << "Continuing despite wrong password because of -o force option";
   }
 
   checked_password_ = true;

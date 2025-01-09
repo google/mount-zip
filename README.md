@@ -26,48 +26,48 @@ same directory as the ZIP archive.
 
 # OPTIONS
 
-**-\-help** **-h**
-:   print help
+**-\-help** or **-h**
+:   Print help
 
-**-\-version**
-:   print version
+**-\-version** or **-V**
+:   Print version
 
-**-\-quiet** **-q**
-:   print fewer log messages
+**-o quiet** or **-q**
+:   Print fewer log messages
 
-**-\-verbose**
-:   print more log messages
+**-o verbose** or **-v**
+:   Print more log messages
 
-**-\-redact**
-:   redact file names from log messages
+**-o redact**
+:   Redact file names from log messages
 
-**-\-force**
-:   mount ZIP even if password is wrong or missing, or if the encryption or
+**-o force**
+:   Mount ZIP even if password is wrong or missing, or if the encryption or
     compression method is unsupported
 
-**-\-precache**
-:   preemptively decompress and cache data
+**-o precache**
+:   Preemptively decompress and cache data
 
-**-\-cache=DIR**
-:   cache directory (default is `$TMPDIR` or `/tmp`)
+**-o cache=DIR**
+:   Cache directory (default is `$TMPDIR` or `/tmp`)
 
-**-\-memcache**
-:   cache decompressed data in memory
+**-o memcache**
+:   Cache decompressed data in memory
 
-**-\-nocache**
-:   no caching of decompressed data
+**-o nocache**
+:   No caching of decompressed data
 
 **-o encoding=CHARSET**
-:   original encoding of file names
+:   Original encoding of file names
 
 **-o nospecials**
-:   hide special files (FIFOs, sockets, devices)
+:   Hide special files (FIFOs, sockets, devices)
 
 **-o nosymlinks**
-:   hide symbolic links
+:   Hide symbolic links
 
 **-o nohardlinks**
-:   hide hard links
+:   Hide hard links
 
 **-o dmask=M**
 :   Directory permission mask in octal (default 0022)
@@ -76,19 +76,22 @@ same directory as the ZIP archive.
 :   File permission mask in octal (default 0022)
 
 **-o uid=N**
-:   Set the file owner of all the items in the mounted archive (default is current user)
+:   Set the file owner of all the items in the mounted archive (default is
+    current user)
 
 **-o gid=N**
-:   Set file group of all the items in the mounted archive (default is current group)
+:   Set file group of all the items in the mounted archive (default is current
+    group)
 
 **-o default_permissions**
-:   Use the file owner (UID), group (GID) and permissions stored with each item in the archive.
+:   Use the file owner (UID), group (GID) and permissions stored with each item
+    in the archive.
 
 **-f**
-:   foreground mode
+:   Foreground mode
 
 **-d**
-:   foreground mode with debug output
+:   Foreground mode with debug output
 
 # USAGE
 
@@ -275,7 +278,7 @@ Archive:  different-encryptions.zip
 $ mount-zip different-encryptions.zip mnt
 Need password for File [1] '/Encrypted AES-128.txt'
 Password > Got it!
-Use the --force option to mount an encrypted ZIP with a wrong password
+Use the -o force option to mount an encrypted ZIP with a wrong password
 Cannot open File [1] '/Encrypted AES-128.txt': Wrong password provided
 ```
 
@@ -314,13 +317,13 @@ This is encrypted with ZipCrypto.
 ```
 
 You can force **mount-zip** to mount an encrypted ZIP even without providing the
-right password by using the `--force` option:
+right password by using the `-o force` option:
 
 ```
-$ mount-zip --force different-encryptions.zip mnt
+$ mount-zip -o force different-encryptions.zip mnt
 Need password for File [1] '/Encrypted AES-128.txt'
 Password > Got it!
-Continuing despite wrong password because of --force option
+Continuing despite wrong password because of -o force option
 ```
 
 In this case, the files can be listed, but trying to open an encrypted file for
@@ -572,19 +575,19 @@ sys     0m0.018s
 
 Decompressed data is cached in a temporary file located in the cache directory
 (`$TMPDIR` or `/tmp` by default). The cache directory can be changed with the
-`--cache=DIR` option. The cache file is only created if necessary, and
+`-o cache=DIR` option. The cache file is only created if necessary, and
 automatically deleted when the ZIP is unmounted.
 
-Alternatively, the `--memcache` option caches the decompressed data in memory.
+Alternatively, the `-o memcache` option caches the decompressed data in memory.
 Be cautious with this option since it can cause **mount-zip** to use a lot of
 memory.
 
-You can preemtively cache data at mount time by using the `--precache` option.
+You can preemtively cache data at mount time by using the `-o precache` option.
 The cost of decompression in incurred upfront, and this ensures that any
 subsequent access to the mounted data is fast.
 
 If **mount-zip** cannot create and expand the cache file, or if it was passed
-the `--nocache` option, it will do its best using a small rolling buffer in
+the `-o nocache` option, it will do its best using a small rolling buffer in
 memory. However, some data access patterns might then result in poor
 performance, especially if **mount-zip** has to repeatedly extract the same
 file.
@@ -693,12 +696,12 @@ Alternatively, you can run **mount-zip** in foreground mode with the `-f` option
 and read all the log messages on the terminal.
 
 By default, **mount-zip** writes INFO and ERROR messages. You can decrease the
-logging level to just ERROR messages with the `--quiet` option. Or you can
-increase the logging level to include DEBUG messages with the `--verbose`
+logging level to just ERROR messages with the `-o quiet` option. Or you can
+increase the logging level to include DEBUG messages with the `-o verbose`
 option:
 
 ```
-$ mount-zip -f --verbose foobar.zip mnt
+$ mount-zip -f -o verbose foobar.zip mnt
 Indexing 'foobar.zip'...
 Allocating 16 buckets
 Detected encoding UTF-8 with 15% confidence
@@ -711,10 +714,10 @@ Unmounted 'foobar.zip' in 0 ms
 ```
 
 To prevent file names from being recorded in **mount-zip**'s log messages, use
-the `--redact` option:
+the `-o redact` option:
 
 ```
-$ mount-zip -f --verbose --redact bad-crc.zip mnt
+$ mount-zip -f -o verbose -o redact bad-crc.zip mnt
 Indexing (redacted)...
 Allocating 16 buckets
 Indexed (redacted) in 0 ms
@@ -752,10 +755,10 @@ related the ZIP archive itself:
 
 **23**
 :   Zlib data error. This is probably the sign of a wrong password. Use
-    `--force` to bypass the password verification.
+    `-o force` to bypass the password verification.
 
 **26**
-:   Unsupported compression method. Use `--force` to bypass the compression
+:   Unsupported compression method. Use `-o force` to bypass the compression
     method verification.
 
 **29**
@@ -765,16 +768,16 @@ related the ZIP archive itself:
 :   The ZIP archive has an inconsistent structure.
 
 **34**
-:   Unsupported encryption method. Use `--force` to bypass the encryption method
-    verification.
+:   Unsupported encryption method. Use `-o force` to bypass the encryption
+    method verification.
 
 **36**
 :   Needs password. The ZIP archive contains an encrypted file, but no password
-    was provided. Use `--force` to bypass the password verification.
+    was provided. Use `-o force` to bypass the password verification.
 
 **37**
 :   Wrong password. The ZIP archive contains an encrypted file, and the provided
-    password does not decrypt it. Use `--force` to bypass the password
+    password does not decrypt it. Use `-o force` to bypass the password
     verification.
 
 **45**

@@ -62,17 +62,17 @@ void print_usage() {
 Usage: %s [options] <ZIP-file> [mount-point]
 
 General options:
-    --help    -h           print help
-    --version              print version
-    --quiet   -q           print fewer log messages
-    --verbose -v           print more log messages
-    --redact               redact file names from log messages
-    --force                mount ZIP even if password is wrong or missing, or
+    -h   --help            print help
+    -V   --version         print version
+    -q   -o quiet          print fewer log messages
+    -v   -o verbose        print more log messages
+    -o redact              redact file names from log messages
+    -o force               mount ZIP even if password is wrong or missing, or
                            if the encryption or compression method is unsupported
-    --precache             preemptively decompress and cache data
-    --cache=DIR            cache dir (default is $TMPDIR or /tmp)
-    --memcache             cache decompressed data in memory
-    --nocache              no caching of decompressed data
+    -o precache            preemptively decompress and cache data
+    -o cache=DIR           cache dir (default is $TMPDIR or /tmp)
+    -o memcache            cache decompressed data in memory
+    -o nocache             no caching of decompressed data
     -o dmask=M             directory permission mask in octal (default 0022)
     -o fmask=M             file permission mask in octal (default 0022)
     -o encoding=CHARSET    original encoding of file names
@@ -438,15 +438,23 @@ int main(int argc, char* argv[]) try {
       FUSE_OPT_KEY("--help", KEY_HELP),
       FUSE_OPT_KEY("-h", KEY_HELP),
       FUSE_OPT_KEY("--version", KEY_VERSION),
+      FUSE_OPT_KEY("-V", KEY_VERSION),
       FUSE_OPT_KEY("--quiet", KEY_QUIET),
+      FUSE_OPT_KEY("quiet", KEY_QUIET),
       FUSE_OPT_KEY("-q", KEY_QUIET),
       FUSE_OPT_KEY("--verbose", KEY_VERBOSE),
+      FUSE_OPT_KEY("verbose", KEY_VERBOSE),
       FUSE_OPT_KEY("-v", KEY_VERBOSE),
       FUSE_OPT_KEY("--redact", KEY_REDACT),
+      FUSE_OPT_KEY("redact", KEY_REDACT),
       FUSE_OPT_KEY("--force", KEY_FORCE),
+      FUSE_OPT_KEY("force", KEY_FORCE),
       FUSE_OPT_KEY("--precache", KEY_PRE_CACHE),
+      FUSE_OPT_KEY("precache", KEY_PRE_CACHE),
       FUSE_OPT_KEY("--memcache", KEY_MEM_CACHE),
+      FUSE_OPT_KEY("memcache", KEY_MEM_CACHE),
       FUSE_OPT_KEY("--nocache", KEY_NO_CACHE),
+      FUSE_OPT_KEY("nocache", KEY_NO_CACHE),
       FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
       FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
       FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),

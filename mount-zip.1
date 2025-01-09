@@ -37,48 +37,48 @@ If no mount point is provided, \f[B]mount-zip\f[R] creates a mount point
 in the same directory as the ZIP archive.
 .SH OPTIONS
 .TP
-\f[B]--help\f[R] \f[B]-h\f[R]
-print help
+\f[B]--help\f[R] or \f[B]-h\f[R]
+Print help
 .TP
-\f[B]--version\f[R]
-print version
+\f[B]--version\f[R] or \f[B]-V\f[R]
+Print version
 .TP
-\f[B]--quiet\f[R] \f[B]-q\f[R]
-print fewer log messages
+\f[B]-o quiet\f[R] or \f[B]-q\f[R]
+Print fewer log messages
 .TP
-\f[B]--verbose\f[R]
-print more log messages
+\f[B]-o verbose\f[R] or \f[B]-v\f[R]
+Print more log messages
 .TP
-\f[B]--redact\f[R]
-redact file names from log messages
+\f[B]-o redact\f[R]
+Redact file names from log messages
 .TP
-\f[B]--force\f[R]
-mount ZIP even if password is wrong or missing, or if the encryption or
+\f[B]-o force\f[R]
+Mount ZIP even if password is wrong or missing, or if the encryption or
 compression method is unsupported
 .TP
-\f[B]--precache\f[R]
-preemptively decompress and cache data
+\f[B]-o precache\f[R]
+Preemptively decompress and cache data
 .TP
-\f[B]--cache=DIR\f[R]
-cache directory (default is \f[V]$TMPDIR\f[R] or \f[V]/tmp\f[R])
+\f[B]-o cache=DIR\f[R]
+Cache directory (default is \f[V]$TMPDIR\f[R] or \f[V]/tmp\f[R])
 .TP
-\f[B]--memcache\f[R]
-cache decompressed data in memory
+\f[B]-o memcache\f[R]
+Cache decompressed data in memory
 .TP
-\f[B]--nocache\f[R]
-no caching of decompressed data
+\f[B]-o nocache\f[R]
+No caching of decompressed data
 .TP
 \f[B]-o encoding=CHARSET\f[R]
-original encoding of file names
+Original encoding of file names
 .TP
 \f[B]-o nospecials\f[R]
-hide special files (FIFOs, sockets, devices)
+Hide special files (FIFOs, sockets, devices)
 .TP
 \f[B]-o nosymlinks\f[R]
-hide symbolic links
+Hide symbolic links
 .TP
 \f[B]-o nohardlinks\f[R]
-hide hard links
+Hide hard links
 .TP
 \f[B]-o dmask=M\f[R]
 Directory permission mask in octal (default 0022)
@@ -99,10 +99,10 @@ Use the file owner (UID), group (GID) and permissions stored with each
 item in the archive.
 .TP
 \f[B]-f\f[R]
-foreground mode
+Foreground mode
 .TP
 \f[B]-d\f[R]
-foreground mode with debug output
+Foreground mode with debug output
 .SH USAGE
 .PP
 Mount a ZIP archive:
@@ -344,7 +344,7 @@ Archive:  different-encryptions.zip
 $ mount-zip different-encryptions.zip mnt
 Need password for File [1] \[aq]/Encrypted AES-128.txt\[aq]
 Password > Got it!
-Use the --force option to mount an encrypted ZIP with a wrong password
+Use the -o force option to mount an encrypted ZIP with a wrong password
 Cannot open File [1] \[aq]/Encrypted AES-128.txt\[aq]: Wrong password provided
 \f[R]
 .fi
@@ -386,14 +386,14 @@ This is encrypted with ZipCrypto.
 .fi
 .PP
 You can force \f[B]mount-zip\f[R] to mount an encrypted ZIP even without
-providing the right password by using the \f[V]--force\f[R] option:
+providing the right password by using the \f[V]-o force\f[R] option:
 .IP
 .nf
 \f[C]
-$ mount-zip --force different-encryptions.zip mnt
+$ mount-zip -o force different-encryptions.zip mnt
 Need password for File [1] \[aq]/Encrypted AES-128.txt\[aq]
 Password > Got it!
-Continuing despite wrong password because of --force option
+Continuing despite wrong password because of -o force option
 \f[R]
 .fi
 .PP
@@ -680,23 +680,23 @@ sys     0m0.018s
 .PP
 Decompressed data is cached in a temporary file located in the cache
 directory (\f[V]$TMPDIR\f[R] or \f[V]/tmp\f[R] by default).
-The cache directory can be changed with the \f[V]--cache=DIR\f[R]
+The cache directory can be changed with the \f[V]-o cache=DIR\f[R]
 option.
 The cache file is only created if necessary, and automatically deleted
 when the ZIP is unmounted.
 .PP
-Alternatively, the \f[V]--memcache\f[R] option caches the decompressed
+Alternatively, the \f[V]-o memcache\f[R] option caches the decompressed
 data in memory.
 Be cautious with this option since it can cause \f[B]mount-zip\f[R] to
 use a lot of memory.
 .PP
 You can preemtively cache data at mount time by using the
-\f[V]--precache\f[R] option.
+\f[V]-o precache\f[R] option.
 The cost of decompression in incurred upfront, and this ensures that any
 subsequent access to the mounted data is fast.
 .PP
 If \f[B]mount-zip\f[R] cannot create and expand the cache file, or if it
-was passed the \f[V]--nocache\f[R] option, it will do its best using a
+was passed the \f[V]-o nocache\f[R] option, it will do its best using a
 small rolling buffer in memory.
 However, some data access patterns might then result in poor
 performance, especially if \f[B]mount-zip\f[R] has to repeatedly extract
@@ -824,13 +824,13 @@ the \f[V]-f\f[R] option and read all the log messages on the terminal.
 .PP
 By default, \f[B]mount-zip\f[R] writes INFO and ERROR messages.
 You can decrease the logging level to just ERROR messages with the
-\f[V]--quiet\f[R] option.
+\f[V]-o quiet\f[R] option.
 Or you can increase the logging level to include DEBUG messages with the
-\f[V]--verbose\f[R] option:
+\f[V]-o verbose\f[R] option:
 .IP
 .nf
 \f[C]
-$ mount-zip -f --verbose foobar.zip mnt
+$ mount-zip -f -o verbose foobar.zip mnt
 Indexing \[aq]foobar.zip\[aq]...
 Allocating 16 buckets
 Detected encoding UTF-8 with 15% confidence
@@ -844,11 +844,11 @@ Unmounted \[aq]foobar.zip\[aq] in 0 ms
 .fi
 .PP
 To prevent file names from being recorded in \f[B]mount-zip\f[R]\[cq]s
-log messages, use the \f[V]--redact\f[R] option:
+log messages, use the \f[V]-o redact\f[R] option:
 .IP
 .nf
 \f[C]
-$ mount-zip -f --verbose --redact bad-crc.zip mnt
+$ mount-zip -f -o verbose -o redact bad-crc.zip mnt
 Indexing (redacted)...
 Allocating 16 buckets
 Indexed (redacted) in 0 ms
@@ -888,11 +888,11 @@ The archive is a multipart ZIP.
 \f[B]23\f[R]
 Zlib data error.
 This is probably the sign of a wrong password.
-Use \f[V]--force\f[R] to bypass the password verification.
+Use \f[V]-o force\f[R] to bypass the password verification.
 .TP
 \f[B]26\f[R]
 Unsupported compression method.
-Use \f[V]--force\f[R] to bypass the compression method verification.
+Use \f[V]-o force\f[R] to bypass the compression method verification.
 .TP
 \f[B]29\f[R]
 The archive is not recognized as a valid ZIP.
@@ -902,19 +902,19 @@ The ZIP archive has an inconsistent structure.
 .TP
 \f[B]34\f[R]
 Unsupported encryption method.
-Use \f[V]--force\f[R] to bypass the encryption method verification.
+Use \f[V]-o force\f[R] to bypass the encryption method verification.
 .TP
 \f[B]36\f[R]
 Needs password.
 The ZIP archive contains an encrypted file, but no password was
 provided.
-Use \f[V]--force\f[R] to bypass the password verification.
+Use \f[V]-o force\f[R] to bypass the password verification.
 .TP
 \f[B]37\f[R]
 Wrong password.
 The ZIP archive contains an encrypted file, and the provided password
 does not decrypt it.
-Use \f[V]--force\f[R] to bypass the password verification.
+Use \f[V]-o force\f[R] to bypass the password verification.
 .TP
 \f[B]45\f[R]
 Possibly truncated or corrupted ZIP archive, as detected by

@@ -52,7 +52,7 @@ void Reader::SetCacheStrategy(const CacheStrategy strategy) {
   if (cache_strategy_ != CacheStrategy::Unspecified)
     throw std::runtime_error(
         "Only one of these options can be used: "
-        "--nocache, --memcache or --cache");
+        "cache, nocache or memcache");
 
   cache_strategy_ = strategy;
 }

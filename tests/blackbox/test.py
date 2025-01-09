@@ -1184,7 +1184,7 @@ def TestZipWithDefaultOptions():
   }
 
   for zip_name, want_tree in want_trees.items():
-    MountZipAndCheckTree(zip_name, want_tree, options=['--force'])
+    MountZipAndCheckTree(zip_name, want_tree, options=['-o', 'force'])
 
 
 # Tests -o dmask, fmask and default_permissions.
@@ -1580,7 +1580,7 @@ def TestBigZip(options=[]):
 
 # Tests that a big file can be accessed in somewhat random order even with no
 # cache file.
-def TestBigZipNoCache(options=['--nocache']):
+def TestBigZipNoCache(options=['-o', 'nocache']):
   zip_name = 'big.zip'
   s = f'Test {zip_name!r}'
   if options:
@@ -1721,11 +1721,11 @@ def TestEncryptedZip():
       want_blocks=11,
       want_inodes=6,
       password='wrong password',
-      options=['--force'],
+      options=['-o', 'force'],
   )
 
   MountZipAndCheckTree(
-      zip_name, want_tree, want_blocks=11, want_inodes=6, options=['--force']
+      zip_name, want_tree, want_blocks=11, want_inodes=6, options=['-o', 'force']
   )
 
 
@@ -2231,7 +2231,7 @@ TestInvalidZip()
 TestMasks()
 TestZipWithManyFiles()
 TestBigZip()
-TestBigZip(options=['--precache'])
+TestBigZip(options=['-o', 'precache'])
 TestBigZipNoCache()
 
 if error_count:
