@@ -22,7 +22,7 @@ on-the-go decompression and caching for maximum efficiency.
 
 **mount-zip** automatically creates the target mount point if it doesn't exist
 yet. If no mount point is provided, **mount-zip** creates a mount point in the
-same directory as the ZIP archive.
+current working directory.
 
 # OPTIONS
 

@@ -511,7 +511,7 @@ int main(int argc, char* argv[]) try {
       PLOG(ERROR) << "Cannot create mount point " << Path(param.mount_point);
     }
   } else {
-    param.mount_point = Path(param.filename).WithoutExtension();
+    param.mount_point = Path(param.filename).Split().second.WithoutExtension();
     const auto n = param.mount_point.size();
 
     for (int i = 0;;) {
