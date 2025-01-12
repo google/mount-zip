@@ -1,3 +1,11 @@
+2025-01-13 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.6:
+	- By default, create the mount point in the current working directory
+	- Always use `-o` for command line options
+	- Don't use path prefixes such as `ROOT`, `UP` or `CUR` for absolute and parent-relative paths
+	- Keep inode number when updating a directory node
+
 2024-12-16 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.4:
