@@ -22,6 +22,6 @@
 
 // Odd minor versions (e.g. 1.1 or 1.3) are development versions.
 // Even minor versions (e.g. 1.2 or 1.4) are stable versions.
-#define VERSION "1.6"
+#define VERSION "1.7"
 
 #endif
