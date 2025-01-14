@@ -290,11 +290,11 @@ DataNode::operator Stat() const {
     const FileType ft = GetFileType(mode);
     switch (ft) {
       case FileType::Directory:
-        st.st_mode = S_IFDIR | (0777 & ~dmask);
+        st.st_mode = static_cast<mode_t>(S_IFDIR | (0777 & ~dmask));
         break;
 
       case FileType::Symlink:
-        st.st_mode = S_IFLNK | 0777;
+        st.st_mode = static_cast<mode_t>(S_IFLNK | 0777);
         break;
 
       default:
