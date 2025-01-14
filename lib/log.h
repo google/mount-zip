@@ -50,7 +50,7 @@ class Logger {
  public:
   ~Logger();
 
-  explicit Logger(LogLevel const level, error_t err = -1)
+  explicit Logger(LogLevel const level, int err = -1)
       : level_(level), err_(err) {}
 
   Logger(const Logger&) = delete;
@@ -62,7 +62,7 @@ class Logger {
 
  private:
   const LogLevel level_;
-  const error_t err_;
+  const int err_;
   std::ostringstream oss_;
 };
 
