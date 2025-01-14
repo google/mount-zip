@@ -147,6 +147,7 @@ class CacheFileReader : public UnbufferedReader {
         }
 
       default:
+#ifdef O_TMPFILE
         // Create a cache file in the cache dir.
         if (ScopedFile file(
                 open(cache_dir_.c_str(), O_TMPFILE | O_RDWR | O_EXCL, 0));
@@ -167,6 +168,7 @@ class CacheFileReader : public UnbufferedReader {
         assert(errno == ENOTSUP);
         LOG(DEBUG) << "The filesystem of " << Path(cache_dir_)
                    << " does not support O_TMPFILE";
+#endif
 
         std::string path = cache_dir_;
         Path::Append(&path, "XXXXXX");
