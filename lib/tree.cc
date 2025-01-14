@@ -606,7 +606,7 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
   zip_uint32_t attr;
   zip_file_get_external_attributes(zip_, id, 0, &opsys, &attr);
 
-  mode_t mode = attr >> 16;
+  mode_t mode = static_cast<mode_t>(attr >> 16);
   bool is_hardlink = false;
 
   /*
