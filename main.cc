@@ -257,17 +257,23 @@ struct Operations : fuse_operations {
   }
 
  public:
-  Operations() : fuse_operations {
-    .getattr = GetAttr, .readlink = ReadLink, .open = Open, .read = Read,
-    .statfs = StatFs, .release = Release, .readdir = ReadDir,
+  Operations()
+      : fuse_operations{
+            .getattr = GetAttr,
+            .readlink = ReadLink,
+            .open = Open,
+            .read = Read,
+            .statfs = StatFs,
+            .release = Release,
+            .readdir = ReadDir,
 #if FUSE_VERSION >= 28
-    .flag_nullpath_ok = 0,  // Don't allow null path
+            .flag_nullpath_ok = 0,  // Don't allow null path
 #endif
-#if FUSE_VERSION == 29
-        .flag_utime_omit_ok = 1,
+#if FUSE_VERSION >= 29
+            .flag_utime_omit_ok = 1,
 #endif
+        } {
   }
-  {}
 };
 
 static const Operations operations;
