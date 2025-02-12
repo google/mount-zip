@@ -15,7 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "config.h"
+#define PROGRAM_NAME "mount-zip"
+
+// Odd minor versions (e.g. 1.1 or 1.3) are development versions.
+// Even minor versions (e.g. 1.2 or 1.4) are stable versions.
+#define PROGRAM_VERSION "1.7"
+
+#define FUSE_USE_VERSION 27
 
 #include <algorithm>
 #include <cassert>
@@ -81,12 +87,12 @@ General options:
     -o nohardlinks         no hard links
 
 )",
-          PROGRAM);
+          PROGRAM_NAME);
 }
 
 // Prints version information.
 void print_version() {
-  fprintf(stderr, "%s version: %s\n", PROGRAM, VERSION);
+  fprintf(stderr, "%s version: %s\n", PROGRAM_NAME, PROGRAM_VERSION);
   fprintf(stderr, "libzip version: %s\n", LIBZIP_VERSION);
 }
 
@@ -369,7 +375,7 @@ static int ProcessArg(void* data,
         default:
           fprintf(stderr,
                   "%s: only two arguments allowed: filename and mountpoint\n",
-                  PROGRAM);
+                  PROGRAM_NAME);
           return ERROR;
       }
 
@@ -458,7 +464,7 @@ int main(int argc, char* argv[]) try {
   // Ensure that numbers in debug messages have thousands separators.
   // It makes big numbers much easier to read (eg sizes expressed in bytes).
   std::locale::global(std::locale(std::locale::classic(), new NumPunct));
-  openlog(PROGRAM, LOG_PERROR, LOG_USER);
+  openlog(PROGRAM_NAME, LOG_PERROR, LOG_USER);
   SetLogLevel(LogLevel::INFO);
 
   fuse_args args = FUSE_ARGS_INIT(argc, argv);
