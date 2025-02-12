@@ -79,6 +79,7 @@ General options:
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links
     -o nohardlinks         no hard links
+
 )",
           PROGRAM);
 }
@@ -133,7 +134,7 @@ struct Operations : fuse_operations {
     }
   }
 
-  static const FileNode* GetNode(std::string_view fname) {
+  static const FileNode* GetNode(std::string_view const fname) {
     Tree* const tree = static_cast<Tree*>(fuse_get_context()->private_data);
     assert(tree);
     const FileNode* const node = tree->Find(fname);
@@ -142,7 +143,10 @@ struct Operations : fuse_operations {
     return node;
   }
 
-  static int GetAttr(const char* path, struct stat* st) try {
+  static int GetAttr(const char* const path, struct stat* const st) try {
+    assert(path);
+    assert(st);
+
     const FileNode* const node = GetNode(path);
     if (!node)
       return -ENOENT;
@@ -153,30 +157,38 @@ struct Operations : fuse_operations {
     return ToError("stat", path);
   }
 
-  static int ReadDir(const char* path,
-                     void* buf,
-                     fuse_fill_dir_t filler,
-                     [[maybe_unused]] off_t offset,
-                     [[maybe_unused]] fuse_file_info* fi) try {
+  static int ReadDir(const char* const path,
+                     void* const buf,
+                     fuse_fill_dir_t const filler,
+                     [[maybe_unused]] off_t const offset,
+                     [[maybe_unused]] fuse_file_info* const fi) try {
+    assert(path);
+    assert(filler);
+
     const FileNode* const node = GetNode(path);
     if (!node)
       return -ENOENT;
 
-    {
-      const struct stat st = *node;
-      filler(buf, ".", &st, 0);
-    }
+    const auto add = [buf, filler](const char* const name,
+                                   const struct stat* const st) {
+      if (filler(buf, name, st, 0)) {
+        throw std::bad_alloc();
+      }
+    };
+
+    struct stat st = *node;
+    add(".", &st);
 
     if (const FileNode* const parent = node->parent) {
-      const struct stat st = *parent;
-      filler(buf, "..", &st, 0);
+      st = *parent;
+      add("..", &st);
     } else {
-      filler(buf, "..", nullptr, 0);
+      add("..", nullptr);
     }
 
     for (const FileNode& child : node->children) {
-      const struct stat st = child;
-      filler(buf, child.name.c_str(), &st, 0);
+      st = child;
+      add(child.name.c_str(), &st);
     }
 
     return 0;
@@ -184,7 +196,10 @@ struct Operations : fuse_operations {
     return ToError("read dir", path);
   }
 
-  static int Open(const char* path, fuse_file_info* fi) try {
+  static int Open(const char* const path, fuse_file_info* const fi) try {
+    assert(path);
+    assert(fi);
+
     const FileNode* const node = GetNode(path);
     if (!node)
       return -ENOENT;
@@ -199,29 +214,46 @@ struct Operations : fuse_operations {
     return ToError("open", path);
   }
 
-  static int Read(const char* path,
-                  char* buf,
-                  size_t size,
-                  off_t offset,
-                  fuse_file_info* fi) try {
+  static int Read(const char* const path,
+                  char* const buf,
+                  size_t const size,
+                  off_t const offset,
+                  fuse_file_info* const fi) try {
+    assert(path);
+    assert(buf);
+    assert(size > 0);
+    assert(fi);
+
     if (offset < 0)
       return -EINVAL;
 
+    Reader* const r = reinterpret_cast<Reader*>(fi->fh);
+    assert(r);
     return static_cast<int>(
-        reinterpret_cast<Reader*>(fi->fh)->Read(
-            buf, buf + std::min<size_t>(size, std::numeric_limits<int>::max()),
-            offset) -
+        r->Read(buf,
+                buf + std::min<size_t>(size, std::numeric_limits<int>::max()),
+                offset) -
         buf);
   } catch (...) {
     return ToError("read", path);
   }
 
-  static int Release([[maybe_unused]] const char* path, fuse_file_info* fi) {
-    const Reader::Ptr p(reinterpret_cast<Reader*>(fi->fh));
+  static int Release([[maybe_unused]] const char* const path,
+                     fuse_file_info* const fi) {
+    assert(fi);
+    Reader* const r = reinterpret_cast<Reader*>(fi->fh);
+    assert(r);
+    const Reader::Ptr to_delete(r);
     return 0;
   }
 
-  static int ReadLink(const char* path, char* buf, size_t size) try {
+  static int ReadLink(const char* const path,
+                      char* const buf,
+                      size_t const size) try {
+    assert(path);
+    assert(buf);
+    assert(size > 1);
+
     const FileNode* const node = GetNode(path);
     if (!node)
       return -ENOENT;
@@ -230,8 +262,8 @@ struct Operations : fuse_operations {
       return -EINVAL;
 
     const Reader::Ptr reader = node->GetReader();
-    buf = reader->Read(buf, buf + size - 1, 0);
-    *buf = '\0';
+    char* const end = reader->Read(buf, buf + size - 1, 0);
+    *end = '\0';
     return 0;
   } catch (...) {
     return ToError("read link", path);
