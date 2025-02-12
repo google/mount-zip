@@ -30,7 +30,7 @@ else
 CXXFLAGS += -O2 -DNDEBUG
 endif
 LIB = lib/libmountzip.a
-SOURCES = main.cc
+SOURCES = $(DEST).cc
 OBJECTS = $(SOURCES:.cc=.o)
 MAN = $(DEST).1
 MANDIR = $(PREFIX)/share/man/man1
@@ -45,7 +45,7 @@ doc: $(MAN)
 $(DEST): $(OBJECTS) $(LIB)
 	$(CXX) $(OBJECTS) $(LDFLAGS) -o $@
 
-main.o: main.cc
+$(DEST).o: $(DEST).cc
 	$(CXX) -Ilib -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 $(LIB):
