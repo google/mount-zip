@@ -28,6 +28,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <exception>
+#include <iostream>
 #include <limits>
 #include <locale>
 #include <new>
@@ -61,11 +62,11 @@
 #endif
 
 // Prints usage information.
-void print_usage() {
-  fprintf(stderr,
-          R"(Mounts a ZIP archive as a FUSE filesystem
+void PrintUsage() {
+  std::cerr << R"(Mounts a ZIP archive as a FUSE filesystem
 
-Usage: %s [options] <ZIP-file> [mount-point]
+Usage: )" PROGRAM_NAME
+               R"( [options] <archive_file> [mount_point]
 
 General options:
     -h   --help            print help
@@ -86,14 +87,7 @@ General options:
     -o nosymlinks          no symbolic links
     -o nohardlinks         no hard links
 
-)",
-          PROGRAM_NAME);
-}
-
-// Prints version information.
-void print_version() {
-  fprintf(stderr, "%s version: %s\n", PROGRAM_NAME, PROGRAM_VERSION);
-  fprintf(stderr, "libzip version: %s\n", LIBZIP_VERSION);
+)";
 }
 
 // Parameters for command-line argument processing function.
@@ -348,13 +342,14 @@ static int ProcessArg(void* data,
 
   switch (key) {
     case KEY_HELP:
-      print_usage();
+      PrintUsage();
       fuse_opt_add_arg(outargs, "-ho");
       fuse_main(outargs->argc, outargs->argv, &operations, nullptr);
       std::exit(EXIT_SUCCESS);
 
     case KEY_VERSION:
-      print_version();
+      std::cerr << PROGRAM_NAME " version: " PROGRAM_VERSION "\n"
+                << "libzip version: " LIBZIP_VERSION "\n";
       fuse_opt_add_arg(outargs, "--version");
       fuse_main(outargs->argc, outargs->argv, &operations, nullptr);
       std::exit(EXIT_SUCCESS);
@@ -373,9 +368,7 @@ static int ProcessArg(void* data,
           return KEEP;
 
         default:
-          fprintf(stderr,
-                  "%s: only two arguments allowed: filename and mountpoint\n",
-                  PROGRAM_NAME);
+          LOG(ERROR) << "Only two arguments allowed: filename and mountpoint";
           return ERROR;
       }
 
@@ -511,7 +504,7 @@ int main(int argc, char* argv[]) try {
 
   // No ZIP archive name.
   if (param.filename.empty()) {
-    print_usage();
+    PrintUsage();
     return EXIT_FAILURE;
   }
 
