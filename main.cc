@@ -298,14 +298,7 @@ struct Operations : fuse_operations {
             .statfs = StatFs,
             .release = Release,
             .readdir = ReadDir,
-#if FUSE_VERSION >= 28
-            .flag_nullpath_ok = 0,  // Don't allow null path
-#endif
-#if FUSE_VERSION >= 29
-            .flag_utime_omit_ok = 1,
-#endif
-        } {
-  }
+        } {}
 };
 
 static const Operations operations;
