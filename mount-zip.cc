@@ -38,7 +38,6 @@
 #include <fuse_opt.h>
 #include <libgen.h>
 #include <limits.h>
-#include <linux/limits.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/syslog.h>
