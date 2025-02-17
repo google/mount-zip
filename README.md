@@ -3,7 +3,7 @@ title: MOUNT-ZIP
 section: 1
 header: User Manual
 footer: mount-zip 1.7
-date: January 2025
+date: February 2025
 ---
 # NAME
 
@@ -818,6 +818,7 @@ Can Hide Symlinks            | ✅         | ❌
 Can Hide Hard Links          | ✅         | ❌
 Can Hide Special Files       | ✅         | ❌
 Can Redact Log Messages      | ✅         | ❌
+Can use FUSE 3               | ✅         | ❌
 Returns Distinct Error Codes | ✅         | ❌
 
 # AUTHORS
