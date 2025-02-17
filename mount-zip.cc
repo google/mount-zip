@@ -373,6 +373,8 @@ struct Operations : fuse_operations {
             .release = Release,
             .opendir = OpenDir,
             .readdir = ReadDir,
+            .flag_nullpath_ok = true,
+            .flag_nopath = true,
         } {}
 };
 
