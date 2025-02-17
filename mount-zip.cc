@@ -115,6 +115,11 @@ struct Param {
 // FUSE operations
 struct Operations : fuse_operations {
  private:
+  struct FileHandle {
+    const FileNode* const node;
+    Reader::Ptr reader;
+  };
+
   // Converts a C++ exception into a negative error code.
   // Also logs the error.
   // Must be called from within a catch block.
@@ -133,22 +138,36 @@ struct Operations : fuse_operations {
     }
   }
 
-  static const FileNode* GetNode(std::string_view const fname) {
+  // Finds a node by full path.
+  static const FileNode* FindNode(std::string_view const path) {
     Tree* const tree = static_cast<Tree*>(fuse_get_context()->private_data);
     assert(tree);
-    const FileNode* const node = tree->Find(fname);
-    if (!node)
-      LOG(DEBUG) << "Cannot find " << Path(fname);
-    return node;
+    return tree->Find(path);
   }
 
-  static int GetAttr(const char* const path, struct stat* const z) {
-    assert(path);
-    assert(z);
+  static int GetAttr(const char* const path,
+#if FUSE_USE_VERSION >= 30
+                     struct stat* const z,
+                     fuse_file_info* const fi) {
+#else
+                     struct stat* const z) {
+    fuse_file_info* const fi = nullptr;
+#endif
 
-    const FileNode* const n = GetNode(path);
-    if (!n) {
-      return -ENOENT;
+    const FileNode* n;
+
+    if (fi) {
+      FileHandle* const h = reinterpret_cast<FileHandle*>(fi->fh);
+      assert(h);
+      n = h->node;
+      assert(n);
+    } else {
+      assert(path);
+      n = FindNode(path);
+      if (!n) {
+        LOG(DEBUG) << "Cannot stat " << Path(path) << ": No such item";
+        return -ENOENT;
+      }
     }
 
     *z = *n;
@@ -157,7 +176,7 @@ struct Operations : fuse_operations {
 
   static int OpenDir(const char* const path, fuse_file_info* const fi) {
     assert(path);
-    const FileNode* const n = GetNode(path);
+    const FileNode* const n = FindNode(path);
     if (!n) {
       LOG(ERROR) << "Cannot open " << Path(path) << ": No such item";
       return -ENOENT;
@@ -231,15 +250,21 @@ struct Operations : fuse_operations {
     assert(path);
     assert(fi);
 
-    const FileNode* const node = GetNode(path);
-    if (!node)
+    const FileNode* const n = FindNode(path);
+    if (!n) {
+      LOG(ERROR) << "Cannot open " << Path(path) << ": No such item";
       return -ENOENT;
+    }
 
-    if (node->is_dir())
+    if (n->is_dir()) {
+      LOG(ERROR) << "Cannot open " << *n << ": It is a directory";
       return -EISDIR;
+    }
 
-    Reader::Ptr reader = node->GetReader();
-    fi->fh = reinterpret_cast<uint64_t>(reader.release());
+    Reader::Ptr reader = n->GetReader();
+    static_assert(sizeof(fi->fh) >= sizeof(FileHandle*));
+    fi->fh = reinterpret_cast<uintptr_t>(
+        new FileHandle{.node = n, .reader = std::move(reader)});
     return 0;
   } catch (...) {
     return ToError("open", path);
@@ -253,53 +278,64 @@ struct Operations : fuse_operations {
     assert(path);
     assert(buf);
     assert(size > 0);
-    assert(fi);
 
-    if (offset < 0)
+    if (offset < 0 || size > std::numeric_limits<int>::max()) {
       return -EINVAL;
+    }
 
-    Reader* const r = reinterpret_cast<Reader*>(fi->fh);
-    assert(r);
+    assert(fi);
+    FileHandle* const h = reinterpret_cast<FileHandle*>(fi->fh);
+    assert(h);
+    assert(h->reader);
     return static_cast<int>(
-        r->Read(buf,
-                buf + std::min<size_t>(size, std::numeric_limits<int>::max()),
-                offset) -
+        h->reader->Read(
+            buf, buf + std::min<size_t>(size, std::numeric_limits<int>::max()),
+            offset) -
         buf);
   } catch (...) {
     return ToError("read", path);
   }
 
-  static int Release([[maybe_unused]] const char* const path,
-                     fuse_file_info* const fi) {
+  static int Release(const char*, fuse_file_info* const fi) {
     assert(fi);
-    Reader* const r = reinterpret_cast<Reader*>(fi->fh);
-    assert(r);
-    const Reader::Ptr to_delete(r);
+    FileHandle* const h = reinterpret_cast<FileHandle*>(fi->fh);
+    assert(h);
+
+    const FileNode* const n = h->node;
+    assert(n);
+    delete h;
+
+    LOG(DEBUG) << "Closed " << *n;
     return 0;
   }
 
   static int ReadLink(const char* const path,
                       char* const buf,
-                      size_t const size) try {
+                      size_t const size) {
     assert(path);
     assert(buf);
     assert(size > 1);
 
-    const FileNode* const node = GetNode(path);
-    if (!node)
+    const FileNode* const n = FindNode(path);
+    if (!n) {
+      LOG(ERROR) << "Cannot read link " << Path(path) << ": No such item";
       return -ENOENT;
+    }
 
-    if (node->type() != FileType::Symlink)
-      return -EINVAL;
+    if (n->type() != FileType::Symlink) {
+      LOG(ERROR) << "Cannot read link " << Path(path) << ": Not a symlink";
+      return -ENOLINK;
+    }
 
-    const Reader::Ptr reader = node->GetReader();
-    char* const end = reader->Read(buf, buf + size - 1, 0);
-    *end = '\0';
-    return 0;
-  } catch (...) {
-    return ToError("read link", path);
+    try {
+      const Reader::Ptr reader = n->GetReader();
+      char* const end = reader->Read(buf, buf + size - 1, 0);
+      *end = '\0';
+      return 0;
+    } catch (...) {
+      return ToError("read link", Path(n->path()));
+    }
   }
-
   static int StatFs(const char*, struct statvfs* const z) {
     assert(z);
     const Tree* const tree =
