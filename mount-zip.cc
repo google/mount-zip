@@ -123,17 +123,17 @@ struct Operations : fuse_operations {
   // Converts a C++ exception into a negative error code.
   // Also logs the error.
   // Must be called from within a catch block.
-  static int ToError(std::string_view action, Path path) {
+  static int ToError(std::string_view const action, const FileNode& n) {
     try {
       throw;
     } catch (const std::bad_alloc&) {
-      LOG(ERROR) << "Cannot " << action << ' ' << path << ": No memory";
+      LOG(ERROR) << "Cannot " << action << ' ' << n << ": No memory";
       return -ENOMEM;
     } catch (const std::exception& e) {
-      LOG(ERROR) << "Cannot " << action << ' ' << path << ": " << e.what();
+      LOG(ERROR) << "Cannot " << action << ' ' << n << ": " << e.what();
       return -EIO;
     } catch (...) {
-      LOG(ERROR) << "Cannot " << action << ' ' << path << ": Unexpected error";
+      LOG(ERROR) << "Cannot " << action << ' ' << n << ": Unexpected error";
       return -EIO;
     }
   }
@@ -246,7 +246,7 @@ struct Operations : fuse_operations {
     return -ENOMEM;
   }
 
-  static int Open(const char* const path, fuse_file_info* const fi) try {
+  static int Open(const char* const path, fuse_file_info* const fi) {
     assert(path);
     assert(fi);
 
@@ -261,21 +261,22 @@ struct Operations : fuse_operations {
       return -EISDIR;
     }
 
-    Reader::Ptr reader = n->GetReader();
-    static_assert(sizeof(fi->fh) >= sizeof(FileHandle*));
-    fi->fh = reinterpret_cast<uintptr_t>(
-        new FileHandle{.node = n, .reader = std::move(reader)});
-    return 0;
-  } catch (...) {
-    return ToError("open", path);
+    try {
+      Reader::Ptr reader = n->GetReader();
+      static_assert(sizeof(fi->fh) >= sizeof(FileHandle*));
+      fi->fh = reinterpret_cast<uintptr_t>(
+          new FileHandle{.node = n, .reader = std::move(reader)});
+      return 0;
+    } catch (...) {
+      return ToError("open", *n);
+    }
   }
 
-  static int Read(const char* const path,
+  static int Read(const char*,
                   char* const buf,
                   size_t const size,
                   off_t const offset,
-                  fuse_file_info* const fi) try {
-    assert(path);
+                  fuse_file_info* const fi) {
     assert(buf);
     assert(size > 0);
 
@@ -286,14 +287,21 @@ struct Operations : fuse_operations {
     assert(fi);
     FileHandle* const h = reinterpret_cast<FileHandle*>(fi->fh);
     assert(h);
-    assert(h->reader);
-    return static_cast<int>(
-        h->reader->Read(
-            buf, buf + std::min<size_t>(size, std::numeric_limits<int>::max()),
-            offset) -
-        buf);
-  } catch (...) {
-    return ToError("read", path);
+    const FileNode* const n = h->node;
+    assert(n);
+
+    try {
+      assert(h->reader);
+      return static_cast<int>(
+          h->reader->Read(
+              buf,
+              buf + std::min<size_t>(size, std::numeric_limits<int>::max()),
+              offset) -
+          buf);
+    } catch (...) {
+      assert(h->node);
+      return ToError("read", *n);
+    }
   }
 
   static int Release(const char*, fuse_file_info* const fi) {
@@ -323,7 +331,7 @@ struct Operations : fuse_operations {
     }
 
     if (n->type() != FileType::Symlink) {
-      LOG(ERROR) << "Cannot read link " << Path(path) << ": Not a symlink";
+      LOG(ERROR) << "Cannot read link " << *n << ": Not a symlink";
       return -ENOLINK;
     }
 
@@ -333,7 +341,7 @@ struct Operations : fuse_operations {
       *end = '\0';
       return 0;
     } catch (...) {
-      return ToError("read link", Path(n->path()));
+      return ToError("read link", *n);
     }
   }
   static int StatFs(const char*, struct statvfs* const z) {
