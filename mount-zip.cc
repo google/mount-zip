@@ -155,43 +155,76 @@ struct Operations : fuse_operations {
     return 0;
   }
 
-  static int ReadDir(const char* const path,
+  static int OpenDir(const char* const path, fuse_file_info* const fi) {
+    assert(path);
+    const FileNode* const n = GetNode(path);
+    if (!n) {
+      LOG(ERROR) << "Cannot open " << Path(path) << ": No such item";
+      return -ENOENT;
+    }
+
+    if (!n->is_dir()) {
+      LOG(ERROR) << "Cannot open " << *n << ": Not a directory";
+      return -ENOTDIR;
+    }
+
+    assert(fi);
+    static_assert(sizeof(fi->fh) >= sizeof(FileNode*));
+    fi->fh = reinterpret_cast<uintptr_t>(n);
+#if FUSE_USE_VERSION >= 30
+    fi->cache_readdir = true;
+#endif
+    return 0;
+  }
+
+  static int ReadDir(const char*,
                      void* const buf,
                      fuse_fill_dir_t const filler,
-                     [[maybe_unused]] off_t const offset,
-                     [[maybe_unused]] fuse_file_info* const fi) try {
-    assert(path);
+                     off_t,
+#if FUSE_USE_VERSION >= 30
+                     fuse_file_info* const fi,
+                     fuse_readdir_flags) try {
+#else
+                     fuse_file_info* const fi) try {
+#endif
     assert(filler);
+    assert(fi);
+    const FileNode* const n = reinterpret_cast<const FileNode*>(fi->fh);
+    assert(n);
+    assert(n->is_dir());
 
-    const FileNode* const node = GetNode(path);
-    if (!node)
-      return -ENOENT;
-
-    const auto add = [buf, filler](const char* const name,
-                                   const struct stat* const st) {
-      if (filler(buf, name, st, 0)) {
+    const auto add = [buf, filler, n](const char* const name,
+                                      const struct stat* const z) {
+#if FUSE_USE_VERSION >= 30
+      if (filler(buf, name, z, 0, FUSE_FILL_DIR_PLUS)) {
+#else
+      if (filler(buf, name, z, 0)) {
+#endif
+        LOG(ERROR) << "Cannot list items in " << *n
+                   << ": Cannot allocate memory";
         throw std::bad_alloc();
       }
     };
 
-    struct stat st = *node;
-    add(".", &st);
+    struct stat z = *n;
+    add(".", &z);
 
-    if (const FileNode* const parent = node->parent) {
-      st = *parent;
-      add("..", &st);
+    if (const FileNode* const parent = n->parent) {
+      z = *parent;
+      add("..", &z);
     } else {
       add("..", nullptr);
     }
 
-    for (const FileNode& child : node->children) {
-      st = child;
-      add(child.name.c_str(), &st);
+    for (const FileNode& child : n->children) {
+      z = child;
+      add(child.name.c_str(), &z);
     }
 
+    LOG(DEBUG) << "List " << *n << " -> " << n->children.size() << " items";
     return 0;
-  } catch (...) {
-    return ToError("read dir", path);
+  } catch (const std::bad_alloc&) {
+    return -ENOMEM;
   }
 
   static int Open(const char* const path, fuse_file_info* const fi) try {
@@ -294,6 +327,7 @@ struct Operations : fuse_operations {
             .read = Read,
             .statfs = StatFs,
             .release = Release,
+            .opendir = OpenDir,
             .readdir = ReadDir,
         } {}
 };
