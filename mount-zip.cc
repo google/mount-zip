@@ -21,8 +21,6 @@
 // Even minor versions (e.g. 1.2 or 1.4) are stable versions.
 #define PROGRAM_VERSION "1.7"
 
-#define FUSE_USE_VERSION 27
-
 #include <algorithm>
 #include <cassert>
 #include <cerrno>
@@ -445,8 +443,16 @@ static int ProcessArg(void* data,
   switch (key) {
     case KEY_HELP:
       PrintUsage();
-      fuse_opt_add_arg(outargs, "-ho");
-      fuse_main(outargs->argc, outargs->argv, &operations, nullptr);
+      {
+#if FUSE_USE_VERSION >= 30
+        fuse_opt_add_arg(outargs, "--help");
+        char empty[] = "";
+        outargs->argv[0] = empty;
+#else
+        fuse_opt_add_arg(outargs, "-ho");  // I think ho means "help output".
+#endif
+        fuse_main(outargs->argc, outargs->argv, &operations, nullptr);
+      }
       std::exit(EXIT_SUCCESS);
 
     case KEY_VERSION:
