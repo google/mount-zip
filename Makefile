@@ -22,7 +22,7 @@ PKG_CONFIG ?= pkg-config
 DEPS = libzip icu-uc icu-i18n
 LDFLAGS += -Llib -lmountzip
 
-FUSE_MAJOR_VERSION ?= 2
+FUSE_MAJOR_VERSION ?= 3
 ifeq ($(FUSE_MAJOR_VERSION), 3)
 DEPS += fuse3
 CXXFLAGS += -DFUSE_USE_VERSION=30
