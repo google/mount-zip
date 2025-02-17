@@ -84,9 +84,12 @@ General options:
     -o encoding=CHARSET    original encoding of file names
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links
-    -o nohardlinks         no hard links
-
-)";
+    -o nohardlinks         no hard links)"
+#if FUSE_USE_VERSION >= 30
+               R"(
+    -o direct_io           use direct I/O)"
+#endif
+               "\n\n";
 }
 
 // Parameters for command-line argument processing function.
@@ -111,6 +114,10 @@ struct Param {
       free(cache_dir);
   }
 };
+
+#if FUSE_USE_VERSION >= 30
+static bool g_direct_io = false;
+#endif
 
 // FUSE operations
 struct Operations : fuse_operations {
@@ -395,6 +402,9 @@ enum {
   KEY_NO_SYMLINKS,
   KEY_NO_HARDLINKS,
   KEY_DEFAULT_PERMISSIONS,
+#if FUSE_USE_VERSION >= 30
+  KEY_DIRECT_IO,
+#endif
 };
 
 // Processes command line arguments.
@@ -494,6 +504,12 @@ static int ProcessArg(void* data,
       DataNode::original_permissions = true;
       return KEEP;
 
+#if FUSE_USE_VERSION >= 30
+    case KEY_DIRECT_IO:
+      g_direct_io = true;
+      return DISCARD;
+#endif
+
     default:
       return KEEP;
   }
@@ -566,6 +582,9 @@ int main(int argc, char* argv[]) try {
       FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
       FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),
       FUSE_OPT_KEY("default_permissions", KEY_DEFAULT_PERMISSIONS),
+#if FUSE_USE_VERSION >= 30
+      FUSE_OPT_KEY("direct_io", KEY_DIRECT_IO),
+#endif
       {"--cache=%s", offsetof(Param, cache_dir)},
       {"encoding=%s", offsetof(Param, opts.encoding)},
       {"dmask=%o", offsetof(Param, dmask)},
