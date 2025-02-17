@@ -19,6 +19,7 @@ PKG_CONFIG ?= pkg-config
 PC_DEPS = libzip icu-uc icu-i18n
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(PC_DEPS))
 CXXFLAGS += -g -O2 -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -std=c++20
+CXXFLAGS += -D_FILE_OFFSET_BITS=64 
 LIBS := -L../../lib -lmountzip $(shell $(PKG_CONFIG) --libs $(PC_DEPS))
 VALGRIND=valgrind -q --leak-check=full --track-origins=yes --error-exitcode=33
 LIB=libmountzip.a
