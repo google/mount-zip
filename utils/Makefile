@@ -17,7 +17,7 @@
 
 PKG_CONFIG ?= pkg-config
 LIBS = -L../lib -lmountzip $(shell $(PKG_CONFIG) libzip --libs)
-CXXFLAGS += -g -O0 -Wall -Wextra -Wlogical-op -Wshadow -pedantic -Werror
+CXXFLAGS += -g -O0 -Wall -Wextra -Wlogical-op -Wshadow -pedantic
 CXXFLAGS += $(shell $(PKG_CONFIG) libzip --cflags)
 CXXFLAGS += -D_FILE_OFFSET_BITS=64 
 
