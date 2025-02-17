@@ -142,18 +142,17 @@ struct Operations : fuse_operations {
     return node;
   }
 
-  static int GetAttr(const char* const path, struct stat* const st) try {
+  static int GetAttr(const char* const path, struct stat* const z) {
     assert(path);
-    assert(st);
+    assert(z);
 
-    const FileNode* const node = GetNode(path);
-    if (!node)
+    const FileNode* const n = GetNode(path);
+    if (!n) {
       return -ENOENT;
+    }
 
-    *st = *node;
+    *z = *n;
     return 0;
-  } catch (...) {
-    return ToError("stat", path);
   }
 
   static int ReadDir(const char* const path,
@@ -268,22 +267,21 @@ struct Operations : fuse_operations {
     return ToError("read link", path);
   }
 
-  static int StatFs([[maybe_unused]] const char* const path,
-                    struct statvfs* const st) {
-    assert(st);
+  static int StatFs(const char*, struct statvfs* const z) {
+    assert(z);
     const Tree* const tree =
         static_cast<const Tree*>(fuse_get_context()->private_data);
     assert(tree);
-    st->f_bsize = Tree::block_size;
-    st->f_frsize = Tree::block_size;
-    st->f_blocks = tree->GetBlockCount();
-    st->f_bfree = 0;
-    st->f_bavail = 0;
-    st->f_files = tree->GetNodeCount();
-    st->f_ffree = 0;
-    st->f_favail = 0;
-    st->f_flag = ST_RDONLY;
-    st->f_namemax = NAME_MAX;
+    z->f_bsize = Tree::block_size;
+    z->f_frsize = Tree::block_size;
+    z->f_blocks = tree->GetBlockCount();
+    z->f_bfree = 0;
+    z->f_bavail = 0;
+    z->f_files = tree->GetNodeCount();
+    z->f_ffree = 0;
+    z->f_favail = 0;
+    z->f_flag = ST_RDONLY;
+    z->f_namemax = NAME_MAX;
     return 0;
   }
 
