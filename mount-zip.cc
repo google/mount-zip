@@ -119,6 +119,8 @@ struct Param {
 static bool g_direct_io = false;
 #endif
 
+Tree* g_tree = nullptr;
+
 // FUSE operations
 struct Operations : fuse_operations {
  private:
@@ -147,9 +149,8 @@ struct Operations : fuse_operations {
 
   // Finds a node by full path.
   static const FileNode* FindNode(std::string_view const path) {
-    Tree* const tree = static_cast<Tree*>(fuse_get_context()->private_data);
-    assert(tree);
-    return tree->Find(path);
+    assert(g_tree);
+    return g_tree->Find(path);
   }
 
   static int GetAttr(const char* const path,
@@ -353,21 +354,30 @@ struct Operations : fuse_operations {
   }
   static int StatFs(const char*, struct statvfs* const z) {
     assert(z);
-    const Tree* const tree =
-        static_cast<const Tree*>(fuse_get_context()->private_data);
-    assert(tree);
+    assert(g_tree);
     z->f_bsize = Tree::block_size;
     z->f_frsize = Tree::block_size;
-    z->f_blocks = tree->GetBlockCount();
+    z->f_blocks = g_tree->GetBlockCount();
     z->f_bfree = 0;
     z->f_bavail = 0;
-    z->f_files = tree->GetNodeCount();
+    z->f_files = g_tree->GetNodeCount();
     z->f_ffree = 0;
     z->f_favail = 0;
     z->f_flag = ST_RDONLY;
     z->f_namemax = NAME_MAX;
     return 0;
   }
+
+#if FUSE_USE_VERSION >= 30
+  static void* Init(fuse_conn_info*, fuse_config* const cfg) {
+    assert(cfg);
+    // Respect inode numbers.
+    cfg->use_ino = true;
+    cfg->nullpath_ok = true;
+    cfg->direct_io = g_direct_io;
+    return nullptr;
+  }
+#endif
 
  public:
   Operations()
@@ -380,9 +390,14 @@ struct Operations : fuse_operations {
             .release = Release,
             .opendir = OpenDir,
             .readdir = ReadDir,
+#if FUSE_USE_VERSION >= 30
+            .init = Init,
+#else
             .flag_nullpath_ok = true,
             .flag_nopath = true,
-        } {}
+#endif
+        } {
+  }
 };
 
 static const Operations operations;
@@ -617,11 +632,11 @@ int main(int argc, char* argv[]) try {
   // Open and index the ZIP archive.
   LOG(DEBUG) << "Indexing " << Path(param.filename) << "...";
   Timer timer;
-  Tree::Ptr tree_ptr = Tree::Init(param.filename.c_str(), param.opts);
-  Tree& tree = *tree_ptr;
+  Tree::Ptr tree = Tree::Init(param.filename.c_str(), param.opts);
+  g_tree = tree.get();
 #ifdef NDEBUG
   // For optimization, don't bother destructing the tree.
-  tree_ptr.release();
+  tree.release();
 #endif
   LOG(DEBUG) << "Indexed " << Path(param.filename) << " in " << timer;
 
@@ -660,8 +675,10 @@ int main(int argc, char* argv[]) try {
     }
   }
 
+#if FUSE_USE_VERSION < 30
   // Respect inode numbers.
   fuse_opt_add_arg(&args, "-ouse_ino");
+#endif
 
   // Read-only mounting.
   fuse_opt_add_arg(&args, "-r");
@@ -669,7 +686,7 @@ int main(int argc, char* argv[]) try {
   // Single-threaded operation.
   fuse_opt_add_arg(&args, "-s");
 
-  return fuse_main(args.argc, args.argv, &operations, &tree);
+  return fuse_main(args.argc, args.argv, &operations, nullptr);
 } catch (const ZipError& e) {
   LOG(ERROR) << e.what();
   // Shift libzip error codes in order to avoid collision with FUSE errors.
