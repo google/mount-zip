@@ -17,7 +17,7 @@
 
 DEST = libmountzip.a
 PKG_CONFIG ?= pkg-config
-DEPS = fuse libzip icu-uc icu-i18n
+DEPS = libzip icu-uc icu-i18n
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
 CXXFLAGS += -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
 ifeq ($(DEBUG), 1)

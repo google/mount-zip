@@ -16,7 +16,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <assert.h>
-#include <fuse.h>
 #include <stdlib.h>
 #include <zip.h>
 #include <stdexcept>
@@ -24,12 +23,6 @@
 
 #include "common.h"
 #include "tree.h"
-
-// FUSE stub functions
-
-struct fuse_context* fuse_get_context(void) {
-  return NULL;
-}
 
 // libzip stub structures
 struct zip {

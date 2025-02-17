@@ -16,7 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 PKG_CONFIG ?= pkg-config
-PC_DEPS = fuse libzip icu-uc icu-i18n
+PC_DEPS = libzip icu-uc icu-i18n
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(PC_DEPS))
 CXXFLAGS += -g -O2 -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -std=c++20
 LIBS := -L../../lib -lmountzip $(shell $(PKG_CONFIG) --libs $(PC_DEPS))
