@@ -1,3 +1,8 @@
+2025-02-19 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.8:
+	- Use FUSE 3 by default
+
 2025-01-13 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.6:
