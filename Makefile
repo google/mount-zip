@@ -19,18 +19,18 @@ DEST = mount-zip
 PREFIX = $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
 PKG_CONFIG ?= pkg-config
-DEPS = libzip icu-uc icu-i18n
-LDFLAGS += -Llib -lmountzip
 
 FUSE_MAJOR_VERSION ?= 3
 ifeq ($(FUSE_MAJOR_VERSION), 3)
-DEPS += fuse3
+DEPS = fuse3
 CXXFLAGS += -DFUSE_USE_VERSION=30
 else ifeq ($(FUSE_MAJOR_VERSION), 2)
-DEPS += fuse
+DEPS = fuse
 CXXFLAGS += -DFUSE_USE_VERSION=26
 endif
 
+DEPS += libzip icu-uc icu-i18n
+LDFLAGS += -Llib -lmountzip
 LDFLAGS += $(shell $(PKG_CONFIG) --libs $(DEPS))
 CXXFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
 CXXFLAGS += -Wall -Wextra -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
