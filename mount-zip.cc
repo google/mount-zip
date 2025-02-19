@@ -19,7 +19,7 @@
 
 // Odd minor versions (e.g. 1.1 or 1.3) are development versions.
 // Even minor versions (e.g. 1.2 or 1.4) are stable versions.
-#define PROGRAM_VERSION "1.8"
+#define PROGRAM_VERSION "1.9"
 
 #include <algorithm>
 #include <cassert>
