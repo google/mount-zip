@@ -47,6 +47,7 @@ std::ostream& operator<<(std::ostream& out, const FileType t) {
   }
 }
 
+const timespec DataNode::g_now = {.tv_sec = time(nullptr)};
 const uid_t DataNode::g_uid = getuid();
 const gid_t DataNode::g_gid = getgid();
 mode_t DataNode::fmask = 0022;
@@ -384,11 +385,4 @@ Reader::Ptr DataNode::GetReader(zip_t* const zip,
   LOG(DEBUG) << *reader << ": Opened " << file_node
              << ", seekable = " << seekable;
   return reader;
-}
-
-timespec DataNode::Now() {
-  timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-    ts = {.tv_sec = time(nullptr)};
-  return ts;
 }

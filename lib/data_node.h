@@ -54,6 +54,7 @@ struct FileNode;
 
 // Represents an inode.
 struct DataNode {
+  static const timespec g_now;
   static const uid_t g_uid;
   static const gid_t g_gid;
   static mode_t fmask;
@@ -69,9 +70,9 @@ struct DataNode {
   gid_t gid = g_gid;
   dev_t dev = 0;
   zip_uint64_t size = 0;
-  timespec mtime = Now();
-  timespec atime = mtime;
-  timespec ctime = mtime;
+  timespec mtime = g_now;
+  timespec atime = g_now;
+  timespec ctime = g_now;
   std::string target;  // Link target
   mutable Reader::Ptr cached_reader;
   static const blksize_t block_size = 512;
@@ -87,8 +88,6 @@ struct DataNode {
   Reader::Ptr GetReader(zip_t* zip, const FileNode& file_node) const;
 
   static DataNode Make(zip_t* zip, i64 id, mode_t mode);
-
-  static timespec Now();
 };
 
 #endif
