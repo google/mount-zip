@@ -108,8 +108,9 @@ namespace {
 class SuppressEcho {
  public:
   explicit SuppressEcho() {
-    if (tcgetattr(STDIN_FILENO, &tattr_) < 0)
+    if (tcgetattr(STDIN_FILENO, &tattr_) < 0) {
       return;
+    }
 
     reset_ = true;
 
@@ -119,8 +120,9 @@ class SuppressEcho {
   }
 
   ~SuppressEcho() {
-    if (reset_)
+    if (reset_) {
       tcsetattr(STDIN_FILENO, TCSAFLUSH, &tattr_);
+    }
   }
 
   explicit operator bool() const { return reset_; }
@@ -173,20 +175,24 @@ bool Tree::ReadPasswordFromStdIn() {
 
   {
     const SuppressEcho guard;
-    if (guard)
+    if (guard) {
       std::cout << "Password > " << std::flush;
+    }
 
     // Read password from standard input.
-    if (!std::getline(std::cin, password))
+    if (!std::getline(std::cin, password)) {
       password.clear();
+    }
 
-    if (guard)
+    if (guard) {
       std::cout << "Got it!" << std::endl;
+    }
   }
 
   // Remove newline at the end of password.
-  while (password.ends_with('\n'))
+  while (password.ends_with('\n')) {
     password.pop_back();
+  }
 
   if (password.empty()) {
     LOG(DEBUG) << "Got an empty password";
@@ -217,9 +223,10 @@ class IcuGuard {
     udata_setCommonData(mapped_file_.data(), &error);
     udata_setFileAccess(UDATA_ONLY_PACKAGES, &error);
     u_init(&error);
-    if (U_FAILURE(error))
+    if (U_FAILURE(error)) {
       throw std::runtime_error(
           StrCat("Cannot initialize ICU: ", u_errorName(error)));
+    }
   }
 
   // Cleans up the ICU library.
@@ -285,9 +292,10 @@ class ConverterToUtf8 {
     UErrorCode error = U_ZERO_ERROR;
     ConverterPtr conv(ucnv_open(encoding, &error));
 
-    if (U_FAILURE(error))
+    if (U_FAILURE(error)) {
       throw std::runtime_error(StrCat("Cannot open converter for encoding '",
                                       encoding, "': ", u_errorName(error)));
+    }
 
     assert(conv);
     return conv;
@@ -323,8 +331,9 @@ std::string DetectEncoding(const std::string_view bytes) {
       "ISO-2022-CN", "ISO-2022-JP", "ISO-2022-KR", "KOI8-R"};
 
   for (const std::string_view candidate : candidates) {
-    if (candidate == encoding)
+    if (candidate == encoding) {
       return encoding;
+    }
   }
 
   // Not handled by ICU.
@@ -337,8 +346,9 @@ Tree::~Tree() {
 #ifndef NDEBUG
   files_by_original_path_.clear();
 
-  for (FileNode& node : files_by_path_)
+  for (FileNode& node : files_by_path_) {
     node.children.clear();
+  }
 #endif
 
   files_by_path_.clear_and_dispose(std::default_delete<FileNode>());
@@ -376,21 +386,26 @@ void Tree::BuildTree() {
     zip_t* const z = zip.get();
     const i64 n = zip_get_num_entries(z, 0);
     for (i64 id = 0; id < n; ++id) {
-      if (zip_stat_index(z, id, ZIP_FL_ENC_RAW, &sb) < 0)
+      if (zip_stat_index(z, id, ZIP_FL_ENC_RAW, &sb) < 0) {
         throw ZipError(StrCat("Cannot read entry #", id), z);
+      }
 
-      if ((sb.valid & ZIP_STAT_SIZE) != 0)
+      if ((sb.valid & ZIP_STAT_SIZE) != 0) {
         total_uncompressed_size += sb.size;
+      }
 
-      if ((sb.valid & ZIP_STAT_NAME) == 0 || !sb.name || !*sb.name)
+      if ((sb.valid & ZIP_STAT_NAME) == 0 || !sb.name || !*sb.name) {
         continue;
+      }
 
       const std::string_view name = sb.name;
-      if (max_name_length < name.size())
+      if (max_name_length < name.size()) {
         max_name_length = name.size();
+      }
 
-      if (all_names.size() + name.size() <= all_names.capacity())
+      if (all_names.size() + name.size() <= all_names.capacity()) {
         all_names.append(name);
+      }
     }
   }
 
@@ -399,10 +414,14 @@ void Tree::BuildTree() {
 
   // Detect filename encoding.
   std::string encoding;
-  if (opts_.encoding)
+  if (opts_.encoding) {
     encoding = opts_.encoding;
-  if (encoding.empty() || encoding == "auto")
+  }
+
+  if (encoding.empty() || encoding == "auto") {
     encoding = DetectEncoding(all_names);
+  }
+
   all_names.clear();
 
   // Prepare functor to convert filenames to UTF-8.
@@ -415,11 +434,12 @@ void Tree::BuildTree() {
   // using ICU, prepare and use the ICU converter.
   if (!encoding.empty() && encoding != "libzip") {
     try {
-      if (encoding != "raw")
+      if (encoding != "raw") {
         toUtf8 = [converter = std::make_shared<ConverterToUtf8>(
                       encoding.c_str(), max_name_length)](std::string_view s) {
           return (*converter)(s);
         };
+      }
       zipFlags = ZIP_FL_ENC_RAW;
     } catch (const std::exception& e) {
       LOG(ERROR) << e.what();
@@ -439,12 +459,13 @@ void Tree::BuildTree() {
                          &total_extracted_size](const ssize_t chunk_size) {
     assert(chunk_size >= 0);
     total_extracted_size += chunk_size;
-    if (should_display_progress)
+    if (should_display_progress) {
       LOG(INFO) << "Loading "
                 << (total_extracted_size < total_uncompressed_size
                         ? 100 * total_extracted_size / total_uncompressed_size
                         : 100)
                 << "%";
+    }
   };
 
   // Add zip entries for all items except hardlinks
@@ -452,8 +473,9 @@ void Tree::BuildTree() {
     zip_t* const z = zip.get();
     const i64 n = zip_get_num_entries(z, 0);
     for (i64 id = 0; id < n; ++id) {
-      if (zip_stat_index(z, id, zipFlags, &sb) < 0)
+      if (zip_stat_index(z, id, zipFlags, &sb) < 0) {
         throw ZipError(StrCat("Cannot read entry #", id), z);
+      }
 
       const Path original_path =
           (sb.valid & ZIP_STAT_NAME) != 0 && sb.name && *sb.name ? sb.name
@@ -513,8 +535,9 @@ void Tree::BuildTree() {
         ZipError e(StrCat("Cannot decrypt ", *node, ": ",
                           EncryptionMethod(sb.encryption_method)),
                    ZIP_ER_ENCRNOTSUPP);
-        if (opts_.check_compression)
+        if (opts_.check_compression) {
           throw std::move(e);
+        }
         LOG(ERROR) << e.what();
       }
 
@@ -522,8 +545,9 @@ void Tree::BuildTree() {
         ZipError e(StrCat("Cannot decompress ", *node, ": ",
                           CompressionMethod(sb.comp_method)),
                    ZIP_ER_COMPNOTSUPP);
-        if (opts_.check_compression)
+        if (opts_.check_compression) {
           throw std::move(e);
+        }
         LOG(ERROR) << e.what();
       }
 
@@ -566,8 +590,9 @@ void Tree::BuildTree() {
     total_block_count_ += 1;
   }
 
-  if (should_display_progress.Count())
+  if (should_display_progress.Count()) {
     LOG(INFO) << "Loaded 100%";
+  }
 
   LOG(DEBUG) << "Nodes = " << GetNodeCount();
   LOG(DEBUG) << "Blocks = " << total_block_count_;
@@ -576,8 +601,9 @@ void Tree::BuildTree() {
 void Tree::CheckPassword(const FileNode* const node) {
   assert(node);
 
-  if (checked_password_)
+  if (checked_password_) {
     return;
+  }
 
   LOG(INFO) << "Need password for " << *node;
   ReadPasswordFromStdIn();
@@ -587,12 +613,14 @@ void Tree::CheckPassword(const FileNode* const node) {
 
     // Try to open the file and read a few bytes from it.
     const ZipFile file(zip_fopen_index(node->zip, node->id, 0));
-    if (!file)
+    if (!file) {
       throw ZipError(StrCat("Cannot open ", *node), node->zip);
+    }
 
     std::array<char, 16> buf;
-    if (zip_fread(file.get(), buf.data(), buf.size()) < 0)
+    if (zip_fread(file.get(), buf.data(), buf.size()) < 0) {
       throw ZipError(StrCat("Cannot read ", *node), file.get());
+    }
 
     LOG(INFO) << "Password is Ok";
   } catch (const ZipError& error) {
@@ -629,8 +657,9 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
    * and can be read by PKZIP for DOS version 2.04g then this value will be
    * zero.
    */
-  if (opsys == ZIP_OPSYS_DOS && GetFileType(mode) != FileType::Unknown)
+  if (opsys == ZIP_OPSYS_DOS && GetFileType(mode) != FileType::Unknown) {
     opsys = ZIP_OPSYS_UNIX;
+  }
 
   const zip_uint32_t FZ_ATTR_HARDLINK = 0x800;
 
@@ -685,8 +714,9 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
 FileNode* Tree::Attach(FileNode::Ptr node) {
   assert(node);
   const auto [pos, ok] = files_by_path_.insert(*node);
-  if (ok)
+  if (ok) {
     return node.release();  // Now owned by |files_by_path_|.
+  }
 
   // There is a name collision
   LOG(DEBUG) << *node << " conflicts with " << *pos;
@@ -713,8 +743,9 @@ FileNode* Tree::Attach(FileNode::Ptr node) {
     }
 
     LOG(DEBUG) << *node << " conflicts with " << *pos;
-    if (!i)
+    if (!i) {
       i = &pos->collision_count;
+    }
   }
 }
 
@@ -749,9 +780,10 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
   const zip_uint8_t* field = zip_file_extra_field_get_by_id(
       z, id, FZ_EF_PKWARE_UNIX, 0, &len, ZIP_FL_CENTRAL);
 
-  if (!field)
+  if (!field) {
     field = zip_file_extra_field_get_by_id(z, id, FZ_EF_PKWARE_UNIX, 0, &len,
                                            ZIP_FL_LOCAL);
+  }
 
   if (!field) {
     // Ignoring hardlink without PKWARE UNIX field
@@ -791,9 +823,10 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
 
   if (target.type() != GetFileType(mode)) {
     // PkZip saves hard-link flag for symlinks with inode link count > 1.
-    if (!S_ISLNK(mode))
+    if (!S_ISLNK(mode)) {
       LOG(ERROR) << "Mismatched types for hardlink " << *node << " -> "
                  << target;
+    }
 
     return CreateFile(z, id, parent, name, mode);
   }
@@ -818,8 +851,9 @@ FileNode* Tree::CreateDir(std::string_view path) {
   FileNode* parent;
 
   if (FileNode* const node = Find(path)) {
-    if (node->is_dir())
+    if (node->is_dir()) {
       return node;
+    }
 
     // There is an existing node with the given name, but it's not a
     // directory.
@@ -846,8 +880,9 @@ FileNode* Tree::CreateDir(std::string_view path) {
   FileNode* const ret = child.release();  // Now owned by |files_by_path_|.
   parent->link->nlink++;
 
-  if (to_rename)
+  if (to_rename) {
     Attach(std::move(to_rename));
+  }
 
   return ret;
 }
@@ -860,8 +895,9 @@ Tree::Ptr Tree::Init(std::span<const std::string> paths, Options opts) {
     int err;
     Zip z(zip_open(path.c_str(), ZIP_RDONLY, &err));
 
-    if (!z)
+    if (!z) {
       throw ZipError(StrCat("Cannot open ZIP archive ", Path(path)), err);
+    }
 
     LOG(DEBUG) << "Opened " << Path(path);
     zips.push_back(std::move(z));

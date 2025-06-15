@@ -185,8 +185,9 @@ bool ExtraField::parseSimpleUnixField(zip_uint16_t type,
       }
       atime = static_cast<time_t>(getLong(data));
       mtime = static_cast<time_t>(getLong(data));
-      if (data + 4 > end)
+      if (data + 4 > end) {
         return true;
+      }
       hasUidGid = true;
       uid = getShort(data);
       gid = getShort(data);
@@ -308,8 +309,9 @@ bool ExtraField::parsePkWareUnixField(zip_uint16_t len,
   link_target = NULL;
   link_target_len = 0;
   if (S_ISBLK(mode) || S_ISCHR(mode)) {
-    if (len < 20)
+    if (len < 20) {
       return false;
+    }
 
     unsigned int maj, min;
     maj = static_cast<unsigned int>(le_32(f->dev.major));
@@ -340,10 +342,11 @@ const zip_uint8_t* ExtraField::createPkWareUnixField(time_t mtime,
   data.gid = le_16(static_cast<uint16_t>(gid));
   data.dev.major = le_32(major(dev));
   data.dev.minor = le_32(minor(dev));
-  if (S_ISBLK(mode) || S_ISCHR(mode))
+  if (S_ISBLK(mode) || S_ISCHR(mode)) {
     len = 20;
-  else
+  } else {
     len = 12;
+  }
   return reinterpret_cast<zip_uint8_t*>(&data);
 }
 
@@ -367,12 +370,14 @@ bool ExtraField::parseNtfsExtraField(zip_uint16_t len,
   while (data + 4 < end) {
     uint16_t tag = getShort(data);
     uint16_t size = getShort(data);
-    if (data + size > end)
+    if (data + size > end) {
       return false;
+    }
 
     if (tag == 0x0001) {
-      if (size < 24)
+      if (size < 24) {
         return false;
+      }
 
       mtime = ntfs2timespec(getLong64(data));
       atime = ntfs2timespec(getLong64(data));
@@ -485,8 +490,9 @@ zip_uint16_t ExtraField::editNtfsExtraField(zip_uint16_t len,
     NtfsExtraFieldTag* in = reinterpret_cast<NtfsExtraFieldTag*>(data);
     zip_uint16_t tag = le_16(in->tag);
     zip_uint16_t size = le_16(in->size);
-    if (data + 4 + size > end)
+    if (data + 4 + size > end) {
       break;
+    }
 
     if (tag != 0x0001) {
       // copy tag content

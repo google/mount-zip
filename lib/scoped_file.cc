@@ -27,14 +27,16 @@
 #include "path.h"
 
 ScopedFile::~ScopedFile() {
-  if (IsValid() && close(fd_) < 0)
+  if (IsValid() && close(fd_) < 0) {
     PLOG(ERROR) << "Cannot close file";
+  }
 }
 
 // Removes the memory mapping.
 FileMapping::~FileMapping() {
-  if (munmap(data_, size_) < 0)
+  if (munmap(data_, size_) < 0) {
     PLOG(ERROR) << "Cannot unmap file";
+  }
 }
 
 // Maps a file to memory in read-only mode.
@@ -42,15 +44,17 @@ FileMapping::~FileMapping() {
 FileMapping::FileMapping(const char* const path) {
   // Open file in read-only mode.
   const ScopedFile file(open(path, O_RDONLY));
-  if (!file.IsValid())
+  if (!file.IsValid()) {
     ThrowSystemError("Cannot open file ", Path(path));
+  }
 
   const int fd = file.GetDescriptor();
 
   // Get file size.
   struct stat st;
-  if (fstat(fd, &st) < 0)
+  if (fstat(fd, &st) < 0) {
     ThrowSystemError("Cannot fstat file ", Path(path));
+  }
 
   size_ = static_cast<size_t>(st.st_size);
   if (size_ != st.st_size) {
@@ -61,6 +65,7 @@ FileMapping::FileMapping(const char* const path) {
 
   // Map file to memory.
   data_ = mmap(nullptr, size_, PROT_READ, MAP_PRIVATE, fd, 0);
-  if (data_ == MAP_FAILED)
+  if (data_ == MAP_FAILED) {
     ThrowSystemError("Cannot mmap file ", Path(path));
+  }
 }

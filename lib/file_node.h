@@ -103,8 +103,9 @@ struct FileNode {
 
   // Gets the full absolute path of this node.
   std::string path() const {
-    if (!parent)
+    if (!parent) {
       return name;
+    }
 
     std::string s = parent->path();
     Path::Append(&s, name);

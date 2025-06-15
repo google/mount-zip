@@ -72,8 +72,9 @@ static void ProcessPkWareUnixField(DataNode* const node,
   const char* link;
   uint16_t link_len;
   if (!ExtraField::parsePkWareUnixField(len, field, node->mode, mt, at, uid,
-                                        gid, dev, link, link_len))
+                                        gid, dev, link, link_len)) {
     return;
+  }
 
   if (type >= last_processed_unix_field) {
     node->uid = uid;
@@ -82,11 +83,13 @@ static void ProcessPkWareUnixField(DataNode* const node,
   }
 
   if (!high_precision_time) {
-    if (!mtime_from_timestamp)
+    if (!mtime_from_timestamp) {
       node->mtime = {.tv_sec = mt};
+    }
 
-    if (!atime_from_timestamp)
+    if (!atime_from_timestamp) {
       node->atime = {.tv_sec = at};
+    }
   }
 
   node->dev = dev;
@@ -147,8 +150,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
   // read local headers
   count = zip_file_extra_fields_count(zip, node->id, ZIP_FL_LOCAL);
-  if (count < 0)
+  if (count < 0) {
     return has_pkware_field;
+  }
 
   for (zip_int16_t i = 0; i < count; ++i) {
     bool has_mt, has_at, has_cret;
@@ -165,11 +169,13 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
     switch (type) {
       case FZ_EF_TIMESTAMP:
         if (!ExtraField::parseExtTimeStamp(len, field, has_mt, mt, has_at, at,
-                                           has_cret, cret))
+                                           has_cret, cret)) {
           break;
+        }
 
-        if (high_precision_time)
+        if (high_precision_time) {
           break;
+        }
 
         if (has_mt) {
           node->mtime = {.tv_sec = mt};
@@ -192,8 +198,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
       case FZ_EF_INFOZIP_UNIX1:
         if (!ExtraField::parseSimpleUnixField(type, len, field, has_uid_gid,
-                                              uid, gid, mt, at))
+                                              uid, gid, mt, at)) {
           break;
+        }
 
         if (has_uid_gid && type >= last_processed_unix_field) {
           node->uid = uid;
@@ -201,21 +208,25 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           last_processed_unix_field = type;
         }
 
-        if (high_precision_time)
+        if (high_precision_time) {
           break;
+        }
 
-        if (!mtime_from_timestamp)
+        if (!mtime_from_timestamp) {
           node->mtime = {.tv_sec = mt};
+        }
 
-        if (!atime_from_timestamp)
+        if (!atime_from_timestamp) {
           node->atime = {.tv_sec = at};
+        }
 
         break;
 
       case FZ_EF_INFOZIP_UNIX2:
       case FZ_EF_INFOZIP_UNIXN:
-        if (!ExtraField::parseUnixUidGidField(type, len, field, uid, gid))
+        if (!ExtraField::parseUnixUidGidField(type, len, field, uid, gid)) {
           break;
+        }
 
         if (type >= last_processed_unix_field) {
           node->uid = uid;
@@ -226,8 +237,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         break;
 
       case FZ_EF_NTFS:
-        if (ExtraField::parseNtfsExtraField(len, field, mts, ats, bts))
+        if (ExtraField::parseNtfsExtraField(len, field, mts, ats, bts)) {
           break;
+        }
 
         node->mtime = mts;
         node->atime = ats;
@@ -241,8 +253,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
   assert(zip);
   zip_stat_t st;
-  if (zip_stat_index(zip, id, 0, &st) < 0)
+  if (zip_stat_index(zip, id, 0, &st) < 0) {
     throw ZipError("Cannot stat file", zip);
+  }
 
   // check that all used fields are valid
   [[maybe_unused]] const zip_uint64_t need_valid =
@@ -256,8 +269,9 @@ DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
   const bool has_pkware_field = ProcessExtraFields(&node, zip);
 
   // InfoZIP may produce FIFO-marked node with content, PkZip - can't.
-  if (S_ISFIFO(node.mode) && (node.size != 0 || !has_pkware_field))
+  if (S_ISFIFO(node.mode) && (node.size != 0 || !has_pkware_field)) {
     SetFileType(&node.mode, FileType::File);
+  }
 
   return node;
 }
@@ -356,8 +370,9 @@ Reader::Ptr DataNode::GetReader(zip_t* const zip,
     return cached_reader->AddRef();
   }
 
-  if (!target.empty())
+  if (!target.empty()) {
     return Reader::Ptr(new StringReader(target));
+  }
 
   ZipFile file = Reader::Open(zip, id);
   assert(file);

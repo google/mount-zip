@@ -60,15 +60,16 @@
 
 // Prints usage information.
 void PrintUsage() {
-  std::cerr << R"(Mounts one or several ZIP archives as a read-only FUSE file system.
+  std::cerr
+      << R"(Mounts one or several ZIP archives as a read-only FUSE file system.
 
 Usage:
     )" PROGRAM_NAME
-               R"( [options] zip-file
+         R"( [options] zip-file
     )" PROGRAM_NAME
-               R"( [options] zip-file mount-point
+         R"( [options] zip-file mount-point
     )" PROGRAM_NAME
-               R"( [options] zip-file-1 zip-file-2 ... mount-point
+         R"( [options] zip-file-1 zip-file-2 ... mount-point
 
 General options:
     -h   --help            print help
@@ -89,10 +90,10 @@ General options:
     -o nosymlinks          no symbolic links
     -o nohardlinks         no hard links)"
 #if FUSE_USE_VERSION >= 30
-               R"(
+         R"(
     -o direct_io           use direct I/O)"
 #endif
-               "\n\n";
+         "\n\n";
 }
 
 // Parameters for command-line argument processing function.
@@ -109,8 +110,9 @@ struct Param {
   Tree::Options opts;
 
   ~Param() {
-    if (cache_dir)
+    if (cache_dir) {
       free(cache_dir);
+    }
   }
 };
 
@@ -541,11 +543,13 @@ struct Cleanup {
       }
     }
 
-    if (args)
+    if (args) {
       fuse_opt_free_args(args);
+    }
 
-    if (close(dirfd) < 0)
+    if (close(dirfd) < 0) {
       PLOG(ERROR) << "Cannot close file descriptor";
+    }
   }
 };
 
@@ -603,8 +607,9 @@ int main(int argc, char* argv[]) try {
       FUSE_OPT_END,
   };
 
-  if (fuse_opt_parse(&args, &param, opts, ProcessArg))
+  if (fuse_opt_parse(&args, &param, opts, ProcessArg)) {
     return EXIT_FAILURE;
+  }
 
   DataNode::dmask = param.dmask & 0777;
   DataNode::fmask = param.fmask & 0777;
@@ -627,8 +632,9 @@ int main(int argc, char* argv[]) try {
   if (param.cache_dir) {
     char buffer[PATH_MAX + 1];
     const char* const p = realpath(param.cache_dir, buffer);
-    if (!p)
+    if (!p) {
       ThrowSystemError("Cannot use cache dir ", Path(param.cache_dir));
+    }
 
     Reader::SetCacheDir(p);
   }

@@ -116,8 +116,9 @@ class Beat {
   // Is it time for the next beat?
   explicit operator bool() {
     const TimePoint now = Clock::now();
-    if (now < next_)
+    if (now < next_) {
       return false;
+    }
 
     count_ += 1;
     next_ = now + period_;

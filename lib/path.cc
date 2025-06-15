@@ -27,8 +27,9 @@
 bool Path::redact = false;
 
 std::ostream& operator<<(std::ostream& out, const Path path) {
-  if (Path::redact)
+  if (Path::redact) {
     return out << "(redacted)";
+  }
 
   out.put('\'');
   for (const char c : path) {
@@ -57,8 +58,9 @@ Path Path::WithoutTrailingSeparator() const {
   Path path = *this;
 
   // Don't remove the first character, even if it is a '/'.
-  while (path.size() > 1 && path.back() == '/')
+  while (path.size() > 1 && path.back() == '/') {
     path.remove_suffix(1);
+  }
 
   return path;
 }
@@ -66,27 +68,31 @@ Path Path::WithoutTrailingSeparator() const {
 Path::size_type Path::FinalExtensionPosition() const {
   const size_type last_dot = find_last_of("/. ");
   if (last_dot == npos || at(last_dot) != '.' || last_dot == 0 ||
-      last_dot == size() - 1 || size() - last_dot > 6)
+      last_dot == size() - 1 || size() - last_dot > 6) {
     return size();
+  }
 
   if (const size_type i = find_last_not_of('.', last_dot - 1);
-      i == npos || at(i) == '/')
+      i == npos || at(i) == '/') {
     return size();
+  }
 
   return last_dot;
 }
 
 Path::size_type Path::ExtensionPosition() const {
   const size_type last_dot = FinalExtensionPosition();
-  if (last_dot >= size())
+  if (last_dot >= size()) {
     return last_dot;
+  }
 
   // Extract extension without dot and in ASCII lowercase.
   assert(at(last_dot) == '.');
   std::string ext(substr(last_dot + 1));
   for (char& c : ext) {
-    if ('A' <= c && c <= 'Z')
+    if ('A' <= c && c <= 'Z') {
       c += 'a' - 'A';
+    }
   }
 
   // Is it a special extension?
@@ -100,16 +106,19 @@ Path::size_type Path::ExtensionPosition() const {
 }
 
 Path::size_type Path::TruncationPosition(size_type i) const {
-  if (i >= size())
+  if (i >= size()) {
     return size();
+  }
 
   while (true) {
     // Avoid truncating at a UTF-8 trailing byte.
-    while (i > 0 && (at(i) & 0b1100'0000) == 0b1000'0000)
+    while (i > 0 && (at(i) & 0b1100'0000) == 0b1000'0000) {
       --i;
+    }
 
-    if (i == 0)
+    if (i == 0) {
       return i;
+    }
 
     const std::string_view zero_width_joiner = "\u200D";
 
@@ -135,8 +144,9 @@ Path::size_type Path::TruncationPosition(size_type i) const {
 void Path::Append(std::string* const head, const std::string_view tail) {
   assert(head);
 
-  if (tail.empty())
+  if (tail.empty()) {
     return;
+  }
 
   if (head->empty() || tail.starts_with('/')) {
     *head = tail;
@@ -146,8 +156,9 @@ void Path::Append(std::string* const head, const std::string_view tail) {
   assert(!head->empty());
   assert(!tail.empty());
 
-  if (!head->ends_with('/'))
+  if (!head->ends_with('/')) {
     *head += '/';
+  }
 
   *head += tail;
 }
@@ -162,14 +173,16 @@ std::string Path::Normalized() const {
   std::string result = "/";
 
   do {
-    while (in.Consume('/'));
+    while (in.Consume('/')) {
+    }
   } while (in.Consume("./") || in.Consume("../"));
 
   // Extract part after part
   while (true) {
     size_type i = in.find_first_not_of('/');
-    if (i == npos)
+    if (i == npos) {
       return result;
+    }
 
     in.remove_prefix(i);
     assert(!in.empty());

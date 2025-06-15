@@ -54,8 +54,9 @@ class Reader {
     void operator()(Reader* const reader) const {
       assert(reader);
       assert(reader->ref_count_ > 0);
-      if (--reader->ref_count_ == 0)
+      if (--reader->ref_count_ == 0) {
         delete reader;
+      }
     }
   };
 
