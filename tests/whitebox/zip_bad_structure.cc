@@ -176,22 +176,19 @@ int zip_file_set_comment(zip_t*,
 void duplicateFileNames() {
   z.filename = "same_file.name";
   z.count = 2;
-  Tree::Ptr tree = Tree::Init("dummy.zip");
-  assert(tree);
+  Tree("dummy.zip");
 }
 
 void relativePaths() {
   z.filename = "../file.name";
   z.count = 1;
-  Tree::Ptr tree = Tree::Init("dummy.zip");
-  assert(tree);
+  Tree("dummy.zip");
 }
 
 void absolutePaths() {
   z.filename = "/file.name";
   z.count = 1;
-  Tree::Ptr tree = Tree::Init("dummy.zip");
-  assert(tree);
+  Tree("dummy.zip");
 }
 
 int main(int, char**) {

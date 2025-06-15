@@ -56,21 +56,12 @@ class Tree {
     bool pre_cache = false;
   };
 
-  using Ptr = std::unique_ptr<Tree>;
-
-  struct CloseZip {
-    void operator()(zip_t* z) const { zip_close(z); }
-  };
-
-  using Zip = std::unique_ptr<zip_t, CloseZip>;
-  using Zips = std::vector<Zip>;
-
-  // Opens ZIP files and constructs the internal tree structure.
+  // Opens ZIP archives and constructs the internal tree structure.
   // Throws an std::runtime_error in case of error.
-  static Ptr Init(std::span<const std::string> paths, Options opts);
-  static Ptr Init(const std::string& path) {
-    return Init(std::span(&path, 1), Options{});
-  }
+  Tree(std::span<const std::string> paths, Options opts);
+
+  // For tests.
+  Tree(const std::string& path) : Tree(std::span(&path, 1), Options{}) {}
 
   // Finds an existing node with the given |path|.
   // Returns a null pointer if no matching node can be found.
@@ -81,12 +72,19 @@ class Tree {
   fsfilcnt_t GetNodeCount() const { return files_by_path_.size(); }
 
  private:
+  struct CloseZip {
+    void operator()(zip_t* z) const { zip_close(z); }
+  };
+
+  using Zip = std::unique_ptr<zip_t, CloseZip>;
+  using Zips = std::vector<Zip>;
+
+  // Opens the given ZIP archives.
+  static Zips OpenZips(std::span<const std::string> paths);
+
   // Constructor.
   Tree(Zips zips, Options opts)
       : zips_(std::move(zips)), opts_(std::move(opts)) {}
-
-  // Builds internal tree structure.
-  void BuildTree();
 
   // Returned by GetEntryAttributes.
   struct EntryAttributes {
@@ -135,7 +133,7 @@ class Tree {
   static size_t GetBucketCount(const Zips& zips);
 
   // ZIP archives.
-  Zips zips_;
+  const Zips zips_;
 
   // Extraction options.
   const Options opts_;

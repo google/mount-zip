@@ -647,7 +647,7 @@ int main(int argc, char* argv[]) try {
                << (param.paths.size() - 1) << " other archives...";
   }
   Timer timer;
-  Tree::Ptr tree = Tree::Init(param.paths, param.opts);
+  std::unique_ptr tree = std::make_unique<Tree>(param.paths, param.opts);
   g_tree = tree.get();
 #ifdef NDEBUG
   // For optimization, don't bother destructing the tree.

@@ -364,7 +364,9 @@ size_t Tree::GetBucketCount(const Zips& zips) {
       std::clamp<i64>(n, 16, std::numeric_limits<ssize_t>::max())));
 }
 
-void Tree::BuildTree() {
+Tree::Tree(std::span<const std::string> paths, Options opts)
+    : Tree(OpenZips(paths), std::move(opts)) {
+  // Create root node.
   FileNode::Ptr root(
       new FileNode{.data = {.nlink = 2, .mode = S_IFDIR | 0755}, .name = "/"});
   assert(!root->parent);
@@ -887,7 +889,7 @@ FileNode* Tree::CreateDir(std::string_view path) {
   return ret;
 }
 
-Tree::Ptr Tree::Init(std::span<const std::string> paths, Options opts) {
+Tree::Zips Tree::OpenZips(std::span<const std::string> paths) {
   Zips zips;
   zips.reserve(paths.size());
 
@@ -903,7 +905,5 @@ Tree::Ptr Tree::Init(std::span<const std::string> paths, Options opts) {
     zips.push_back(std::move(z));
   }
 
-  Ptr tree(new Tree(std::move(zips), std::move(opts)));
-  tree->BuildTree();
-  return tree;
+  return zips;
 }
