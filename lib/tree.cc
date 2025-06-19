@@ -811,13 +811,13 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
     return CreateFile(z, id, parent, name, mode);
   }
 
-  const std::string_view target_path(link, link_len);
+  const Path target_path(link, link_len);
 
-  const auto it = files_by_original_path_.find(
-      Path(target_path).WithoutTrailingSeparator());
+  const auto it =
+      files_by_original_path_.find(target_path.WithoutTrailingSeparator());
   if (it == files_by_original_path_.end()) {
     LOG(ERROR) << "Cannot find target for hardlink " << *node << " -> "
-               << Path(target_path);
+               << target_path;
     return CreateFile(z, id, parent, name, mode);
   }
 

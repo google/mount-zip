@@ -23,7 +23,7 @@
 
 class Path : public std::string_view {
  public:
-  Path(const char* path) : std::string_view(path) {}
+  using std::string_view::string_view;
   Path(std::string_view path) : std::string_view(path) {}
 
   // Removes trailing separators.
