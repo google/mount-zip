@@ -735,7 +735,7 @@ Unmounted (redacted) in 0 ms
 # RETURN VALUE
 
 **mount-zip** returns distinct error codes for different error conditions
-related to the ZIP archive itself:
+related to the ZIP archives themselves:
 
 **0**
 :   Success.
@@ -745,19 +745,19 @@ related to the ZIP archive itself:
     encoding, mount point cannot be created, mount point is not empty, etc.
 
 **11**
-:   The archive is a multipart ZIP.
+:   An archive is a multipart ZIP.
 
 **15**
-:   **mount-zip** cannot read the ZIP archive.
+:   A ZIP archive cannot be read.
 
 **19**
-:   **mount-zip** cannot find the ZIP archive.
+:   A ZIP archive cannot be found.
 
 **21**
-:   **mount-zip** cannot open the ZIP archive.
+:   A ZIP archive cannot be opened.
 
 **23**
-:   Zlib data error. This is probably the sign of a wrong password. Use
+:   Decompression error. This is probably the sign of a wrong password. Use
     `-o force` to bypass the password verification.
 
 **26**
@@ -765,21 +765,21 @@ related to the ZIP archive itself:
     method verification.
 
 **29**
-:   The archive is not recognized as a valid ZIP.
+:   An archive is not recognized as a valid ZIP.
 
 **31**
-:   The ZIP archive has an inconsistent structure.
+:   A ZIP archive has an inconsistent structure.
 
 **34**
 :   Unsupported encryption method. Use `-o force` to bypass the encryption
     method verification.
 
 **36**
-:   Needs password. The ZIP archive contains an encrypted file, but no password
+:   Password needed. A ZIP archive contains an encrypted file, but no password
     was provided. Use `-o force` to bypass the password verification.
 
 **37**
-:   Wrong password. The ZIP archive contains an encrypted file, and the provided
+:   Wrong password. A ZIP archive contains an encrypted file, and the provided
     password does not decrypt it. Use `-o force` to bypass the password
     verification.
 
