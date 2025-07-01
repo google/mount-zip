@@ -98,16 +98,19 @@ struct FileNode {
   using Stat = struct stat;
   operator Stat() const { return *link; }
 
-  FileType type() const { return GetFileType(link->mode); }
-  bool is_dir() const { return type() == FileType::Directory; }
+  FileType GetType() const { return GetFileType(link->mode); }
+  bool IsDir() const { return GetType() == FileType::Directory; }
 
   // Gets the full absolute path of this node.
-  std::string path() const {
+  std::string GetPath(size_t const reserve = 0) const {
     if (!parent) {
-      return name;
+      std::string s;
+      s.reserve(name.size() + reserve);
+      s = name;
+      return s;
     }
 
-    std::string s = parent->path();
+    std::string s = parent->GetPath(reserve + name.size() + 1);
     Path::Append(&s, name);
     return s;
   }
@@ -128,7 +131,7 @@ struct FileNode {
 
   // Output operator for debugging.
   friend std::ostream& operator<<(std::ostream& out, const FileNode& node) {
-    return out << node.type() << " [" << node.id << "] " << Path(node.path());
+    return out << node.GetType() << " [" << node.id << "] " << Path(node.GetPath());
   }
 };
 

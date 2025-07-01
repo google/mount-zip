@@ -823,7 +823,7 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
 
   const FileNode& target = *it;
 
-  if (target.type() != GetFileType(mode)) {
+  if (target.GetType() != GetFileType(mode)) {
     // PkZip saves hard-link flag for symlinks with inode link count > 1.
     if (!S_ISLNK(mode)) {
       LOG(ERROR) << "Mismatched types for hardlink " << *node << " -> "
@@ -853,7 +853,7 @@ FileNode* Tree::CreateDir(std::string_view path) {
   FileNode* parent;
 
   if (FileNode* const node = Find(path)) {
-    if (node->is_dir()) {
+    if (node->IsDir()) {
       return node;
     }
 
@@ -875,7 +875,7 @@ FileNode* Tree::CreateDir(std::string_view path) {
   FileNode::Ptr child(new FileNode{.data = {.nlink = 2, .mode = S_IFDIR | 0755},
                                    .parent = parent,
                                    .name = std::string(name)});
-  assert(child->path() == path);
+  assert(child->GetPath() == path);
   parent->AddChild(child.get());
   [[maybe_unused]] const auto [pos, ok] = files_by_path_.insert(*child);
   assert(ok);

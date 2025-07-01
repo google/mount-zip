@@ -191,7 +191,7 @@ struct Operations : fuse_operations {
       return -ENOENT;
     }
 
-    if (!n->is_dir()) {
+    if (!n->IsDir()) {
       LOG(ERROR) << "Cannot open " << *n << ": Not a directory";
       return -ENOTDIR;
     }
@@ -219,7 +219,7 @@ struct Operations : fuse_operations {
     assert(fi);
     const FileNode* const n = reinterpret_cast<const FileNode*>(fi->fh);
     assert(n);
-    assert(n->is_dir());
+    assert(n->IsDir());
 
     const auto add = [buf, filler, n](const char* const name,
                                       const struct stat* const z) {
@@ -265,7 +265,7 @@ struct Operations : fuse_operations {
       return -ENOENT;
     }
 
-    if (n->is_dir()) {
+    if (n->IsDir()) {
       LOG(ERROR) << "Cannot open " << *n << ": It is a directory";
       return -EISDIR;
     }
@@ -339,7 +339,7 @@ struct Operations : fuse_operations {
       return -ENOENT;
     }
 
-    if (n->type() != FileType::Symlink) {
+    if (n->GetType() != FileType::Symlink) {
       LOG(ERROR) << "Cannot read link " << *n << ": Not a symlink";
       return -ENOLINK;
     }

@@ -141,7 +141,7 @@ class Tree {
   // Path extractor for FileNode.
   struct GetPath {
     using type = std::string;
-    std::string operator()(const FileNode& node) const { return node.path(); }
+    std::string operator()(const FileNode& node) const { return node.GetPath(); }
   };
 
   // Original path extractor for FileNode.
