@@ -735,7 +735,7 @@ Unmounted (redacted) in 0 ms
 # RETURN VALUE
 
 **mount-zip** returns distinct error codes for different error conditions
-related the ZIP archive itself:
+related to the ZIP archive itself:
 
 **0**
 :   Success.
