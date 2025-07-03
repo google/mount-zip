@@ -201,10 +201,10 @@ bool Tree::ReadPasswordFromStdIn() {
 
   LOG(DEBUG) << "Got a password of " << password.size() << " bytes";
 
-  for (const auto& [zip, zip_name] : zips_) {
+  for (const auto& [zip, zip_path] : zips_) {
     zip_t* const z = zip.get();
     if (zip_set_default_password(z, password.c_str()) < 0) {
-      throw ZipError(StrCat("Cannot set password for ", Path(zip_name)), z);
+      throw ZipError(StrCat("Cannot set password for ", Path(zip_path)), z);
     }
   }
 
@@ -383,14 +383,13 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   all_names.reserve(10000);
   size_t max_name_length = 0;
 
-  // search for absolute or parent-relative paths
-  for (const auto& [zip, zip_name] : zips_) {
+  for (const auto& [zip, zip_path] : zips_) {
     zip_t* const z = zip.get();
     const i64 n = zip_get_num_entries(z, 0);
     for (i64 id = 0; id < n; ++id) {
       if (zip_stat_index(z, id, ZIP_FL_ENC_RAW, &sb) < 0) {
         throw ZipError(
-            StrCat("Cannot read entry #", id, " of ", Path(zip_name)), z);
+            StrCat("Cannot read entry #", id, " of ", Path(zip_path)), z);
       }
 
       if ((sb.valid & ZIP_STAT_SIZE) != 0) {
@@ -473,10 +472,10 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   };
 
   // Add zip entries for all items except hardlinks
-  for (const auto& [zip, zip_name] : zips_) {
+  for (const auto& [zip, zip_path] : zips_) {
     std::string prefix = "/";
     if (zips_.size() > 1 && !opts_.merge) {
-      Path::Append(&prefix, Path(zip_name).WithoutExtension());
+      Path::Append(&prefix, Path(zip_path).Split().second.WithoutExtension());
     }
 
     zip_t* const z = zip.get();
@@ -484,7 +483,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
     for (i64 id = 0; id < n; ++id) {
       if (zip_stat_index(z, id, zipFlags, &sb) < 0) {
         throw ZipError(
-            StrCat("Cannot read entry #", id, " of ", Path(zip_name)), z);
+            StrCat("Cannot read entry #", id, " of ", Path(zip_path)), z);
       }
 
       const Path original_path =
@@ -910,7 +909,7 @@ Tree::Zips Tree::OpenZips(std::span<const std::string> paths) {
     }
 
     LOG(DEBUG) << "Opened " << Path(path);
-    zips.push_back({std::move(z), std::string(Path(path).Split().second)});
+    zips.push_back({std::move(z), path});
   }
 
   return zips;
