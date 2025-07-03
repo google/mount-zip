@@ -54,6 +54,9 @@ class Tree {
 
     // Pre-cache data?
     bool pre_cache = false;
+
+    // Merge multiple ZIPs at the root level?
+    bool merge = true;
   };
 
   // Opens ZIP archives and constructs the internal tree structure.
@@ -77,7 +80,7 @@ class Tree {
   };
 
   using Zip = std::unique_ptr<zip_t, CloseZip>;
-  using Zips = std::vector<Zip>;
+  using Zips = std::vector<std::pair<Zip, std::string>>;
 
   // Opens the given ZIP archives.
   static Zips OpenZips(std::span<const std::string> paths);

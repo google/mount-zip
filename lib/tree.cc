@@ -201,10 +201,10 @@ bool Tree::ReadPasswordFromStdIn() {
 
   LOG(DEBUG) << "Got a password of " << password.size() << " bytes";
 
-  for (const Zip& zip : zips_) {
+  for (const auto& [zip, zip_name] : zips_) {
     zip_t* const z = zip.get();
     if (zip_set_default_password(z, password.c_str()) < 0) {
-      throw ZipError("Cannot set password", z);
+      throw ZipError(StrCat("Cannot set password for ", Path(zip_name)), z);
     }
   }
 
@@ -356,7 +356,7 @@ Tree::~Tree() {
 
 size_t Tree::GetBucketCount(const Zips& zips) {
   i64 n = 0;
-  for (const Zip& z : zips) {
+  for (const auto& [z, _] : zips) {
     n += zip_get_num_entries(z.get(), 0);
   }
   // Floor the number of elements to a power of 2 with a minimum of 16.
@@ -384,12 +384,13 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   size_t max_name_length = 0;
 
   // search for absolute or parent-relative paths
-  for (const Zip& zip : zips_) {
+  for (const auto& [zip, zip_name] : zips_) {
     zip_t* const z = zip.get();
     const i64 n = zip_get_num_entries(z, 0);
     for (i64 id = 0; id < n; ++id) {
       if (zip_stat_index(z, id, ZIP_FL_ENC_RAW, &sb) < 0) {
-        throw ZipError(StrCat("Cannot read entry #", id), z);
+        throw ZipError(
+            StrCat("Cannot read entry #", id, " of ", Path(zip_name)), z);
       }
 
       if ((sb.valid & ZIP_STAT_SIZE) != 0) {
@@ -450,6 +451,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
 
   struct Hardlink {
     zip_t* zip;
+    std::string prefix;
     i64 id;
     mode_t mode;
   };
@@ -471,18 +473,24 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   };
 
   // Add zip entries for all items except hardlinks
-  for (const Zip& zip : zips_) {
+  for (const auto& [zip, zip_name] : zips_) {
+    std::string prefix = "/";
+    if (zips_.size() > 1 && !opts_.merge) {
+      Path::Append(&prefix, Path(zip_name).WithoutExtension());
+    }
+
     zip_t* const z = zip.get();
     const i64 n = zip_get_num_entries(z, 0);
     for (i64 id = 0; id < n; ++id) {
       if (zip_stat_index(z, id, zipFlags, &sb) < 0) {
-        throw ZipError(StrCat("Cannot read entry #", id), z);
+        throw ZipError(
+            StrCat("Cannot read entry #", id, " of ", Path(zip_name)), z);
       }
 
       const Path original_path =
           (sb.valid & ZIP_STAT_NAME) != 0 && sb.name && *sb.name ? sb.name
                                                                  : "-";
-      const std::string path = Path(toUtf8(original_path)).Normalized();
+      const std::string path = Path(toUtf8(original_path)).Normalized(prefix);
       const i64 size = (sb.valid & ZIP_STAT_SIZE) != 0 ? sb.size : 0;
       const auto [mode, is_hardlink] = GetEntryAttributes(z, id, original_path);
       const FileType type = GetFileType(mode);
@@ -514,7 +522,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
 
       if (is_hardlink) {
         if (opts_.include_hardlinks) {
-          hardlinks.push_back({z, id, mode});
+          hardlinks.push_back({z, prefix, id, mode});
         } else {
           LOG(INFO) << "Skipped " << type << " [" << id << "] " << Path(path);
         }
@@ -579,9 +587,9 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   }
 
   // Add hardlinks
-  for (const auto [z, id, mode] : hardlinks) {
+  for (const auto& [z, prefix, id, mode] : hardlinks) {
     const Path original_path = zip_get_name(z, id, zipFlags);
-    const std::string path = Path(toUtf8(original_path)).Normalized();
+    const std::string path = Path(toUtf8(original_path)).Normalized(prefix);
     const auto [parent_path, name] = Path(path).Split();
     FileNode* const parent = CreateDir(parent_path);
     FileNode* node = CreateHardlink(z, id, parent, name, mode);
@@ -902,7 +910,7 @@ Tree::Zips Tree::OpenZips(std::span<const std::string> paths) {
     }
 
     LOG(DEBUG) << "Opened " << Path(path);
-    zips.push_back(std::move(z));
+    zips.push_back({std::move(z), std::string(Path(path).Split().second)});
   }
 
   return zips;

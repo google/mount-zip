@@ -163,14 +163,14 @@ void Path::Append(std::string* const head, const std::string_view tail) {
   *head += tail;
 }
 
-std::string Path::Normalized() const {
+std::string Path::Normalized(std::string_view const prefix) const {
   Path in = *this;
 
+  std::string result(prefix);
   if (in.empty()) {
-    return "/?";
+    Append(&result, "?");
+    return result;
   }
-
-  std::string result = "/";
 
   do {
     while (in.Consume('/')) {
