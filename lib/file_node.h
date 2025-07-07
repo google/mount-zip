@@ -105,7 +105,7 @@ struct FileNode {
   std::string GetPath(size_t const reserve = 0) const {
     if (!parent) {
       std::string s;
-      s.reserve(name.size() + reserve);
+      s.reserve(reserve + name.size() + 1);
       s = name;
       return s;
     }

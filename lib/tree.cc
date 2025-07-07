@@ -30,6 +30,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <limits.h>
 #include <termios.h>
 #include <unicode/putil.h>
 #include <unicode/uclean.h>
@@ -471,12 +472,17 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
     }
   };
 
+  std::string path;
+  path.reserve(PATH_MAX);
+
   // Add zip entries for all items except hardlinks
   for (const auto& [zip, zip_path] : zips_) {
-    std::string prefix = "/";
+    path = '/';
     if (zips_.size() > 1 && !opts_.merge) {
-      Path::Append(&prefix, Path(zip_path).Split().second.WithoutExtension());
+      path += Path(zip_path).Split().second.WithoutExtension();
     }
+    const std::string prefix = path;
+    size_t const initial_path_length = path.size();
 
     zip_t* const z = zip.get();
     const i64 n = zip_get_num_entries(z, 0);
@@ -489,7 +495,8 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
       const Path original_path =
           (sb.valid & ZIP_STAT_NAME) != 0 && sb.name && *sb.name ? sb.name
                                                                  : "-";
-      const std::string path = Path(toUtf8(original_path)).Normalized(prefix);
+      path.resize(initial_path_length);
+      Path(toUtf8(original_path)).NormalizeAppend(&path);
       const i64 size = (sb.valid & ZIP_STAT_SIZE) != 0 ? sb.size : 0;
       const auto [mode, is_hardlink] = GetEntryAttributes(z, id, original_path);
       const FileType type = GetFileType(mode);
@@ -588,10 +595,13 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   // Add hardlinks
   for (const auto& [z, prefix, id, mode] : hardlinks) {
     const Path original_path = zip_get_name(z, id, zipFlags);
-    const std::string path = Path(toUtf8(original_path)).Normalized(prefix);
+    path = prefix;
+    Path(toUtf8(original_path)).NormalizeAppend(&path);
     const auto [parent_path, name] = Path(path).Split();
     FileNode* const parent = CreateDir(parent_path);
-    FileNode* node = CreateHardlink(z, id, parent, name, mode);
+    assert(parent);
+    FileNode* const node = CreateHardlink(z, id, parent, name, mode);
+    assert(node);
     assert(node->parent == parent);
     parent->AddChild(node);
     node->original_path = original_path;

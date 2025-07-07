@@ -163,13 +163,14 @@ void Path::Append(std::string* const head, const std::string_view tail) {
   *head += tail;
 }
 
-std::string Path::Normalized(std::string_view const prefix) const {
-  Path in = *this;
+void Path::NormalizeAppend(std::string* const to) const {
+  assert(to);
+  std::string& result = *to;
 
-  std::string result(prefix);
+  Path in = *this;
   if (in.empty()) {
     Append(&result, "?");
-    return result;
+    return;
   }
 
   do {
@@ -181,7 +182,7 @@ std::string Path::Normalized(std::string_view const prefix) const {
   while (true) {
     size_type i = in.find_first_not_of('/');
     if (i == npos) {
-      return result;
+      return;
     }
 
     in.remove_prefix(i);
