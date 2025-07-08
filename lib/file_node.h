@@ -87,7 +87,7 @@ struct FileNode {
                 bi::member_hook<FileNode, ByParent, &FileNode::by_parent>,
                 bi::constant_time_size<false>,
                 bi::linear<true>,
-                bi::cache_last<false>>;
+                bi::cache_last<true>>;
   Children children;
 
   // Hooks used to index FileNodes by full path and by original path.
@@ -119,7 +119,7 @@ struct FileNode {
   void AddChild(FileNode* const child) {
     assert(child);
     assert(this == child->parent);
-    children.push_front(*child);
+    children.push_back(*child);
   }
 
   bool CacheAll(std::function<void(ssize_t)> progress = {}) {

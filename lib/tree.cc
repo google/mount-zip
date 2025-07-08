@@ -26,6 +26,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -368,12 +369,15 @@ size_t Tree::GetBucketCount(const Zips& zips) {
 Tree::Tree(std::span<const std::string> paths, Options opts)
     : Tree(OpenZips(paths), std::move(opts)) {
   // Create root node.
-  FileNode::Ptr root(
-      new FileNode{.data = {.nlink = 2, .mode = S_IFDIR | 0755}, .name = "/"});
-  assert(!root->parent);
-  [[maybe_unused]] const auto [pos, ok] = files_by_path_.insert(*root);
-  assert(ok);
-  root.release();  // Now owned by |files_by_path_|.
+  {
+    FileNode::Ptr root(new FileNode{
+        .data = {.nlink = 2, .mode = S_IFDIR | 0755}, .name = "/"});
+    assert(!root->parent);
+    [[maybe_unused]] const auto [pos, ok] = files_by_path_.insert(*root);
+    assert(ok);
+    root_ = root.get();
+    root.release();  // Now owned by |files_by_path_|.
+  }
 
   // Sum of all uncompressed file sizes.
   i64 total_uncompressed_size = 0;
@@ -611,6 +615,17 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
 
   if (should_display_progress.Count()) {
     LOG(INFO) << "Loaded 100%";
+  }
+
+  if (opts_.trim) {
+    assert(root_);
+    if (zips_.size() > 1) {
+      for (FileNode& c : root_->children) {
+        Trim(c);
+      }
+    } else {
+      Trim(*root_);
+    }
   }
 
   LOG(DEBUG) << "Nodes = " << GetNodeCount();
@@ -923,4 +938,61 @@ Tree::Zips Tree::OpenZips(std::span<const std::string> paths) {
   }
 
   return zips;
+}
+
+void Tree::Trim(FileNode& a) {
+  if (!a.IsDir()) {
+    LOG(DEBUG) << a << " is not a dir";
+    return;
+  }
+
+  FileNode::Children::iterator const it = a.children.begin();
+  if (it == a.children.end()) {
+    LOG(DEBUG) << a << " has no children";
+    return;
+  }
+
+  FileNode& b = *it;
+  if (std::next(it) != a.children.end()) {
+    LOG(DEBUG) << a << " has more than one child";
+    return;
+  }
+
+  if (!b.IsDir()) {
+    LOG(DEBUG) << b << " is not a dir";
+    return;
+  }
+
+  LOG(DEBUG) << "Collapsing " << b << " into " << a;
+
+  Deindex(b);
+  a.children.clear();
+  a.data = std::move(b.data);
+  a.link = &a.data;
+  a.children = std::move(b.children);
+  assert(b.children.empty());
+
+  for (FileNode& c : a.children) {
+    assert(c.parent == &b);
+    c.parent = &a;
+    Reindex(c);
+  }
+
+  // delete &b;
+}
+
+void Tree::Deindex(FileNode& node) {
+  for (FileNode& c : node.children) {
+    Deindex(c);
+  }
+  files_by_path_.erase(files_by_path_.iterator_to(node));
+}
+
+void Tree::Reindex(FileNode& node) {
+  bool const ok = files_by_path_.insert(node).second;
+  assert(ok);
+
+  for (FileNode& c : node.children) {
+    Reindex(c);
+  }
 }

@@ -57,6 +57,9 @@ class Tree {
 
     // Merge multiple ZIPs at the root level?
     bool merge = true;
+
+    // Trim top level if possible?
+    bool trim = false;
   };
 
   // Opens ZIP archives and constructs the internal tree structure.
@@ -131,6 +134,10 @@ class Tree {
   // Throws ZipError if the password doesn't match.
   void CheckPassword(const FileNode* node);
 
+  void Trim(FileNode& dest);
+  void Deindex(FileNode& node);
+  void Reindex(FileNode& node);
+
   // Computes the optimal number of buckets for the hash tables indexing the
   // given ZIP archives.
   static size_t GetBucketCount(const Zips& zips);
@@ -144,7 +151,9 @@ class Tree {
   // Path extractor for FileNode.
   struct GetPath {
     using type = std::string;
-    std::string operator()(const FileNode& node) const { return node.GetPath(); }
+    std::string operator()(const FileNode& node) const {
+      return node.GetPath();
+    }
   };
 
   // Original path extractor for FileNode.
@@ -192,6 +201,9 @@ class Tree {
   // Collection of FileNodes indexed by original path.
   FilesByOriginalPath files_by_original_path_{
       {buckets_by_original_path_.get(), bucket_count_}};
+
+  // Root node.
+  FileNode* root_ = nullptr;
 
   blkcnt_t total_block_count_ = 1;
 
