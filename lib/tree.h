@@ -59,7 +59,7 @@ class Tree {
     bool merge = true;
 
     // Trim top level if possible?
-    bool trim = false;
+    bool trim = true;
   };
 
   // Opens ZIP archives and constructs the internal tree structure.
@@ -203,7 +203,8 @@ class Tree {
       {buckets_by_original_path_.get(), bucket_count_}};
 
   // Root node.
-  FileNode* root_ = nullptr;
+  FileNode* const root_ =
+      new FileNode{.data = {.nlink = 2, .mode = S_IFDIR | 0755}, .name = "/"};
 
   blkcnt_t total_block_count_ = 1;
 

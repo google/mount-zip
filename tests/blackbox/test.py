@@ -276,24 +276,23 @@ def TestZipWithDefaultOptions():
           }
       },
       'comment-utf8.zip': {
-          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
-          'dir': {
+          '.': {
               'nlink': 2,
               'mtime': 1563727169000000000,
           },
-          'dir/empty_comment.txt': {
+          'empty_comment.txt': {
               'nlink': 1,
               'mtime': 1563721364000000000,
               'size': 14,
               'md5': '3453ff2f4d15a71d21e859829f0da9fc',
           },
-          'dir/with_comment.txt': {
+          'with_comment.txt': {
               'nlink': 1,
               'mtime': 1563720300000000000,
               'size': 13,
               'md5': '557fcaa19da1b3e2cd6ce8e546a13f46',
           },
-          'dir/without_comment.txt': {
+          'without_comment.txt': {
               'nlink': 1,
               'mtime': 1563720306000000000,
               'size': 16,
@@ -301,24 +300,23 @@ def TestZipWithDefaultOptions():
           },
       },
       'comment.zip': {
-          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
-          'dir': {
+          '.': {
               'nlink': 2,
               'mtime': 1563727169000000000,
           },
-          'dir/empty_comment.txt': {
+          'empty_comment.txt': {
               'nlink': 1,
               'mtime': 1563721364000000000,
               'size': 14,
               'md5': '3453ff2f4d15a71d21e859829f0da9fc',
           },
-          'dir/with_comment.txt': {
+          'with_comment.txt': {
               'nlink': 1,
               'mtime': 1563720300000000000,
               'size': 13,
               'md5': '557fcaa19da1b3e2cd6ce8e546a13f46',
           },
-          'dir/without_comment.txt': {
+          'without_comment.txt': {
               'nlink': 1,
               'mtime': 1563720306000000000,
               'size': 16,
@@ -326,19 +324,18 @@ def TestZipWithDefaultOptions():
           },
       },
       'dos-perm.zip': {
-          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
-          'dir': {'mode': 'drwxr-xr-x', 'nlink': 2},
-          'dir/hidden.txt': {
+          '.': {'mode': 'drwxr-xr-x', 'nlink': 2},
+          'hidden.txt': {
               'nlink': 1,
               'size': 11,
               'md5': 'fa29ea74a635e3be468256f9007b1bb6',
           },
-          'dir/normal.txt': {
+          'normal.txt': {
               'nlink': 1,
               'size': 11,
               'md5': '050256c2ac1d77494b9fddaa933f5eda',
           },
-          'dir/readonly.txt': {
+          'readonly.txt': {
               'nlink': 1,
               'size': 14,
               'md5': '6f651ad751dadd4e76c8f46b6fae0c48',
@@ -946,18 +943,15 @@ def TestZipWithDefaultOptions():
           }
       },
       'not-full-path-deep.zip': {
-          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
-          'sim': {'nlink': 3},
-          'sim/salabim': {'nlink': 3},
-          'sim/salabim/rahat': {
-              'nlink': 2,
-          },
-          'sim/salabim/rahat/lukum': {
+          '.':  {'nlink': 3},
+          'salabim': {'nlink': 3},
+          'salabim/rahat': {'nlink': 2},
+          'salabim/rahat/lukum': {
               'nlink': 1,
               'size': 10,
               'md5': '16c52c6e8326c071da771e66dc6e9e57',
           },
-          'sim/salabim/rahat-lukum': {
+          'salabim/rahat-lukum': {
               'nlink': 1,
               'size': 10,
               'md5': '38b18761d3d0c217371967a98d545c2e',
@@ -1521,6 +1515,7 @@ def TestZipWithManyFiles():
   MountZipAndCheckTree(
       'collisions.zip',
       want_tree,
+      options = ['-o', 'notrim'],
       want_blocks=100007,
       want_inodes=100014,
       strict=False,

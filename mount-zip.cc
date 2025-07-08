@@ -87,6 +87,7 @@ General options:
     -o fmask=M             file permission mask in octal (default 0022)
     -o encoding=CHARSET    original encoding of file names
     -o nomerge             don't merge multiple ZIPs in the same directory
+    -o notrim              don't trim the base of the tree
     -o nospecials          no special files (FIFOs, sockets, devices)
     -o nosymlinks          no symbolic links
     -o nohardlinks         no hard links)"
@@ -415,6 +416,7 @@ enum {
   KEY_PRE_CACHE,
   KEY_MEM_CACHE,
   KEY_NO_MERGE,
+  KEY_NO_TRIM,
   KEY_NO_CACHE,
   KEY_NO_SPECIALS,
   KEY_NO_SYMLINKS,
@@ -501,6 +503,10 @@ static int ProcessArg(void* data,
 
     case KEY_NO_MERGE:
       param.opts.merge = false;
+      return DISCARD;
+
+    case KEY_NO_TRIM:
+      param.opts.trim = false;
       return DISCARD;
 
     case KEY_NO_CACHE:
@@ -600,6 +606,7 @@ int main(int argc, char* argv[]) try {
       FUSE_OPT_KEY("--nocache", KEY_NO_CACHE),
       FUSE_OPT_KEY("nocache", KEY_NO_CACHE),
       FUSE_OPT_KEY("nomerge", KEY_NO_MERGE),
+      FUSE_OPT_KEY("notrim", KEY_NO_TRIM),
       FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
       FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
       FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),

@@ -368,16 +368,11 @@ size_t Tree::GetBucketCount(const Zips& zips) {
 
 Tree::Tree(std::span<const std::string> paths, Options opts)
     : Tree(OpenZips(paths), std::move(opts)) {
-  // Create root node.
-  {
-    FileNode::Ptr root(new FileNode{
-        .data = {.nlink = 2, .mode = S_IFDIR | 0755}, .name = "/"});
-    assert(!root->parent);
-    [[maybe_unused]] const auto [pos, ok] = files_by_path_.insert(*root);
-    assert(ok);
-    root_ = root.get();
-    root.release();  // Now owned by |files_by_path_|.
-  }
+  // Register root node.
+  assert(root_);
+  assert(!root_->parent);
+  bool const ok = files_by_path_.insert(*root_).second;
+  assert(ok);
 
   // Sum of all uncompressed file sizes.
   i64 total_uncompressed_size = 0;
@@ -482,7 +477,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   // Add zip entries for all items except hardlinks
   for (const auto& [zip, zip_path] : zips_) {
     path = '/';
-    if (zips_.size() > 1 && !opts_.merge) {
+    if (!opts_.merge) {
       path += Path(zip_path).Split().second.WithoutExtension();
     }
     const std::string prefix = path;
@@ -617,14 +612,15 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
     LOG(INFO) << "Loaded 100%";
   }
 
+  // Trim the top level if necessary.
   if (opts_.trim) {
     assert(root_);
-    if (zips_.size() > 1) {
+    if (opts_.merge) {
+      Trim(*root_);
+    } else {
       for (FileNode& c : root_->children) {
         Trim(c);
       }
-    } else {
-      Trim(*root_);
     }
   }
 
@@ -942,24 +938,24 @@ Tree::Zips Tree::OpenZips(std::span<const std::string> paths) {
 
 void Tree::Trim(FileNode& a) {
   if (!a.IsDir()) {
-    LOG(DEBUG) << a << " is not a dir";
+    // LOG(DEBUG) << a << " is not a dir";
     return;
   }
 
   FileNode::Children::iterator const it = a.children.begin();
   if (it == a.children.end()) {
-    LOG(DEBUG) << a << " has no children";
+    // LOG(DEBUG) << a << " has no children";
     return;
   }
 
   FileNode& b = *it;
   if (std::next(it) != a.children.end()) {
-    LOG(DEBUG) << a << " has more than one child";
+    // LOG(DEBUG) << a << " has more than one child";
     return;
   }
 
   if (!b.IsDir()) {
-    LOG(DEBUG) << b << " is not a dir";
+    // LOG(DEBUG) << b << " is not a dir";
     return;
   }
 
@@ -978,7 +974,8 @@ void Tree::Trim(FileNode& a) {
     Reindex(c);
   }
 
-  // delete &b;
+  total_block_count_ -= 1;
+  delete &b;
 }
 
 void Tree::Deindex(FileNode& node) {
