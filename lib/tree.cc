@@ -502,7 +502,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
 
       if (type == FileType::Directory) {
         FileNode* const node = CreateDir(path);
-        assert(node->link == &node->data);
+        assert(!node->link);
         const ino_t ino = node->data.ino;
         const nlink_t nlink = node->data.nlink;
         assert(nlink >= 2);
@@ -861,7 +861,7 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
     return CreateFile(z, id, parent, name, mode);
   }
 
-  node->link = target.link;
+  node->link = &target.GetTarget();
   node->link->nlink++;
 
   LOG(DEBUG) << "Created hardlink " << *node << " -> " << target;
@@ -908,7 +908,8 @@ FileNode* Tree::CreateDir(std::string_view path) {
   [[maybe_unused]] const auto [pos, ok] = files_by_path_.insert(*child);
   assert(ok);
   FileNode* const ret = child.release();  // Now owned by |files_by_path_|.
-  parent->link->nlink++;
+  assert(!parent->link);
+  parent->data.nlink++;
 
   if (to_rename) {
     Attach(std::move(to_rename));
@@ -964,7 +965,8 @@ void Tree::Trim(FileNode& a) {
   Deindex(b);
   a.children.clear();
   a.data = std::move(b.data);
-  a.link = &a.data;
+  assert(!a.link);
+  assert(!b.link);
   a.children = std::move(b.children);
   assert(b.children.empty());
 

@@ -51,7 +51,7 @@ struct FileNode {
   DataNode data;
 
   // If this FileNode is a hardlink, this points to the target inode.
-  const DataNode* link = &data;
+  const DataNode* link = nullptr;
 
   // Pointer to the parent node. Should be non null. The only exception is the
   // root directory which has a null parent pointer.
@@ -94,11 +94,13 @@ struct FileNode {
   using ByPath = bi::unordered_set_member_hook<LinkMode, bi::store_hash<true>>;
   ByPath by_path, by_original_path;
 
+  const DataNode& GetTarget() const { return link ? *link : data; }
+
   // Gets attributes.
   using Stat = struct stat;
-  operator Stat() const { return *link; }
+  operator Stat() const { return GetTarget(); }
 
-  FileType GetType() const { return GetFileType(link->mode); }
+  FileType GetType() const { return GetFileType(GetTarget().mode); }
   bool IsDir() const { return GetType() == FileType::Directory; }
 
   // Gets the full absolute path of this node.
@@ -127,7 +129,7 @@ struct FileNode {
   }
 
   // Gets a Reader to read file contents.
-  Reader::Ptr GetReader() const { return link->GetReader(zip, *this); }
+  Reader::Ptr GetReader() const { return GetTarget().GetReader(zip, *this); }
 
   // Output operator for debugging.
   friend std::ostream& operator<<(std::ostream& out, const FileNode& node) {
