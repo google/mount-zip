@@ -236,6 +236,7 @@ struct Operations : fuse_operations {
       }
     };
 
+    Timer const timer;
     struct stat z = *n;
     add(".", &z);
 
@@ -251,7 +252,8 @@ struct Operations : fuse_operations {
       add(child.name.c_str(), &z);
     }
 
-    LOG(DEBUG) << "List " << *n << " -> " << n->children.size() << " items";
+    LOG(DEBUG) << "List " << *n << " -> " << n->children.size() << " items in "
+               << timer;
     return 0;
   } catch (const std::bad_alloc&) {
     return -ENOMEM;
@@ -660,7 +662,8 @@ int main(int argc, char* argv[]) try {
     LOG(DEBUG) << "Indexing " << Path(param.paths.front()) << " and "
                << (param.paths.size() - 1) << " other archives...";
   }
-  Timer timer;
+
+  Timer const timer;
   std::unique_ptr tree = std::make_unique<Tree>(param.paths, param.opts);
   g_tree = tree.get();
 #ifdef NDEBUG

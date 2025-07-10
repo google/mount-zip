@@ -944,14 +944,13 @@ def TestZipWithDefaultOptions():
       },
       'not-full-path-deep.zip': {
           '.':  {'nlink': 3},
-          'salabim': {'nlink': 3},
-          'salabim/rahat': {'nlink': 2},
-          'salabim/rahat/lukum': {
+          'rahat': {'nlink': 2},
+          'rahat/lukum': {
               'nlink': 1,
               'size': 10,
               'md5': '16c52c6e8326c071da771e66dc6e9e57',
           },
-          'salabim/rahat-lukum': {
+          'rahat-lukum': {
               'nlink': 1,
               'size': 10,
               'md5': '38b18761d3d0c217371967a98d545c2e',
@@ -1518,6 +1517,52 @@ def TestZipWithManyFiles():
       options = ['-o', 'notrim'],
       want_blocks=100007,
       want_inodes=100014,
+      strict=False,
+      use_md5=False,
+  )
+
+  want_tree = {
+      'There are many versions of this file': {
+          'size': 0,
+      },
+      'There are many versions of this file (1)': {
+          'size': 0,
+      },
+      'There are many versions of this file (2)': {
+          'size': 18,
+      },
+      'There are many versions of this file (3)': {
+          'size': 0,
+      },
+      'There are many versions of this file (4)': {
+          'size': 19,
+      },
+      'There are many versions of this file (5)': {
+          'size': 0,
+      },
+      'There are many versions of this file (50000)': {
+          'size': 0,
+      },
+      'There are many versions of this file (99999)': {
+          'size': 0,
+      },
+      'There are many versions of this file (100000)': {
+          'size': 0,
+      },
+      'There are many versions of this file (100001)': {
+          'size': 0,
+      },
+      'There are many versions of this file (100002)': {
+          'size': 8,
+      },
+  }
+
+  MountZipAndCheckTree(
+      'collisions.zip',
+      want_tree,
+      options = [],
+      want_blocks=99997,
+      want_inodes=100004,
       strict=False,
       use_md5=False,
   )

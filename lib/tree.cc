@@ -938,30 +938,43 @@ Tree::Zips Tree::OpenZips(std::span<const std::string> paths) {
 }
 
 void Tree::Trim(FileNode& a) {
-  FileNode* const p = a.GetUniqueChildDirectory();
-  if(!p) {
+  FileNode* p = a.GetUniqueChildDirectory();
+  if (!p) {
     return;
   }
 
-  FileNode& b = *p;
-  LOG(INFO) << "Collapsing " << b << " into " << a;
-
-  Deindex(b);
+  Deindex(*p);
   a.children.clear();
-  a.data = std::move(b.data);
+
+  while (FileNode* const q = p->GetUniqueChildDirectory()) {
+    p->children.clear();
+    p = q;
+  }
+
+  LOG(DEBUG) << "Collapsing " << *p << " into " << a;
+
+  a.data = std::move(p->data);
   assert(!a.link);
-  assert(!b.link);
-  a.children = std::move(b.children);
-  assert(b.children.empty());
+  assert(!p->link);
+  a.children = std::move(p->children);
+  assert(p->children.empty());
 
   for (FileNode& c : a.children) {
-    assert(c.parent == &b);
+    assert(c.parent == p);
     c.parent = &a;
     Reindex(c);
   }
 
-  total_block_count_ -= 1;
-  delete &b;
+  LOG(INFO) << "Collapsed " << *p << " into " << a;
+  LOG(INFO)
+      << "Use `-o notrim` if you want to keep these intermediate directories";
+
+  while (p != &a) {
+    total_block_count_ -= 1;
+    FileNode* const q = p->parent;
+    delete p;
+    p = q;
+  }
 }
 
 void Tree::Deindex(FileNode& node) {
