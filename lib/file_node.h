@@ -18,6 +18,7 @@
 #ifndef FILE_NODE_H
 #define FILE_NODE_H
 
+#include <iterator>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -94,14 +95,23 @@ struct FileNode {
   using ByPath = bi::unordered_set_member_hook<LinkMode, bi::store_hash<true>>;
   ByPath by_path, by_original_path;
 
-  const DataNode& GetTarget() const { return link ? *link : data; }
+  const DataNode& GetTarget() const {
+    return link ? *link : data;
+  }
 
   // Gets attributes.
   using Stat = struct stat;
-  operator Stat() const { return GetTarget(); }
+  operator Stat() const {
+    return GetTarget();
+  }
 
-  FileType GetType() const { return GetFileType(GetTarget().mode); }
-  bool IsDir() const { return GetType() == FileType::Directory; }
+  FileType GetType() const {
+    return GetFileType(GetTarget().mode);
+  }
+
+  bool IsDir() const {
+    return GetType() == FileType::Directory;
+  }
 
   // Gets the full absolute path of this node.
   std::string GetPath(size_t const reserve = 0) const {
@@ -124,16 +134,52 @@ struct FileNode {
     children.push_back(*child);
   }
 
+  // If this node is a directory which only has one child which is a directory
+  // as well, then this method returns a pointer to this child. Otherwise it
+  // returns a null pointer.
+  FileNode* GetUniqueChildDirectory() {
+    if (!IsDir()) {
+      // LOG(DEBUG) << *this << " is not a dir";
+      return nullptr;
+    }
+
+    FileNode::Children::iterator const it = children.begin();
+    if (it == children.end()) {
+      // LOG(DEBUG) << *this << " has no children";
+      return nullptr;
+    }
+
+    if (std::next(it) != children.end()) {
+      // LOG(DEBUG) << *this << " has more than one child";
+      return nullptr;
+    }
+
+    if (!it->IsDir()) {
+      // LOG(DEBUG) << *it << " is not a dir";
+      return nullptr;
+    }
+
+    return &*it;
+  }
+
   bool CacheAll(std::function<void(ssize_t)> progress = {}) {
     return data.CacheAll(zip, *this, std::move(progress));
   }
 
   // Gets a Reader to read file contents.
-  Reader::Ptr GetReader() const { return GetTarget().GetReader(zip, *this); }
+  Reader::Ptr GetReader() const {
+    return GetTarget().GetReader(zip, *this);
+  }
 
   // Output operator for debugging.
   friend std::ostream& operator<<(std::ostream& out, const FileNode& node) {
-    return out << node.GetType() << " [" << node.id << "] " << Path(node.GetPath());
+    out << node.GetType();
+
+    if (node.id >= 0) {
+      out << " [" << node.id << "]";
+    }
+
+    return out << " " << Path(node.GetPath());
   }
 };
 

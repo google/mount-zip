@@ -938,29 +938,13 @@ Tree::Zips Tree::OpenZips(std::span<const std::string> paths) {
 }
 
 void Tree::Trim(FileNode& a) {
-  if (!a.IsDir()) {
-    // LOG(DEBUG) << a << " is not a dir";
+  FileNode* const p = a.GetUniqueChildDirectory();
+  if(!p) {
     return;
   }
 
-  FileNode::Children::iterator const it = a.children.begin();
-  if (it == a.children.end()) {
-    // LOG(DEBUG) << a << " has no children";
-    return;
-  }
-
-  FileNode& b = *it;
-  if (std::next(it) != a.children.end()) {
-    // LOG(DEBUG) << a << " has more than one child";
-    return;
-  }
-
-  if (!b.IsDir()) {
-    // LOG(DEBUG) << b << " is not a dir";
-    return;
-  }
-
-  LOG(DEBUG) << "Collapsing " << b << " into " << a;
+  FileNode& b = *p;
+  LOG(INFO) << "Collapsing " << b << " into " << a;
 
   Deindex(b);
   a.children.clear();
