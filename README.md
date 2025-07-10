@@ -3,7 +3,7 @@ title: MOUNT-ZIP
 section: 1
 header: User Manual
 footer: mount-zip 1.9
-date: June 2025
+date: July 2025
 ---
 # NAME
 
@@ -29,71 +29,79 @@ working directory.
 # OPTIONS
 
 **-\-help** or **-h**
-:   Print help
+:   Print help.
 
 **-\-version** or **-V**
-:   Print program version
+:   Print program version.
 
 **-o quiet** or **-q**
-:   Print fewer log messages
+:   Print fewer log messages.
 
 **-o verbose** or **-v**
-:   Print more detailed log messages
+:   Print more detailed log messages.
 
 **-o redact**
-:   Redact file names from log messages
+:   Redact file names from log messages.
 
 **-o force**
 :   Continue even if the given password is wrong or missing, or if the
-    encryption or compression method is unsupported
+    encryption or compression method is unsupported.
 
 **-o precache**
-:   Preemptively decompress and cache the whole ZIP archives
+:   Preemptively decompress and cache the whole ZIP archives.
 
 **-o cache=DIR**
-:   Use a different cache directory (default is `$TMPDIR` or `/tmp`)
+:   Use a different cache directory (default is `$TMPDIR` or `/tmp`).
 
 **-o memcache**
-:   Cache the decompressed data in memory
+:   Cache the decompressed data in memory.
 
 **-o nocache**
-:   Do not cache the decompressed data
+:   Do not cache the decompressed data.
 
 **-o encoding=CHARSET**
-:   Original encoding of file names
+:   Original encoding of file names.
+
+**-o notrim**
+:   Do not trim the base of the tree. Keep all the intermediate directories as
+    specified in the ZIP archive.
+
+**-o nomerge**
+:   Do not merge multiple ZIP archives on top of each other. Instead, create a
+    subdirectory for each ZIP inside the mount point.
 
 **-o nospecials**
-:   Hide special files (FIFOs, sockets, devices)
+:   Hide special files (FIFOs, sockets, devices).
 
 **-o nosymlinks**
-:   Hide symbolic links
+:   Hide symbolic links.
 
 **-o nohardlinks**
-:   Hide hard links
+:   Hide hard links.
 
 **-o dmask=M**
-:   Directory permission mask in octal (default 0022)
+:   Directory permission mask in octal (default 0022).
 
 **-o fmask=M**
-:   File permission mask in octal (default 0022)
+:   File permission mask in octal (default 0022).
 
 **-o uid=N**
 :   Set the user ID of all the items in the mounted archive (default is current
-    user)
+    user).
 
 **-o gid=N**
 :   Set the group ID of all the items in the mounted archive (default is current
-    group)
+    group).
 
 **-o default_permissions**
 :   Use the user ID, group ID and permissions stored with each item in the
-    archive
+    archive.
 
 **-f**
-:   Foreground mode
+:   Foreground mode.
 
 **-d**
-:   Foreground mode with debug output
+:   Foreground mode with debug output.
 
 # USAGE
 
