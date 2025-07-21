@@ -142,11 +142,18 @@ class CacheFileReader : public UnbufferedReader {
       case CacheStrategy::NoCache:
         throw std::runtime_error(
             "Cannot create cache file: Option --nocache is in use");
-
       case CacheStrategy::InMemory:
         // Create an in-memory anonymous file.
         {
+#if __APPLE__ // macOS has no memfd_create()
+          int fd = shm_open("/cache", O_RDWR|O_CREAT|O_EXCL, 0600);
+          if (shm_unlink("/cache") < 0) {
+            ThrowSystemError("Cannot unlink cache file in memory");
+          }
+          ScopedFile file(fd);
+#else
           ScopedFile file(memfd_create("cache", 0));
+#endif
           if (!file.IsValid()) {
             ThrowSystemError("Cannot create cache file in memory");
           }
@@ -219,11 +226,11 @@ class CacheFileReader : public UnbufferedReader {
     // Extend cache file.
     const off_t offset = st.st_size;
 #if __APPLE__
-    fstore_t st{.fst_flags = F_ALLOCATEALL,
-                .fst_posmode = F_PEOFPOSMODE,
-                .fst_offset = 0,
-                .fst_length = expected_size_};
-    if (fcntl(cache_file_, F_PREALLOCATE, &st) < 0 ||
+    fstore_t fst{.fst_flags = F_ALLOCATEALL,
+                 .fst_posmode = F_PEOFPOSMODE,
+                 .fst_offset = 0,
+                 .fst_length = expected_size_};
+    if (fcntl(cache_file_, F_PREALLOCATE, &fst) < 0 ||
         ftruncate(cache_file_, offset + expected_size_) < 0) {
       ThrowSystemError("Cannot reserve ", expected_size_,
                        " bytes in cache file ", cache_file_, " at offset ",
