@@ -32,8 +32,25 @@
 #include <new>
 #include <string_view>
 
+#ifdef __APPLE__
+
+#ifndef typeof // work around the -pedantic -std=c++20
+#define typeof(x) __typeof__(x)
+#endif
+
+#ifdef FUSE_USE_VERSION
+#define FUSE_DARWIN_ENABLE_EXTENSIONS 0
+#endif
+
+#endif
+
 #include <fuse.h>
 #include <fuse_opt.h>
+
+#ifdef __APPLE__
+#undef typeof
+#endif
+
 #include <libgen.h>
 #include <limits.h>
 #include <string.h>
