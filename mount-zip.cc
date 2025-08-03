@@ -95,7 +95,8 @@ General options:
          R"(
     -o direct_io           use direct I/O)"
 #endif
-         "\n\n";
+         "\n\n"
+      << std::flush;
 }
 
 // Parameters for command-line argument processing function.
@@ -466,7 +467,8 @@ static int ProcessArg(void* data,
 
     case KEY_VERSION:
       std::cout << PROGRAM_NAME " version: " PROGRAM_VERSION "\n"
-                << "libzip version: " LIBZIP_VERSION "\n";
+                << "libzip version: " LIBZIP_VERSION "\n"
+                << std::flush;
       fuse_opt_add_arg(outargs, "--version");
       fuse_main(outargs->argc, outargs->argv, &operations, nullptr);
       std::exit(EXIT_SUCCESS);
