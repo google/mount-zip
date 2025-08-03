@@ -38,8 +38,8 @@ class Tree {
     // Include symbolic links?
     bool include_symlinks = true;
 
-    // Include hardlinks?
-    bool include_hardlinks = true;
+    // Include hard links?
+    bool include_hard_links = true;
 
     // Include special file types (block and character devices, FIFOs and
     // sockets)?
@@ -95,10 +95,10 @@ class Tree {
   // Returned by GetEntryAttributes.
   struct EntryAttributes {
     mode_t mode;       // Unix mode
-    bool is_hardlink;  // PkWare hardlink flag
+    bool is_hard_link;  // PkWare hard link flag
   };
 
-  // Gets the UNIX mode and the PkWare hardlink flag from the entry external
+  // Gets the UNIX mode and the PkWare hard link flag from the entry external
   // attributes field.
   EntryAttributes GetEntryAttributes(zip_t* z,
                                      i64 id,
@@ -108,6 +108,9 @@ class Tree {
   // the needed intermediary nodes).
   FileNode* CreateDir(std::string_view path);
 
+  // String conversion function.
+  using ToUtf8 = std::function<std::string_view(std::string_view)>;
+
   // Creates and attaches a node for an existing file or dir entry.
   FileNode* CreateFile(zip_t* z,
                        i64 id,
@@ -115,12 +118,14 @@ class Tree {
                        std::string_view name,
                        mode_t mode);
 
-  // Creates and attaches a hardlink node.
-  FileNode* CreateHardlink(zip_t* z,
+  // Creates and attaches a hard link node.
+  FileNode* CreateHardLink(zip_t* z,
                            i64 id,
                            FileNode* parent,
                            std::string_view name,
-                           mode_t mode);
+                           mode_t mode,
+                           std::string target_path,
+                           const ToUtf8& toUtf8);
 
   // Attaches the given |node|, renaming it if necessary to prevent name
   // collisions.
@@ -156,14 +161,6 @@ class Tree {
     }
   };
 
-  // Original path extractor for FileNode.
-  struct GetOriginalPath {
-    using type = std::string_view;
-    std::string_view operator()(const FileNode& node) const {
-      return node.original_path;
-    }
-  };
-
   using FilesByPath = bi::unordered_set<
       FileNode,
       bi::member_hook<FileNode, FileNode::ByPath, &FileNode::by_path>,
@@ -174,33 +171,15 @@ class Tree {
       bi::equal<std::equal_to<std::string_view>>,
       bi::hash<std::hash<std::string_view>>>;
 
-  using FilesByOriginalPath = bi::unordered_set<
-      FileNode,
-      bi::member_hook<FileNode, FileNode::ByPath, &FileNode::by_original_path>,
-      bi::constant_time_size<false>,
-      bi::power_2_buckets<true>,
-      bi::compare_hash<true>,
-      bi::key_of_value<GetOriginalPath>,
-      bi::equal<std::equal_to<std::string_view>>,
-      bi::hash<std::hash<std::string_view>>>;
-
   const size_t bucket_count_ = GetBucketCount(zips_);
 
   using BucketByPath = FilesByPath::bucket_type;
   const std::unique_ptr<BucketByPath[]> buckets_by_path_{
       new BucketByPath[bucket_count_]};
 
-  using BucketByOriginalPath = FilesByPath::bucket_type;
-  const std::unique_ptr<BucketByOriginalPath[]> buckets_by_original_path_{
-      new BucketByOriginalPath[bucket_count_]};
-
   // Collection of all FileNodes indexed by full path.
   // Owns the nodes it references.
   FilesByPath files_by_path_{{buckets_by_path_.get(), bucket_count_}};
-
-  // Collection of FileNodes indexed by original path.
-  FilesByOriginalPath files_by_original_path_{
-      {buckets_by_original_path_.get(), bucket_count_}};
 
   // Root node.
   FileNode* const root_ =

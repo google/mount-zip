@@ -346,8 +346,6 @@ std::string DetectEncoding(const std::string_view bytes) {
 
 Tree::~Tree() {
 #ifndef NDEBUG
-  files_by_original_path_.clear();
-
   for (FileNode& node : files_by_path_) {
     node.children.clear();
   }
@@ -428,8 +426,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
 
   // Prepare functor to convert filenames to UTF-8.
   // By default, just rely on the conversion to UTF-8 provided by libzip.
-  std::function<std::string_view(std::string_view)> toUtf8 =
-      [](std::string_view s) { return s; };
+  ToUtf8 toUtf8 = [](std::string_view s) { return s; };
   zip_flags_t zipFlags = ZIP_FL_ENC_GUESS;
 
   // But if the filename encoding is one of the encodings we want to convert
@@ -448,14 +445,14 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
     }
   }
 
-  struct Hardlink {
+  struct HardLink {
     zip_t* zip;
     std::string prefix;
     i64 id;
     mode_t mode;
   };
 
-  std::vector<Hardlink> hardlinks;
+  std::vector<HardLink> hard_links;
   Beat should_display_progress;
   i64 total_extracted_size = 0;
   const auto progress = [&should_display_progress, &total_uncompressed_size,
@@ -474,7 +471,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   std::string path;
   path.reserve(PATH_MAX);
 
-  // Add zip entries for all items except hardlinks
+  // Add zip entries for all items except hard links
   for (const auto& [zip, zip_path] : zips_) {
     path = '/';
     if (!opts_.merge) {
@@ -497,7 +494,8 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
       path.resize(initial_path_length);
       Path(toUtf8(original_path)).NormalizeAppend(&path);
       const i64 size = (sb.valid & ZIP_STAT_SIZE) != 0 ? sb.size : 0;
-      const auto [mode, is_hardlink] = GetEntryAttributes(z, id, original_path);
+      const auto [mode, is_hard_link] =
+          GetEntryAttributes(z, id, original_path);
       const FileType type = GetFileType(mode);
 
       if (type == FileType::Directory) {
@@ -510,7 +508,6 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
         node->data = DataNode::Make(z, id, mode);
         node->data.ino = ino;
         node->data.nlink = nlink;
-        node->original_path = Path(original_path).WithoutTrailingSeparator();
         total_block_count_ += 1;
         assert(total_uncompressed_size >= size);
         total_uncompressed_size -= size;
@@ -527,11 +524,12 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
         continue;
       }
 
-      if (is_hardlink) {
-        if (opts_.include_hardlinks) {
-          hardlinks.push_back({z, prefix, id, mode});
+      if (is_hard_link) {
+        if (opts_.include_hard_links) {
+          hard_links.push_back({z, prefix, id, mode});
         } else {
-          LOG(INFO) << "Skipped " << type << " [" << id << "] " << Path(path);
+          LOG(INFO) << "Skipped " << type << " [" << ++DataNode::ino_count
+                    << "] " << Path(path);
         }
         assert(total_uncompressed_size >= size);
         total_uncompressed_size -= size;
@@ -543,8 +541,6 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
       FileNode* const node = CreateFile(z, id, parent, name, mode);
       assert(node->parent == parent);
       parent->AddChild(node);
-      node->original_path = original_path;
-      files_by_original_path_.insert(*node);
       total_block_count_ += 1;
       total_block_count_ += node->operator DataNode::Stat().st_blocks;
 
@@ -593,20 +589,19 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
     }
   }
 
-  // Add hardlinks
-  for (const auto& [z, prefix, id, mode] : hardlinks) {
+  // Add hard links
+  for (auto& [z, prefix, id, mode] : hard_links) {
     const Path original_path = zip_get_name(z, id, zipFlags);
     path = prefix;
     Path(toUtf8(original_path)).NormalizeAppend(&path);
     const auto [parent_path, name] = Path(path).Split();
     FileNode* const parent = CreateDir(parent_path);
     assert(parent);
-    FileNode* const node = CreateHardlink(z, id, parent, name, mode);
+    FileNode* const node =
+        CreateHardLink(z, id, parent, name, mode, std::move(prefix), toUtf8);
     assert(node);
     assert(node->parent == parent);
     parent->AddChild(node);
-    node->original_path = original_path;
-    files_by_original_path_.insert(*node);
     total_block_count_ += 1;
   }
 
@@ -680,7 +675,7 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
   zip_file_get_external_attributes(z, id, 0, &opsys, &attr);
 
   mode_t mode = static_cast<mode_t>(attr >> 16);
-  bool is_hardlink = false;
+  bool is_hard_link = false;
 
   /*
    * PKWARE describes "OS made by" now (since 1998) as follows:
@@ -706,8 +701,8 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
         SetFileType(&mode, FileType::File);
       }
 
-      // Always ignore hardlink flag for dirs
-      is_hardlink = (attr & FZ_ATTR_HARDLINK) != 0 && !is_dir;
+      // Always ignore hard link flag for dirs
+      is_hard_link = (attr & FZ_ATTR_HARDLINK) != 0 && !is_dir;
       break;
 
     case ZIP_OPSYS_DOS:
@@ -740,7 +735,7 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
       }
   }
 
-  return {mode, is_hardlink};
+  return {mode, is_hard_link};
 }
 
 FileNode* Tree::Attach(FileNode::Ptr node) {
@@ -796,11 +791,13 @@ FileNode* Tree::CreateFile(zip_t* const z,
                                            .name = std::string(name)}));
 }
 
-FileNode* Tree::CreateHardlink(zip_t* const z,
+FileNode* Tree::CreateHardLink(zip_t* const z,
                                i64 id,
                                FileNode* parent,
                                std::string_view name,
-                               mode_t mode) {
+                               mode_t mode,
+                               std::string target_path,
+                               const ToUtf8& toUtf8) {
   assert(parent);
   assert(!name.empty());
   assert(id >= 0);
@@ -818,8 +815,8 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
   }
 
   if (!field) {
-    // Ignoring hardlink without PKWARE UNIX field
-    LOG(INFO) << "Cannot find PkWare Unix field for hardlink " << *node;
+    // Ignoring hard link without PKWARE UNIX field
+    LOG(INFO) << "Cannot find PkWare Unix field for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }
 
@@ -832,22 +829,21 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
 
   if (!ExtraField::parsePkWareUnixField(len, field, mode, mt, at, uid, gid, dev,
                                         link, link_len)) {
-    LOG(WARNING) << "Cannot parse PkWare Unix field for hardlink " << *node;
+    LOG(WARNING) << "Cannot parse PkWare Unix field for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }
 
   if (link_len == 0 || !link) {
-    LOG(ERROR) << "Cannot get target for hardlink " << *node;
+    LOG(ERROR) << "Cannot get target for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }
 
-  const Path target_path(link, link_len);
+  Path(toUtf8(Path(link, link_len))).NormalizeAppend(&target_path);
 
-  const auto it =
-      files_by_original_path_.find(target_path.WithoutTrailingSeparator());
-  if (it == files_by_original_path_.end()) {
-    LOG(ERROR) << "Cannot find target for hardlink " << *node << " -> "
-               << target_path;
+  const auto it = files_by_path_.find(target_path);
+  if (it == files_by_path_.end()) {
+    LOG(ERROR) << "Cannot find target for hard link " << *node << " -> "
+               << Path(target_path);
     return CreateFile(z, id, parent, name, mode);
   }
 
@@ -856,7 +852,7 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
   if (target.GetType() != GetFileType(mode)) {
     // PkZip saves hard-link flag for symlinks with inode link count > 1.
     if (!S_ISLNK(mode)) {
-      LOG(ERROR) << "Mismatched types for hardlink " << *node << " -> "
+      LOG(ERROR) << "Mismatched types for hard link " << *node << " -> "
                  << target;
     }
 
@@ -866,7 +862,7 @@ FileNode* Tree::CreateHardlink(zip_t* const z,
   node->link = &target.GetTarget();
   node->link->nlink++;
 
-  LOG(DEBUG) << "Created hardlink " << *node << " -> " << target;
+  LOG(DEBUG) << "Created hard link " << *node << " -> " << target;
   return Attach(std::move(node));
 }
 

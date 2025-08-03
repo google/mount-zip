@@ -422,7 +422,7 @@ enum {
   KEY_NO_CACHE,
   KEY_NO_SPECIALS,
   KEY_NO_SYMLINKS,
-  KEY_NO_HARDLINKS,
+  KEY_NO_HARD_LINKS,
   KEY_DEFAULT_PERMISSIONS,
 #if FUSE_USE_VERSION >= 30
   KEY_DIRECT_IO,
@@ -523,8 +523,8 @@ static int ProcessArg(void* data,
       param.opts.include_symlinks = false;
       return DISCARD;
 
-    case KEY_NO_HARDLINKS:
-      param.opts.include_hardlinks = false;
+    case KEY_NO_HARD_LINKS:
+      param.opts.include_hard_links = false;
       return DISCARD;
 
     case KEY_DEFAULT_PERMISSIONS:
@@ -611,7 +611,7 @@ int main(int argc, char* argv[]) try {
       FUSE_OPT_KEY("notrim", KEY_NO_TRIM),
       FUSE_OPT_KEY("nospecials", KEY_NO_SPECIALS),
       FUSE_OPT_KEY("nosymlinks", KEY_NO_SYMLINKS),
-      FUSE_OPT_KEY("nohardlinks", KEY_NO_HARDLINKS),
+      FUSE_OPT_KEY("nohardlinks", KEY_NO_HARD_LINKS),
       FUSE_OPT_KEY("default_permissions", KEY_DEFAULT_PERMISSIONS),
 #if FUSE_USE_VERSION >= 30
       FUSE_OPT_KEY("direct_io", KEY_DIRECT_IO),

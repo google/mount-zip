@@ -63,10 +63,6 @@ struct FileNode {
   // only exception is the root directory, which is just named "/".
   std::string name;
 
-  // Original path as recorded in the ZIP archive. This is used to find hardlink
-  // targets.
-  std::string_view original_path;
-
   // Number of entries whose name have initially collided with this file node.
   int collision_count = 0;
 
@@ -91,9 +87,9 @@ struct FileNode {
                 bi::cache_last<true>>;
   Children children;
 
-  // Hooks used to index FileNodes by full path and by original path.
+  // Hook used to index FileNodes by full path.
   using ByPath = bi::unordered_set_member_hook<LinkMode, bi::store_hash<true>>;
-  ByPath by_path, by_original_path;
+  ByPath by_path;
 
   const DataNode& GetTarget() const {
     return link ? *link : data;
