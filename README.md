@@ -2,8 +2,8 @@
 title: MOUNT-ZIP
 section: 1
 header: User Manual
-footer: mount-zip 1.9
-date: July 2025
+footer: mount-zip 1.10
+date: August 2025
 ---
 # NAME
 
@@ -48,7 +48,7 @@ working directory.
     encryption or compression method is unsupported.
 
 **-o precache**
-:   Preemptively decompress and cache the whole ZIP archives.
+:   Preemptively decompress and cache the whole ZIP archive(s).
 
 **-o cache=DIR**
 :   Use a different cache directory (default is `$TMPDIR` or `/tmp`).
@@ -64,11 +64,11 @@ working directory.
 
 **-o notrim**
 :   Do not trim the base of the tree. Keep all the intermediate directories as
-    specified in the ZIP archive.
+    specified in the ZIP archive(s).
 
 **-o nomerge**
 :   Do not merge multiple ZIP archives on top of each other. Instead, create a
-    subdirectory for each ZIP inside the mount point.
+    subdirectory for each ZIP archive inside the mount point.
 
 **-o nospecials**
 :   Hide special files (FIFOs, sockets, devices).

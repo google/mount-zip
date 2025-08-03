@@ -1,7 +1,18 @@
+2025-08-03 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.10:
+	- Can mount several ZIP archives, either on top of each other (by
+	default), or next to each other (with the `-o nomerge` option)
+	(https://github.com/google/mount-zip/issues/28)
+	- Automatically trim as many directories as possible from the top
+	of the tree
+	- Add the `-o notrim` option for cases where no tree trimming is
+	desired or necessary
+
 2025-02-19 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.8:
-	- Use FUSE 3 by default
+	- Use FUSE 3 by default (https://github.com/google/mount-zip/issues/26)
 
 2025-01-13 François Degros <fdegros@chromium.org>
 
