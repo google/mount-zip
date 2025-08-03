@@ -15,9 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-all:
-	make -C blackbox all
+all: check
+
+check:
 	make -C whitebox test
+	make -C blackbox check
+
+check-fast:
+	make -C whitebox test
+	make -C blackbox check-fast
 
 valgrind:
 	make -C whitebox valgrind
@@ -25,5 +31,5 @@ valgrind:
 clean:
 	make -C whitebox clean
 
-.PHONY: all valgrind clean
+.PHONY: all valgrind check check-fast clean
 

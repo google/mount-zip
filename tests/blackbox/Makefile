@@ -15,8 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-all: data/big.zip data/collisions.zip
+all: check
+
+check: data/big.zip data/collisions.zip
 	python3 test.py
+
+check-fast:
+	python3 test.py --fast
 
 data/big.zip: make_big_zip.py
 	python3 make_big_zip.py
@@ -31,4 +36,4 @@ rebuild:
 force-rebuild:
 	make -C ../.. clean all
 
-.PHONY: all rebuild force-rebuild
+.PHONY: all check check-fast rebuild force-rebuild

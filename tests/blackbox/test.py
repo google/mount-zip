@@ -2278,10 +2278,11 @@ TestZipWithSpecialFiles()
 TestEncryptedZip()
 TestInvalidZip()
 TestMasks()
-TestZipWithManyFiles()
-TestBigZip()
-TestBigZip(options=['-o', 'precache'])
-TestBigZipNoCache()
+if '--fast' not in sys.argv:
+  TestZipWithManyFiles()
+  TestBigZip()
+  TestBigZip(options=['-o', 'precache'])
+  TestBigZipNoCache()
 
 if error_count:
   LogError(f'FAIL: There were {error_count} errors')

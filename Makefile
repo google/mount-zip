@@ -92,7 +92,10 @@ uninstall:
 debug:
 	$(MAKE) DEBUG=1 all
 
-check: debug
-	$(MAKE) -C tests
+check: $(DEST)
+	$(MAKE) -C tests check
 
-.PHONY: all doc debug clean all-clean lib-clean check-clean install uninstall check $(LIB)
+check-fast: $(DEST)
+	$(MAKE) -C tests check-fast
+
+.PHONY: all doc debug clean all-clean lib-clean check-clean check-fast install uninstall check $(LIB)

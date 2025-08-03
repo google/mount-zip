@@ -67,8 +67,16 @@ $ FUSE_MAJOR_VERSION=2 make
 
 ## Test **mount-zip**
 
+### All tests (including slow tests)
+
 ```sh
 $ make check
+```
+
+### Only fast tests
+
+```sh
+$ make check-fast
 ```
 
 ## Install **mount-zip**
