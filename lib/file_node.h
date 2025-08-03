@@ -173,13 +173,15 @@ struct FileNode {
 
   // Output operator for debugging.
   friend std::ostream& operator<<(std::ostream& out, const FileNode& node) {
-    out << node.GetType();
+    out << node.GetType() << " [" << node.data.ino;
 
-    if (node.id >= 0) {
-      out << " [" << node.id << "]";
+    if (node.link) {
+      assert(node.link != &node.data);
+      assert(node.data.ino != node.link->ino);
+      out << "->" << node.link->ino;
     }
 
-    return out << " " << Path(node.GetPath());
+    return out << "] " << Path(node.GetPath());
   }
 };
 

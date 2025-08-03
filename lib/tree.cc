@@ -502,6 +502,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
 
       if (type == FileType::Directory) {
         FileNode* const node = CreateDir(path);
+        assert(node);
         assert(!node->link);
         const ino_t ino = node->data.ino;
         const nlink_t nlink = node->data.nlink;
@@ -519,7 +520,8 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
       if (type != FileType::File &&
           (type == FileType::Symlink ? !opts_.include_symlinks
                                      : !opts_.include_special_files)) {
-        LOG(INFO) << "Skipped " << type << " [" << id << "] " << Path(path);
+        LOG(INFO) << "Skipped " << type << " [" << ++DataNode::ino_count << "] "
+                  << Path(path);
         assert(total_uncompressed_size >= size);
         total_uncompressed_size -= size;
         continue;
