@@ -60,7 +60,7 @@
 
 // Prints usage information.
 void PrintUsage() {
-  std::cerr
+  std::cout
       << R"(Mounts one or several ZIP archives as a read-only FUSE file system.
 
 Usage:
@@ -465,7 +465,7 @@ static int ProcessArg(void* data,
       std::exit(EXIT_SUCCESS);
 
     case KEY_VERSION:
-      std::cerr << PROGRAM_NAME " version: " PROGRAM_VERSION "\n"
+      std::cout << PROGRAM_NAME " version: " PROGRAM_VERSION "\n"
                 << "libzip version: " LIBZIP_VERSION "\n";
       fuse_opt_add_arg(outargs, "--version");
       fuse_main(outargs->argc, outargs->argv, &operations, nullptr);
