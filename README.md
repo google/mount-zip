@@ -2,7 +2,7 @@
 title: MOUNT-ZIP
 section: 1
 header: User Manual
-footer: mount-zip 1.10
+footer: mount-zip 1.11
 date: August 2025
 ---
 # NAME
