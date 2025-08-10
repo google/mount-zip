@@ -369,7 +369,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   // Register root node.
   assert(root_);
   assert(!root_->parent);
-  bool const ok = files_by_path_.insert(*root_).second;
+  [[maybe_unused]] bool const ok = files_by_path_.insert(*root_).second;
   assert(ok);
 
   // Sum of all uncompressed file sizes.
@@ -983,7 +983,7 @@ void Tree::Deindex(FileNode& node) {
 }
 
 void Tree::Reindex(FileNode& node) {
-  bool const ok = files_by_path_.insert(node).second;
+  [[maybe_unused]] bool const ok = files_by_path_.insert(node).second;
   assert(ok);
 
   for (FileNode& c : node.children) {
