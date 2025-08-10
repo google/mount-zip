@@ -126,30 +126,32 @@ data_dir = os.path.join(script_dir, 'data')
 mount_program = os.path.join(script_dir, '..', '..', 'mount-zip')
 
 
-# Mounts the given ZIP archive, walks the mounted ZIP and unmounts.
+# Mounts the given ZIP archives, walks the mounted ZIP(s) and unmounts.
 # Returns a pair where:
-# - member 0 is a dict representing the mounted ZIP.
+# - member 0 is a dict representing the mounted ZIP(s).
 # - member 1 is the result of os.statvfs
 #
-# Throws subprocess.CalledProcessError if the ZIP cannot be mounted.
-def MountZipAndGetTree(zip_name, options=[], password='', use_md5=True):
+# Throws subprocess.CalledProcessError if the ZIP(s) cannot be mounted.
+def MountZipAndGetTree(zip_names, options=[], password='', use_md5=True):
   with tempfile.TemporaryDirectory() as mount_point:
-    zip_path = os.path.join(script_dir, 'data', zip_name)
-    logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
+    if type(zip_names) is not list:
+      zip_names = [zip_names]
+    zip_paths = [os.path.join(script_dir, 'data', zip_name) for zip_name in zip_names]
+    logging.debug(f'Mounting {zip_paths!r} on {mount_point!r}...')
     subprocess.run(
-        [mount_program, *options, zip_path, mount_point],
+        [mount_program, *options] + zip_paths + [mount_point],
         check=True,
         capture_output=True,
         input=password,
         encoding='UTF-8',
     )
     try:
-      logging.debug(f'Mounted ZIP {zip_path!r} on {mount_point!r}')
+      logging.debug(f'Mounted ZIP {zip_paths!r} on {mount_point!r}')
       return GetTree(mount_point, use_md5=use_md5), os.statvfs(mount_point)
     finally:
-      logging.debug(f'Unmounting {zip_path!r} from {mount_point!r}...')
+      logging.debug(f'Unmounting {zip_paths!r} from {mount_point!r}...')
       subprocess.run(['fusermount', '-u', '-z', mount_point], check=True)
-      logging.debug(f'Unmounted {zip_path!r} from {mount_point!r}')
+      logging.debug(f'Unmounted {zip_paths!r} from {mount_point!r}')
 
 
 # Mounts the given ZIP archive, checks the mounted ZIP tree and unmounts.
