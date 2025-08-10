@@ -94,7 +94,7 @@ class Tree {
 
   // Returned by GetEntryAttributes.
   struct EntryAttributes {
-    mode_t mode;       // Unix mode
+    mode_t mode;        // Unix mode
     bool is_hard_link;  // PkWare hard link flag
   };
 
@@ -161,6 +161,16 @@ class Tree {
     }
   };
 
+  using OriginalPath = std::pair<const zip_t*, std::string_view>;
+
+  // Original path extractor for FileNode.
+  struct GetOriginalPath {
+    using type = OriginalPath;
+    OriginalPath operator()(const FileNode& node) const {
+      return {node.zip, node.original_path};
+    }
+  };
+
   using FilesByPath = bi::unordered_set<
       FileNode,
       bi::member_hook<FileNode, FileNode::ByPath, &FileNode::by_path>,
@@ -171,15 +181,31 @@ class Tree {
       bi::equal<std::equal_to<std::string_view>>,
       bi::hash<std::hash<std::string_view>>>;
 
+  using FilesByOriginalPath = bi::unordered_set<
+      FileNode,
+      bi::member_hook<FileNode, FileNode::ByPath, &FileNode::by_original_path>,
+      bi::constant_time_size<false>,
+      bi::power_2_buckets<true>,
+      bi::compare_hash<true>,
+      bi::key_of_value<GetOriginalPath>>;
+
   const size_t bucket_count_ = GetBucketCount(zips_);
 
   using BucketByPath = FilesByPath::bucket_type;
   const std::unique_ptr<BucketByPath[]> buckets_by_path_{
       new BucketByPath[bucket_count_]};
 
+  using BucketByOriginalPath = FilesByOriginalPath::bucket_type;
+  const std::unique_ptr<BucketByOriginalPath[]> buckets_by_original_path_{
+      new BucketByOriginalPath[bucket_count_]};
+
   // Collection of all FileNodes indexed by full path.
   // Owns the nodes it references.
   FilesByPath files_by_path_{{buckets_by_path_.get(), bucket_count_}};
+
+  // Collection of FileNodes indexed by original path.
+  FilesByOriginalPath files_by_original_path_{
+      {buckets_by_original_path_.get(), bucket_count_}};
 
   // Root node.
   FileNode* const root_ =

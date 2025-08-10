@@ -346,6 +346,8 @@ std::string DetectEncoding(const std::string_view bytes) {
 
 Tree::~Tree() {
 #ifndef NDEBUG
+  files_by_original_path_.clear();
+
   for (FileNode& node : files_by_path_) {
     node.children.clear();
   }
@@ -508,6 +510,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
         node->data = DataNode::Make(z, id, mode);
         node->data.ino = ino;
         node->data.nlink = nlink;
+        node->original_path = Path(original_path).WithoutTrailingSeparator();
         total_block_count_ += 1;
         assert(total_uncompressed_size >= size);
         total_uncompressed_size -= size;
@@ -541,6 +544,8 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
       FileNode* const node = CreateFile(z, id, parent, name, mode);
       assert(node->parent == parent);
       parent->AddChild(node);
+      node->original_path = Path(original_path).WithoutTrailingSeparator();
+      files_by_original_path_.insert(*node);
       total_block_count_ += 1;
       total_block_count_ += node->operator DataNode::Stat().st_blocks;
 
@@ -602,6 +607,8 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
     assert(node);
     assert(node->parent == parent);
     parent->AddChild(node);
+    node->original_path = Path(original_path).WithoutTrailingSeparator();
+    files_by_original_path_.insert(*node);
     total_block_count_ += 1;
   }
 
@@ -796,8 +803,8 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
                                FileNode* parent,
                                std::string_view name,
                                mode_t mode,
-                               std::string target_path,
-                               const ToUtf8& toUtf8) {
+                               std::string /*prefix*/,
+                               const ToUtf8& /*toUtf8*/) {
   assert(parent);
   assert(!name.empty());
   assert(id >= 0);
@@ -838,12 +845,13 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
     return CreateFile(z, id, parent, name, mode);
   }
 
-  Path(toUtf8(Path(link, link_len))).NormalizeAppend(&target_path);
+  const Path target_path(link, link_len);
 
-  const auto it = files_by_path_.find(target_path);
-  if (it == files_by_path_.end()) {
+  const auto it =
+      files_by_original_path_.find({z, target_path.WithoutTrailingSeparator()});
+  if (it == files_by_original_path_.end()) {
     LOG(ERROR) << "Cannot find target for hard link " << *node << " -> "
-               << Path(target_path);
+               << target_path;
     return CreateFile(z, id, parent, name, mode);
   }
 
