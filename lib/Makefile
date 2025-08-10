@@ -39,9 +39,11 @@ $(DEST): $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)
 
 .cc.o:
-	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@ -MMD -MP -MF $(@:.o=.d)
+
+-include $(SOURCES:.cc=.d)
 
 clean:
-	rm -f $(DEST) $(OBJECTS)
+	rm -f $(DEST) *.o *.d
 
 .PHONY: all clean debug

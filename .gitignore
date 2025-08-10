@@ -1,6 +1,7 @@
 syntax: glob
 
 # ignore generated files
+*.d
 *.o
 mount-zip
 lib/*.a

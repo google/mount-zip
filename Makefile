@@ -47,7 +47,6 @@ SOURCES = $(DEST).cc
 OBJECTS = $(SOURCES:.cc=.o)
 MAN = $(DEST).1
 MANDIR = $(PREFIX)/share/man/man1
-CLEANFILES = $(OBJECTS) $(DEST)
 INSTALL = install
 
 all: $(DEST)
@@ -58,22 +57,18 @@ doc: $(MAN)
 $(DEST): $(OBJECTS) $(LIB)
 	$(CXX) $(OBJECTS) $(LDFLAGS) -o $@
 
-$(DEST).o: $(DEST).cc
-	$(CXX) -Ilib -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+.cc.o:
+	$(CXX) -Ilib -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@ -MMD -MP -MF $(@:.o=.d)
+
+-include $(SOURCES:.cc=.d)
 
 $(LIB):
 	$(MAKE) -C lib
 
-lib-clean:
-	$(MAKE) -C lib clean
-
-check-clean:
+clean:
+	rm -f $(DEST) *.o *.d
 	$(MAKE) -C tests clean
-
-clean: lib-clean all-clean check-clean
-
-all-clean:
-	rm -f $(CLEANFILES)
+	$(MAKE) -C lib clean
 
 $(MAN): README.md
 	pandoc $< -s -t man -o $@
@@ -98,4 +93,4 @@ check: $(DEST)
 check-fast: $(DEST)
 	$(MAKE) -C tests check-fast
 
-.PHONY: all doc debug clean all-clean lib-clean check-clean check-fast install uninstall check $(LIB)
+.PHONY: all doc debug clean check-fast install uninstall check $(LIB)
