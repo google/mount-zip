@@ -78,8 +78,8 @@ def GetTree(root, use_md5=True):
 
   # On some systems, the mount point is not immediately functional.
   while st.st_ino == 0:
-      time.sleep(0.1)
-      st = os.stat(root, follow_symlinks=False)
+    time.sleep(0.1)
+    st = os.stat(root, follow_symlinks=False)
 
   scan(root, st)
   return result
@@ -136,7 +136,9 @@ def MountZipAndGetTree(zip_names, options=[], password='', use_md5=True):
   with tempfile.TemporaryDirectory() as mount_point:
     if type(zip_names) is not list:
       zip_names = [zip_names]
-    zip_paths = [os.path.join(script_dir, 'data', zip_name) for zip_name in zip_names]
+    zip_paths = [
+        os.path.join(script_dir, 'data', zip_name) for zip_name in zip_names
+    ]
     logging.debug(f'Mounting {zip_paths!r} on {mount_point!r}...')
     subprocess.run(
         [mount_program, *options] + zip_paths + [mount_point],
@@ -258,7 +260,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1265257351000000000,
               'size': 282292,
               'errno': 5,
-          }
+          },
       },
       'bad-crc.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -267,7 +269,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1265257351000000000,
               'size': 282292,
               'errno': 5,
-          }
+          },
       },
       'bzip2.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -275,7 +277,7 @@ def TestZipWithDefaultOptions():
               'nlink': 1,
               'size': 36,
               'md5': 'f28623c0be8da636e6c53ead06ce0731',
-          }
+          },
       },
       'comment-utf8.zip': {
           '.': {
@@ -353,7 +355,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1372483540000000000,
               'size': 2551,
               'md5': '27d03e3bb5ed8add7917810c3ba68836',
-          }
+          },
       },
       'fifo.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -377,7 +379,7 @@ def TestZipWithDefaultOptions():
           'pet/cat': {'nlink': 3},
           'pet/cat/fish': {
               'nlink': 2,
-              },
+          },
           'pet/cat/fish (1)': {
               'nlink': 1,
               'size': 30,
@@ -416,7 +418,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1565484162000000000,
               'size': 4,
               'md5': 'c157a79031e1c40f85931829bc5fc552',
-          }
+          },
       },
       'hlink-before-target.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -453,7 +455,7 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
           'dir': {
               'nlink': 2,
-              },
+          },
           'dir/regular': {
               'nlink': 1,
               'size': 10,
@@ -469,7 +471,7 @@ def TestZipWithDefaultOptions():
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 4},
           'dir': {
               'nlink': 2,
-              },
+          },
           'dir/regular': {
               'nlink': 1,
               'size': 10,
@@ -477,7 +479,7 @@ def TestZipWithDefaultOptions():
           },
           'hlink': {
               'nlink': 2,
-              },
+          },
       },
       'hlink-recursive-one.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -486,7 +488,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1565807019000000000,
               'size': 0,
               'md5': 'd41d8cd98f00b204e9800998ecf8427e',
-          }
+          },
       },
       'hlink-recursive-two.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -580,7 +582,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1565807019000000000,
               'size': 0,
               'md5': 'd41d8cd98f00b204e9800998ecf8427e',
-          }
+          },
       },
       'issue-43.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
@@ -615,7 +617,7 @@ def TestZipWithDefaultOptions():
               'nlink': 1,
               'size': 35,
               # 'md5': 'afcc577cec75357c61cc360e3bca0ac6',
-          }
+          },
       },
       'mixed-paths.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 7},
@@ -942,10 +944,10 @@ def TestZipWithDefaultOptions():
               'nlink': 1,
               'size': 760,
               'md5': 'f196d610d1cdf9191b4440863e8d31ab',
-          }
+          },
       },
       'not-full-path-deep.zip': {
-          '.':  {'nlink': 3},
+          '.': {'nlink': 3},
           'rahat': {'nlink': 2},
           'rahat/lukum': {
               'nlink': 1,
@@ -982,7 +984,7 @@ def TestZipWithDefaultOptions():
               'mtime': 1560435721722114700,
               'size': 2600,
               'errno': 5,
-          }
+          },
       },
       'parent-relative-paths.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 3},
@@ -1108,7 +1110,7 @@ def TestZipWithDefaultOptions():
               'nlink': 1,
               'size': 0,
               'md5': 'd41d8cd98f00b204e9800998ecf8427e',
-          }
+          },
       },
       'symlink.zip': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
@@ -1291,7 +1293,9 @@ def TestMasks():
       'File700': {'mode': '-rwxr-xr-x'},
   }
 
-  MountZipAndCheckTree('permissions.zip', want_tree, use_md5=False, options=['-o', 'dmask=077'])
+  MountZipAndCheckTree(
+      'permissions.zip', want_tree, use_md5=False, options=['-o', 'dmask=077']
+  )
 
   want_tree = {
       '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 24},
@@ -1341,7 +1345,9 @@ def TestMasks():
       'File700': {'mode': '-rwx------'},
   }
 
-  MountZipAndCheckTree('permissions.zip', want_tree, use_md5=False, options=['-o', 'fmask=077'])
+  MountZipAndCheckTree(
+      'permissions.zip', want_tree, use_md5=False, options=['-o', 'fmask=077']
+  )
 
   want_tree = {
       '.': {'ino': 1, 'mode': 'drwxrwxrwx', 'nlink': 24},
@@ -1391,7 +1397,12 @@ def TestMasks():
       'File700': {'mode': '-rwxrwxrwx'},
   }
 
-  MountZipAndCheckTree('permissions.zip', want_tree, use_md5=False, options=['-o', 'dmask=0,fmask=0'])
+  MountZipAndCheckTree(
+      'permissions.zip',
+      want_tree,
+      use_md5=False,
+      options=['-o', 'dmask=0,fmask=0'],
+  )
 
   want_tree = {
       '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 24},
@@ -1441,7 +1452,12 @@ def TestMasks():
       'File700': {'mode': '-rwx------'},
   }
 
-  MountZipAndCheckTree('permissions.zip', want_tree, use_md5=False, options=['-o', 'default_permissions'])
+  MountZipAndCheckTree(
+      'permissions.zip',
+      want_tree,
+      use_md5=False,
+      options=['-o', 'default_permissions'],
+  )
 
 
 # Tests the ZIP with lots of files.
@@ -1516,7 +1532,7 @@ def TestZipWithManyFiles():
   MountZipAndCheckTree(
       'collisions.zip',
       want_tree,
-      options = ['-o', 'notrim'],
+      options=['-o', 'notrim'],
       want_blocks=100007,
       want_inodes=100014,
       strict=False,
@@ -1562,7 +1578,7 @@ def TestZipWithManyFiles():
   MountZipAndCheckTree(
       'collisions.zip',
       want_tree,
-      options = [],
+      options=[],
       want_blocks=99997,
       want_inodes=100004,
       strict=False,
@@ -1776,7 +1792,11 @@ def TestEncryptedZip():
   )
 
   MountZipAndCheckTree(
-      zip_name, want_tree, want_blocks=11, want_inodes=6, options=['-o', 'force']
+      zip_name,
+      want_tree,
+      want_blocks=11,
+      want_inodes=6,
+      options=['-o', 'force'],
   )
 
 
@@ -2151,7 +2171,7 @@ def TestZipWithSpecialFiles():
           'mtime': 1565290018000000000,
           'size': 32,
           'md5': '456e611a5420b7dd09bae143a7b2deb0',
-      }
+      },
   }
 
   MountZipAndCheckTree(
@@ -2167,88 +2187,88 @@ def TestZipWithSpecialFiles():
       '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'z-hardlink2': {
           'mode': '-rw-r--r--',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
           'nlink': 3,
           'size': 32,
           'md5': '456e611a5420b7dd09bae143a7b2deb0',
       },
       'z-hardlink1': {
           'mode': '-rw-r--r--',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
           'nlink': 3,
           'size': 32,
           'md5': '456e611a5420b7dd09bae143a7b2deb0',
       },
       'z-hardlink-symlink': {
           'mode': 'lrwxrwxrwx',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
           'target': 'regular',
       },
       'symlink': {
           'mode': 'lrwxrwxrwx',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
           'target': 'regular',
       },
       'z-hardlink-socket': {
           'mode': 'srw-------',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
       },
       'z-hardlink-fifo': {
           'mode': 'prw-r--r--',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
       },
       'z-hardlink-char': {
           'mode': 'crw--w----',
-          'uid' : 0,
-          'gid' : 5,
+          'uid': 0,
+          'gid': 5,
           'rdev': 1024,
       },
       'z-hardlink-block': {
           'mode': 'brw-rw----',
-          'uid' : 0,
-          'gid' : 6,
+          'uid': 0,
+          'gid': 6,
           'rdev': 2049,
       },
       'symlink2': {
           'mode': 'lrwxrwxrwx',
           'target': 'regular',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
       },
       'socket': {
           'mode': 'srw-------',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
       },
       'regular': {
           'mode': '-rw-r--r--',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
           'nlink': 3,
           'size': 32,
           'md5': '456e611a5420b7dd09bae143a7b2deb0',
       },
       'fifo': {
           'mode': 'prw-r--r--',
-          'uid' : 1000,
-          'gid' : 1000,
+          'uid': 1000,
+          'gid': 1000,
       },
       'char': {
           'mode': 'crw--w----',
-          'uid' : 0,
-          'gid' : 5,
+          'uid': 0,
+          'gid': 5,
           'rdev': 1024,
       },
       'block': {
           'mode': 'brw-rw----',
-          'uid' : 0,
-          'gid' : 6,
+          'uid': 0,
+          'gid': 6,
           'rdev': 2049,
       },
   }
