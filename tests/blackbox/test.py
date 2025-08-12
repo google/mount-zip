@@ -1193,6 +1193,127 @@ def TestZipWithDefaultOptions():
     MountZipAndCheckTree(zip_name, want_tree, options=['-o', 'force'])
 
 
+# Tests mounting several ZIPs at the same time.
+def TestMultiple():
+  want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
+      '0regular': {
+          'ino': 2,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      'hlink': {
+          'ino': 2,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      '0regular (1)': {
+          'ino': 3,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      'hlink (1)': {
+          'ino': 3,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+  }
+
+  MountZipAndCheckTree(['hlink-relative.zip', 'hlink-relative.zip'], want_tree)
+
+  want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
+      '0regular': {
+          'ino': 2,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      'hlink': {
+          'ino': 2,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      '0regular (1)': {
+          'ino': 3,
+          'mode': '-rw-r--r--',
+          'nlink': 1,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      '1symlink': {
+          'ino': 4,
+          'mode': 'lrwxrwxrwx',
+          'nlink': 2,
+          'target': '0regular',
+      },
+      'hlink (1)': {
+          'ino': 4,
+          'mode': 'lrwxrwxrwx',
+          'nlink': 2,
+          'target': '0regular',
+      },
+  }
+
+  MountZipAndCheckTree(['hlink-relative.zip', 'hlink-symlink.zip'], want_tree)
+
+  want_tree = {
+      '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 4},
+      'hlink-relative': {'ino': 2, 'mode': 'drwxr-xr-x', 'nlink': 2},
+      'hlink-relative/0regular': {
+          'ino': 3,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      'hlink-relative/hlink': {
+          'ino': 3,
+          'mode': '-rw-r--r--',
+          'nlink': 2,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      'hlink-symlink': {'ino': 4, 'mode': 'drwxr-xr-x', 'nlink': 2},
+      'hlink-symlink/0regular': {
+          'ino': 5,
+          'mode': '-rw-r--r--',
+          'nlink': 1,
+          'size': 10,
+          'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
+      },
+      'hlink-symlink/1symlink': {
+          'ino': 6,
+          'mode': 'lrwxrwxrwx',
+          'nlink': 2,
+          'target': '0regular',
+      },
+      'hlink-symlink/hlink': {
+          'ino': 6,
+          'mode': 'lrwxrwxrwx',
+          'nlink': 2,
+          'target': '0regular',
+      },
+  }
+
+  MountZipAndCheckTree(
+      ['hlink-relative.zip', 'hlink-symlink.zip'],
+      want_tree,
+      options=['-o', 'nomerge'],
+  )
+
+
 # Tests -o dmask, fmask and default_permissions.
 def TestMasks():
   want_tree = {
@@ -2300,6 +2421,8 @@ TestZipWithSpecialFiles()
 TestEncryptedZip()
 TestInvalidZip()
 TestMasks()
+TestMultiple()
+
 if '--fast' not in sys.argv:
   TestZipWithManyFiles()
   TestBigZip()
