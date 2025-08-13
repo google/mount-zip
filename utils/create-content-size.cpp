@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
   struct zip* z = zip_open(argv[1], ZIP_CREATE | ZIP_TRUNCATE, &err);
 
   struct zip_source* s = zip_source_function(z, callback, &ctx);
-  zip_add(z, "content", s);
+  zip_file_add(z, "content", s, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
 
   zip_close(z);
   return 0;
