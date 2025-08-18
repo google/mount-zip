@@ -160,68 +160,6 @@ struct ExtraField {
                                   struct timespec& atime,
                                   struct timespec& cretime);
 
-  /**
-   * Create Info-ZIP New Unix extra field (0x7875)
-   * @param uid UID
-   * @param gid GID
-   * @param len (OUT) data length
-   * @return pointer to extra field data (must not be free()-d)
-   */
-  static const zip_uint8_t* createInfoZipNewUnixField(uid_t uid,
-                                                      gid_t gid,
-                                                      zip_uint16_t& len);
-
-  /**
-   * Create PKWARE Unix extra field (0x000D)
-   * @param mtime modification time
-   * @param atime access time
-   * @param mode UNIX file mode
-   * @param uid UID
-   * @param gid GID
-   * @param dev device major/minor numbers
-   * @param len (OUT) data length
-   * @return pointer to extra field data (must not be free()-d)
-   */
-  static const zip_uint8_t* createPkWareUnixField(time_t mtime,
-                                                  time_t atime,
-                                                  mode_t mode,
-                                                  uid_t uid,
-                                                  gid_t gid,
-                                                  dev_t dev,
-                                                  zip_uint16_t& len);
-
-  /**
-   * Create NTFS Extra Field (0x000A)
-   * @param mtime modification time
-   * @param atime access time
-   * @param btime birth/creation time
-   * @param len (OUT) data length
-   * @return pointer to extra field data (must not be free()-d)
-   */
-  static const zip_uint8_t* createNtfsExtraField(const timespec& mtime,
-                                                 const timespec& atime,
-                                                 const timespec& btime,
-                                                 zip_uint16_t& len);
-
-  /**
-   * Edit existing NTFS Extra Field (0x000A): create/update tag 0001 fields with
-   * specifed time values. Edit is performed in-place. Allocated memory pointed
-   * by data must be big enough to keep (len + FZ_EF_NTFS_TIMESTAMP_LENGTH)
-   * bytes
-   *
-   * @param len original field content length
-   * @param data original field data
-   * @param mtime modification time
-   * @param atime access time
-   * @param btime birth/creation time
-   * @return data length
-   */
-  static zip_uint16_t editNtfsExtraField(zip_uint16_t len,
-                                         zip_uint8_t* data,
-                                         const timespec& mtime,
-                                         const timespec& atime,
-                                         const timespec& btime);
-
  private:
   /**
    * Get Intel low-byte/high-byte order 64-bit number from data.
