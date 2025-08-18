@@ -30,23 +30,15 @@ static const uint64_t NTFS_TO_UNIX_OFFSET =
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 
-#define le_16(x) (x)
-#define le_32(x) (x)
-#define le_64(x) (x)
+uint16_t le_16(uint16_t x) { return x; }
+uint32_t le_32(uint32_t x) { return x; }
+uint64_t le_64(uint64_t x) { return x; }
 
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 
-uint16_t le_16(uint16_t x) {
-  return __builtin_bswap16(x);
-}
-
-uint32_t le_32(uint32_t x) {
-  return __builtin_bswap32(x);
-}
-
-uint64_t le_64(uint64_t x) {
-  return __builtin_bswap64(x);
-}
+uint16_t le_16(uint16_t x) { return __builtin_bswap16(x); }
+uint32_t le_32(uint32_t x) { return __builtin_bswap32(x); }
+uint64_t le_64(uint64_t x) { return __builtin_bswap64(x); }
 
 #else
 #error "bad byte order"
