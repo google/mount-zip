@@ -22,6 +22,8 @@
 #include <string_view>
 #include <vector>
 
+#include <boost/container_hash/hash.hpp>
+
 #include "file_node.h"
 
 // Holds the ZIP filesystem tree.
@@ -179,7 +181,7 @@ class Tree {
       bi::compare_hash<true>,
       bi::key_of_value<GetPath>,
       bi::equal<std::equal_to<std::string_view>>,
-      bi::hash<std::hash<std::string_view>>>;
+      bi::hash<boost::hash<std::string_view>>>;
 
   using FilesByOriginalPath = bi::unordered_set<
       FileNode,
@@ -187,7 +189,8 @@ class Tree {
       bi::constant_time_size<false>,
       bi::power_2_buckets<true>,
       bi::compare_hash<true>,
-      bi::key_of_value<GetOriginalPath>>;
+      bi::key_of_value<GetOriginalPath>,
+      bi::hash<boost::hash<OriginalPath>>>;
 
   const size_t bucket_count_ = GetBucketCount(zips_);
 
