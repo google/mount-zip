@@ -142,27 +142,32 @@ class CacheFileReader : public UnbufferedReader {
       case CacheStrategy::NoCache:
         throw std::runtime_error(
             "Cannot create cache file: Option --nocache is in use");
+
       case CacheStrategy::InMemory:
         // Create an in-memory anonymous file.
         {
-#if __APPLE__ // macOS has no memfd_create()
-          int fd = shm_open("/cache", O_RDWR|O_CREAT|O_EXCL, 0600);
-          if (shm_unlink("/cache") < 0) {
-            ThrowSystemError("Cannot unlink cache file in memory");
-          }
-          ScopedFile file(fd);
-#else
-          ScopedFile file(memfd_create("cache", 0));
-#endif
+#if __APPLE__
+          // macOS has no memfd_create()
+          ScopedFile file(shm_open("/cache", O_RDWR | O_CREAT | O_EXCL, 0600));
           if (!file.IsValid()) {
             ThrowSystemError("Cannot create cache file in memory");
           }
-
-          LOG(DEBUG) << "Created cache file in memory";
+          LOG(DEBUG) << "Created cache file in memory (shm_open)";
+          if (shm_unlink("/cache") < 0) {
+            ThrowSystemError("Cannot unlink cache file in memory");
+          }
+#else
+          ScopedFile file(memfd_create("cache", 0));
+          if (!file.IsValid()) {
+            ThrowSystemError("Cannot create cache file in memory");
+          }
+          LOG(DEBUG) << "Created cache file in memory (memfd_create)";
+#endif
           return file;
         }
 
       default:
+      case CacheStrategy::InFile:
 #ifdef O_TMPFILE
         // Create a cache file in the cache dir.
         if (ScopedFile file(
