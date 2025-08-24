@@ -202,7 +202,7 @@ bool ExtraField::parsePkWareUnixField(Bytes b,
 
   // variable data field
   dev = 0;
-  link_target = NULL;
+  link_target = nullptr;
   link_target_len = 0;
   if (S_ISBLK(mode) || S_ISCHR(mode)) {
     unsigned int const maj = Read<u32>(b);
