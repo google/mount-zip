@@ -22,261 +22,228 @@
 #include <sys/sysmacros.h>
 #endif
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <span>
+#include <stdexcept>
 
-static const uint64_t NTFS_TO_UNIX_OFFSET =
-    ((uint64_t)(369 * 365 + 89) * 24 * 3600 * 10000000);
+#include "log.h"
+
+namespace {
+
+using u8 = std::uint8_t;
+using u16 = std::uint16_t;
+using u32 = std::uint32_t;
+using u64 = std::uint64_t;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 
-uint16_t le_16(uint16_t x) { return x; }
-uint32_t le_32(uint32_t x) { return x; }
-uint64_t le_64(uint64_t x) { return x; }
+template <typename T>
+T letoh(T x) {
+  return x;
+}
 
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 
-uint16_t le_16(uint16_t x) { return __builtin_bswap16(x); }
-uint32_t le_32(uint32_t x) { return __builtin_bswap32(x); }
-uint64_t le_64(uint64_t x) { return __builtin_bswap64(x); }
+u8 letoh(u8 x) {
+  return x;
+}
+
+u16 letoh(u16 x) {
+  return __builtin_bswap16(x);
+}
+
+u32 letoh(u32 x) {
+  return __builtin_bswap32(x);
+}
+
+u64 letoh(u64 x) {
+  return __builtin_bswap64(x);
+}
 
 #else
 #error "bad byte order"
 #endif
 
-uint64_t ExtraField::getLong64(const zip_uint8_t*& data) {
-#pragma pack(push, 1)
-  struct tmp {
-    uint64_t value;
-  };
-#pragma pack(pop)
-  uint64_t res = reinterpret_cast<const tmp*>(data)->value;
-  data += 8;
-  return le_64(res);
+template <typename T, typename B>
+T Read(std::span<const B>& b) {
+  static_assert(sizeof(B) == 1);
+  T res;
+  if (b.size() < sizeof(res)) {
+    throw std::out_of_range(
+        StrCat("Not enough bytes in buffer to read from: Only ", b.size(),
+               " bytes when ", sizeof(res), " or more bytes are needed"));
+  }
+  assert(b.size() >= sizeof(res));
+  std::memcpy(&res, b.data(), sizeof(res));
+  b = b.subspan(sizeof(res));
+  return letoh(res);
 }
 
-unsigned long ExtraField::getLong(const zip_uint8_t*& data) {
-#pragma pack(push, 1)
-  struct tmp {
-    uint32_t value;
-  };
-#pragma pack(pop)
-  uint32_t res = reinterpret_cast<const tmp*>(data)->value;
-  data += 4;
-  return le_32(res);
+template <typename T>
+T read(const u8*& data) {
+  T res;
+  std::memcpy(&res, data, sizeof(res));
+  data += sizeof(res);
+  return letoh(res);
 }
 
-unsigned short ExtraField::getShort(const zip_uint8_t*& data) {
-#pragma pack(push, 1)
-  struct tmp {
-    uint16_t value;
-  };
-#pragma pack(pop)
-  uint16_t res = reinterpret_cast<const tmp*>(data)->value;
-  data += 2;
-  return le_16(res);
-}
+}  // namespace
 
-bool ExtraField::parseExtTimeStamp(zip_uint16_t len,
-                                   const zip_uint8_t* data,
-                                   bool& hasMTime,
+bool ExtraField::parseExtTimeStamp(u16 const len,
+                                   const u8* const data,
+                                   bool& has_mtime,
                                    time_t& mtime,
-                                   bool& hasATime,
+                                   bool& has_atime,
                                    time_t& atime,
-                                   bool& hasCreTime,
-                                   time_t& cretime) {
-  if (len < 1) {
-    return false;
-  }
-  const zip_uint8_t* end = data + len;
-  unsigned char flags = *data++;
+                                   bool& has_ctime,
+                                   time_t& ctime) try {
+  std::span b(data, len);
+  const u8 flags = Read<u8>(b);
 
-  hasMTime = flags & 1;
-  hasATime = flags & 2;
-  hasCreTime = flags & 4;
+  has_mtime = flags & 1;
+  has_atime = flags & 2;
+  has_ctime = flags & 4;
 
-  if (hasMTime) {
-    if (data + 4 > end) {
-      return false;
-    }
-    mtime = static_cast<time_t>(getLong(data));
+  if (has_mtime) {
+    mtime = Read<u32>(b);
   }
-  if (hasATime) {
-    if (data + 4 > end) {
-      return false;
-    }
-    atime = static_cast<time_t>(getLong(data));
+  if (has_atime) {
+    atime = Read<u32>(b);
   }
-  // only check that data format is correct
-  if (hasCreTime) {
-    if (data + 4 > end) {
-      return false;
-    }
-    cretime = static_cast<time_t>(getLong(data));
+  if (has_ctime) {
+    ctime = Read<u32>(b);
   }
 
   return true;
+} catch (...) {
+  return false;
 }
 
-const zip_uint8_t* ExtraField::createExtTimeStamp(zip_flags_t location,
-                                                  time_t mtime,
-                                                  time_t atime,
-                                                  bool set_cretime,
-                                                  time_t cretime,
-                                                  zip_uint16_t& len) {
-  assert(location == ZIP_FL_LOCAL || location == ZIP_FL_CENTRAL);
-
-  // one byte for flags and three 4-byte ints for mtime, atime and cretime
-  static zip_uint8_t data[1 + 4 * 3];
-  len = 0;
-
-  // mtime and atime
-  zip_uint8_t flags = 1 | 2;
-  if (set_cretime) {
-    flags |= 4;
-  }
-  data[len++] = flags;
-
-  for (int i = 0; i < 4; ++i) {
-    data[len++] = static_cast<unsigned char>(mtime);
-    mtime >>= 8;
-  }
-  // The central-header extra field contains the modification time only,
-  // or no timestamp at all.
-  if (location == ZIP_FL_LOCAL) {
-    for (int i = 0; i < 4; ++i) {
-      data[len++] = static_cast<unsigned char>(atime);
-      atime >>= 8;
-    }
-    if (set_cretime) {
-      for (int i = 0; i < 4; ++i) {
-        data[len++] = static_cast<unsigned char>(cretime);
-        cretime >>= 8;
-      }
-    }
-  }
-
-  return data;
-}
-
-bool ExtraField::parseSimpleUnixField(zip_uint16_t type,
-                                      zip_uint16_t len,
-                                      const zip_uint8_t* data,
+bool ExtraField::parseSimpleUnixField(u16 const type,
+                                      u16 const len,
+                                      const u8* const data,
                                       bool& hasUidGid,
                                       uid_t& uid,
                                       gid_t& gid,
                                       time_t& mtime,
-                                      time_t& atime) {
-  const zip_uint8_t* end = data + len;
+                                      time_t& atime) try {
+  std::span b(data, len);
   switch (type) {
     case FZ_EF_PKWARE_UNIX:
     case FZ_EF_INFOZIP_UNIX1:
-      hasUidGid = false;
-      if (data + 8 > end) {
-        return false;
+      atime = Read<u32>(b);
+      mtime = Read<u32>(b);
+
+      try {
+        uid = Read<u16>(b);
+        gid = Read<u16>(b);
+        hasUidGid = true;
+      } catch (...) {
+        hasUidGid = false;
       }
-      atime = static_cast<time_t>(getLong(data));
-      mtime = static_cast<time_t>(getLong(data));
-      if (data + 4 > end) {
-        return true;
-      }
-      hasUidGid = true;
-      uid = getShort(data);
-      gid = getShort(data);
-      break;
+      return true;
+
     default:
       return false;
   }
-  return true;
+} catch (...) {
+  return false;
 }
 
-bool ExtraField::parseUnixUidGidField(zip_uint16_t type,
-                                      zip_uint16_t len,
-                                      const zip_uint8_t* data,
+bool ExtraField::parseUnixUidGidField(u16 const type,
+                                      u16 const len,
+                                      const u8* const data,
                                       uid_t& uid,
-                                      gid_t& gid) {
-  const zip_uint8_t* end = data + len;
+                                      gid_t& gid) try {
+  std::span b(data, len);
   switch (type) {
     case FZ_EF_INFOZIP_UNIX2:
-      if (data + 4 > end) {
-        return false;
-      }
-      uid = getShort(data);
-      gid = getShort(data);
-      break;
+      uid = Read<u16>(b);
+      gid = Read<u16>(b);
+      return true;
+
     case FZ_EF_INFOZIP_UNIXN: {
-      const zip_uint8_t* p;
-      // version
-      if (len < 1) {
+      // Version
+      if (Read<u8>(b) != 1) {
+        // Unsupported version
         return false;
-      }
-      if (*data++ != 1) {
-        // unsupported version
-        return false;
-      }
-      // UID
-      if (data + 1 > end) {
-        return false;
-      }
-      int lenUid = *data++;
-      if (data + lenUid > end) {
-        return false;
-      }
-      p = data + lenUid;
-      uid = 0;
-      int overflowBytes = lenUid - static_cast<int>(sizeof(uid_t));
-      while (--p >= data) {
-        if (overflowBytes > 0 && *p != 0) {
-          // UID overflow
-          return false;
-        }
-        uid = (uid << 8) + *p;
-        overflowBytes--;
-      }
-      data += lenUid;
-      // GID
-      if (data + 1 > end) {
-        return false;
-      }
-      int lenGid = *data++;
-      if (data + lenGid > end) {
-        return false;
-      }
-      p = data + lenGid;
-      gid = 0;
-      overflowBytes = lenGid - static_cast<int>(sizeof(gid_t));
-      while (--p >= data) {
-        if (overflowBytes > 0 && *p != 0) {
-          // GID overflow
-          return false;
-        }
-        gid = (gid << 8) + *p;
-        overflowBytes--;
       }
 
-      break;
+      // UID
+      {
+        ssize_t const n = Read<u8>(b);
+        if (b.size() < n) {
+          return false;
+        }
+
+        std::span p = b.first(n);
+        b = b.subspan(n);
+
+        if (p.size() > sizeof(uid_t)) {
+          if (std::ranges::any_of(p.subspan(sizeof(uid_t)), [](u8 c) { return c != 0; })) {
+            return false;
+          }
+
+          p = p.first(sizeof(uid_t));
+        }
+
+        uid = 0;
+        for (size_t i = p.size(); i > 0;) {
+          uid <<= 8;
+          uid |= p[--i];
+        }
+      }
+
+      // GID
+      {
+        ssize_t const n = Read<u8>(b);
+        if (b.size() < n) {
+          return false;
+        }
+
+        std::span p = b.first(n);
+        b = b.subspan(n);
+
+        if (p.size() > sizeof(gid_t)) {
+          if (std::ranges::any_of(p.subspan(sizeof(gid_t)), [](u8 c) { return c != 0; })) {
+            return false;
+          }
+
+          p = p.first(sizeof(gid_t));
+        }
+
+        gid = 0;
+        for (size_t i = p.size(); i > 0;) {
+          gid <<= 8;
+          gid |= p[--i];
+        }
+      }
+
+      return true;
     }
-    default:
-      return false;
   }
-  return true;
+  return false;
+} catch (...) {
+  return false;
 }
 
 #pragma pack(push, 1)
 struct PkWareUnixExtraField {
-  uint32_t atime;
-  uint32_t mtime;
-  uint16_t uid;
-  uint16_t gid;
+  u32 atime;
+  u32 mtime;
+  u16 uid;
+  u16 gid;
   struct {
-    uint32_t major;
-    uint32_t minor;
+    u32 major;
+    u32 minor;
   } dev;
 };
 #pragma pack(pop)
 
-bool ExtraField::parsePkWareUnixField(zip_uint16_t len,
-                                      const zip_uint8_t* data,
+bool ExtraField::parsePkWareUnixField(u16 len,
+                                      const u8* data,
                                       mode_t mode,
                                       time_t& mtime,
                                       time_t& atime,
@@ -284,17 +251,17 @@ bool ExtraField::parsePkWareUnixField(zip_uint16_t len,
                                       gid_t& gid,
                                       dev_t& dev,
                                       const char*& link_target,
-                                      zip_uint16_t& link_target_len) {
+                                      u16& link_target_len) {
   const PkWareUnixExtraField* f =
       reinterpret_cast<const PkWareUnixExtraField*>(data);
 
   if (len < 12) {
     return false;
   }
-  atime = static_cast<time_t>(le_32(f->atime));
-  mtime = static_cast<time_t>(le_32(f->mtime));
-  uid = le_16(f->uid);
-  gid = le_16(f->gid);
+  atime = static_cast<time_t>(letoh(f->atime));
+  mtime = static_cast<time_t>(letoh(f->mtime));
+  uid = letoh(f->uid);
+  gid = letoh(f->gid);
 
   // variable data field
   dev = 0;
@@ -306,40 +273,42 @@ bool ExtraField::parsePkWareUnixField(zip_uint16_t len,
     }
 
     unsigned int maj, min;
-    maj = static_cast<unsigned int>(le_32(f->dev.major));
-    min = static_cast<unsigned int>(le_32(f->dev.minor));
+    maj = static_cast<unsigned int>(letoh(f->dev.major));
+    min = static_cast<unsigned int>(letoh(f->dev.minor));
 
     dev = makedev(maj, min);
     link_target = NULL;
     link_target_len = 0;
   } else {
     link_target = reinterpret_cast<const char*>(data + 12);
-    link_target_len = static_cast<zip_uint16_t>(len - 12);
+    link_target_len = static_cast<u16>(len - 12);
   }
 
   return true;
 }
 
-inline static timespec ntfs2timespec(uint64_t t) {
+inline static timespec ntfs2timespec(u64 t) {
   timespec ts;
+  const u64 NTFS_TO_UNIX_OFFSET =
+      static_cast<u64>(369 * 365 + 89) * 24 * 3600 * 10'000'000;
   t -= NTFS_TO_UNIX_OFFSET;
-  ts.tv_sec = static_cast<time_t>(t / 10000000);
-  ts.tv_nsec = static_cast<long int>(t % 10000000) * 100;
+  ts.tv_sec = static_cast<time_t>(t / 10'000'000);
+  ts.tv_nsec = static_cast<long int>(t % 10'000'000) * 100;
   return ts;
 }
 
-bool ExtraField::parseNtfsExtraField(zip_uint16_t len,
-                                     const zip_uint8_t* data,
+bool ExtraField::parseNtfsExtraField(u16 len,
+                                     const u8* data,
                                      struct timespec& mtime,
                                      struct timespec& atime,
-                                     struct timespec& cretime) {
+                                     struct timespec& ctime) {
   bool hasTimes = false;
-  const zip_uint8_t* end = data + len;
+  const u8* end = data + len;
   data += 4;  // skip 'Reserved' field
 
   while (data + 4 < end) {
-    uint16_t tag = getShort(data);
-    uint16_t size = getShort(data);
+    u16 tag = read<u16>(data);
+    u16 size = read<u16>(data);
     if (data + size > end) {
       return false;
     }
@@ -349,9 +318,9 @@ bool ExtraField::parseNtfsExtraField(zip_uint16_t len,
         return false;
       }
 
-      mtime = ntfs2timespec(getLong64(data));
-      atime = ntfs2timespec(getLong64(data));
-      cretime = ntfs2timespec(getLong64(data));
+      mtime = ntfs2timespec(read<u64>(data));
+      atime = ntfs2timespec(read<u64>(data));
+      ctime = ntfs2timespec(read<u64>(data));
 
       hasTimes = true;
     } else {

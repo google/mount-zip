@@ -24,34 +24,7 @@
 #include <sys/sysmacros.h>
 #include <zip.h>
 
-#define private public
-
 #include "extra_field.h"
-
-void test_getShort() {
-  zip_uint8_t d[] = {0x01, 0x02, 0xF1, 0xF2};
-  const zip_uint8_t* data = d;
-
-  assert(ExtraField::getShort(data) == 0x0201);
-  assert(ExtraField::getShort(data) == 0xF2F1);
-}
-
-void test_getLong() {
-  zip_uint8_t d[] = {0x01, 0x02, 0x03, 0x04, 0xF1, 0xF2, 0xF3, 0xF4};
-  const zip_uint8_t* data = d;
-
-  assert(ExtraField::getLong(data) == 0x04030201);
-  assert(ExtraField::getLong(data) == 0xF4F3F2F1);
-}
-
-void test_getLong64() {
-  zip_uint8_t d[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-                     0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8};
-  const zip_uint8_t* data = d;
-
-  assert(ExtraField::getLong64(data) == 0x0807060504030201);
-  assert(ExtraField::getLong64(data) == 0xF8F7F6F5F4F3F2F1);
-}
 
 /**
  * LOCAL extra field with both mtime and atime present in flags
@@ -60,13 +33,13 @@ void timestamp_mtime_atime_present_local() {
   const zip_uint8_t data[] = {1 | 2, 0xD4, 0x6F, 0xCE, 0x51,
                               0x72,  0xE3, 0xC7, 0x52};
 
-  bool has_atime, has_mtime, has_cretime;
-  time_t atime, mtime, cretime;
+  bool has_atime, has_mtime, has_ctime;
+  time_t atime, mtime, ctime;
   assert(ExtraField::parseExtTimeStamp(sizeof(data), data, has_mtime, mtime,
-                                       has_atime, atime, has_cretime, cretime));
+                                       has_atime, atime, has_ctime, ctime));
   assert(has_mtime);
   assert(has_atime);
-  assert(!has_cretime);
+  assert(!has_ctime);
   assert(mtime == 0x51CE6FD4);
   assert(atime == 0X52C7E372);
 }
@@ -74,19 +47,19 @@ void timestamp_mtime_atime_present_local() {
 /**
  * LOCAL extra field with both mtime and creation time present in flags
  */
-void timestamp_mtime_cretime_present_local() {
+void timestamp_mtime_ctime_present_local() {
   const zip_uint8_t data[] = {1 | 4, 0xD4, 0x6F, 0xCE, 0x51,
                               0x72,  0xE3, 0xC7, 0x52};
 
-  bool has_atime, has_mtime, has_cretime;
-  time_t atime, mtime, cretime;
+  bool has_atime, has_mtime, has_ctime;
+  time_t atime, mtime, ctime;
   assert(ExtraField::parseExtTimeStamp(sizeof(data), data, has_mtime, mtime,
-                                       has_atime, atime, has_cretime, cretime));
+                                       has_atime, atime, has_ctime, ctime));
   assert(has_mtime);
   assert(!has_atime);
-  assert(has_cretime);
+  assert(has_ctime);
   assert(mtime == 0x51CE6FD4);
-  assert(cretime == 0x52C7E372);
+  assert(ctime == 0x52C7E372);
 }
 
 /**
@@ -95,66 +68,10 @@ void timestamp_mtime_cretime_present_local() {
 void timestamp_bad() {
   const zip_uint8_t data[] = {1 | 2 | 4, 0x72, 0xE3, 0xC7, 0x52};
 
-  bool has_atime, has_mtime, has_cretime;
-  time_t atime, mtime, cretime;
+  bool has_atime, has_mtime, has_ctime;
+  time_t atime, mtime, ctime;
   assert(!ExtraField::parseExtTimeStamp(sizeof(data), data, has_mtime, mtime,
-                                        has_atime, atime, has_cretime,
-                                        cretime));
-}
-
-/**
- * create timestamp extra field for CENTRAL directory
- */
-void timestamp_create_central() {
-  zip_uint16_t len;
-  const zip_uint8_t* data;
-  const zip_uint8_t expected[] = {1 | 2, 4, 3, 2, 1};
-
-  data = ExtraField::createExtTimeStamp(ZIP_FL_CENTRAL, 0x01020304, 0x05060708,
-                                        false, 0, len);
-  assert(data != NULL);
-  assert(len == sizeof(expected));
-
-  for (int i = 0; i < len; ++i) {
-    assert(data[i] == expected[i]);
-  }
-}
-
-/**
- * create LOCAL timestamp extra field
- */
-void timestamp_create_local() {
-  zip_uint16_t len;
-  const zip_uint8_t* data;
-  const zip_uint8_t expected[] = {1 | 2, 4, 3, 2, 1, 8, 7, 6, 5};
-
-  data = ExtraField::createExtTimeStamp(ZIP_FL_LOCAL, 0x01020304, 0x05060708,
-                                        false, 0, len);
-  assert(data != NULL);
-  assert(len == sizeof(expected));
-
-  for (int i = 0; i < len; ++i) {
-    assert(data[i] == expected[i]);
-  }
-}
-
-/**
- * create LOCAL timestamp extra field with creation time defined
- */
-void timestamp_create_local_cretime() {
-  zip_uint16_t len;
-  const zip_uint8_t* data;
-  const zip_uint8_t expected[] = {1 | 2 | 4, 4, 3,   2,   1,   8,  7,
-                                  6,         5, 0xC, 0xB, 0xA, 0x9};
-
-  data = ExtraField::createExtTimeStamp(ZIP_FL_LOCAL, 0x01020304, 0x05060708,
-                                        true, 0x090A0B0C, len);
-  assert(data != NULL);
-  assert(len == sizeof(expected));
-
-  for (int i = 0; i < len; ++i) {
-    assert(data[i] == expected[i]);
-  }
+                                        has_atime, atime, has_ctime, ctime));
 }
 
 /**
@@ -374,18 +291,10 @@ void ntfs_extra_field_parse() {
 }
 
 int main(int, char**) {
-  test_getShort();
-  test_getLong();
-  test_getLong64();
-
   timestamp_mtime_atime_present_local();
-  timestamp_mtime_cretime_present_local();
+  timestamp_mtime_ctime_present_local();
 
   timestamp_bad();
-
-  timestamp_create_central();
-  timestamp_create_local();
-  timestamp_create_local_cretime();
 
   unix_pkware_regular();
   unix_pkware_device();

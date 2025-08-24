@@ -18,6 +18,8 @@
 #ifndef EXTRA_FIELD_H
 #define EXTRA_FIELD_H
 
+#include <cstdint>
+
 #include <zip.h>
 
 // ZIP extra fields
@@ -52,25 +54,6 @@ struct ExtraField {
                                 time_t& atime,
                                 bool& hasCreTime,
                                 time_t& cretime);
-
-  /**
-   * Create 'Extended Timestamp' extra field (0x5455) from mtime and atime.
-   * Creation time field is filled only if defined.
-   * @param location location of timestamp field (ZIP_FL_CENTRAL or
-   * ZIP_FL_LOCAL for central directory and local extra field respectively)
-   * @param mtime modification time
-   * @param atime access time
-   * @param set_cretime true if creation time is defined
-   * @param cretime creation time
-   * @param len (OUT) data length
-   * @return pointer to timestamp data (must not be free()-d)
-   */
-  static const zip_uint8_t* createExtTimeStamp(zip_flags_t location,
-                                               time_t mtime,
-                                               time_t atime,
-                                               bool set_cretime,
-                                               time_t cretime,
-                                               zip_uint16_t& len);
 
   /**
    * Parse Info-ZIP UNIX extra field (5855) to extract UID/GID and (maybe)
@@ -159,25 +142,6 @@ struct ExtraField {
                                   struct timespec& mtime,
                                   struct timespec& atime,
                                   struct timespec& cretime);
-
- private:
-  /**
-   * Get Intel low-byte/high-byte order 64-bit number from data.
-   * Pointer is moved to next byte after parsed data.
-   */
-  static uint64_t getLong64(const zip_uint8_t*& data);
-
-  /**
-   * Get Intel low-byte/high-byte order 32-bit number from data.
-   * Pointer is moved to next byte after parsed data.
-   */
-  static unsigned long getLong(const zip_uint8_t*& data);
-
-  /**
-   * Get Intel low-byte/high-byte order 16-bit number from data.
-   * Pointer is moved to next byte after parsed data.
-   */
-  static unsigned short getShort(const zip_uint8_t*& data);
 };
 
 #endif
