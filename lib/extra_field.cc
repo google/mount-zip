@@ -63,7 +63,7 @@ u64 letoh(u64 x) {
 }
 
 #else
-#error "bad byte order"
+#error "Unexpected byte order"
 #endif
 
 template <typename T, typename B>
@@ -71,9 +71,7 @@ T Read(std::span<const B>& b) {
   static_assert(sizeof(B) == 1);
   T res;
   if (b.size() < sizeof(res)) {
-    throw std::out_of_range(
-        StrCat("Not enough bytes in buffer to read from: Only ", b.size(),
-               " bytes when ", sizeof(res), " or more bytes are needed"));
+    throw std::out_of_range("Not enough bytes in buffer to read from");
   }
   assert(b.size() >= sizeof(res));
   std::memcpy(&res, b.data(), sizeof(res));
@@ -81,12 +79,10 @@ T Read(std::span<const B>& b) {
   return letoh(res);
 }
 
-template <typename T>
-T read(const u8*& data) {
-  T res;
-  std::memcpy(&res, data, sizeof(res));
-  data += sizeof(res);
-  return letoh(res);
+timespec ntfs2timespec(u64 t) {
+  t -= static_cast<u64>(369 * 365 + 89) * 24 * 3600 * 10'000'000;
+  return {.tv_sec = static_cast<time_t>(t / 10'000'000),
+          .tv_nsec = static_cast<long int>(t % 10'000'000) * 100};
 }
 
 }  // namespace
@@ -182,7 +178,8 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
         b = b.subspan(n);
 
         if (p.size() > sizeof(uid_t)) {
-          if (std::ranges::any_of(p.subspan(sizeof(uid_t)), [](u8 c) { return c != 0; })) {
+          if (std::ranges::any_of(p.subspan(sizeof(uid_t)),
+                                  [](u8 c) { return c != 0; })) {
             return false;
           }
 
@@ -207,7 +204,8 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
         b = b.subspan(n);
 
         if (p.size() > sizeof(gid_t)) {
-          if (std::ranges::any_of(p.subspan(sizeof(gid_t)), [](u8 c) { return c != 0; })) {
+          if (std::ranges::any_of(p.subspan(sizeof(gid_t)),
+                                  [](u8 c) { return c != 0; })) {
             return false;
           }
 
@@ -229,19 +227,6 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
   return false;
 }
 
-#pragma pack(push, 1)
-struct PkWareUnixExtraField {
-  u32 atime;
-  u32 mtime;
-  u16 uid;
-  u16 gid;
-  struct {
-    u32 major;
-    u32 minor;
-  } dev;
-};
-#pragma pack(pop)
-
 bool ExtraField::parsePkWareUnixField(u16 len,
                                       const u8* data,
                                       mode_t mode,
@@ -251,82 +236,59 @@ bool ExtraField::parsePkWareUnixField(u16 len,
                                       gid_t& gid,
                                       dev_t& dev,
                                       const char*& link_target,
-                                      u16& link_target_len) {
-  const PkWareUnixExtraField* f =
-      reinterpret_cast<const PkWareUnixExtraField*>(data);
-
-  if (len < 12) {
-    return false;
-  }
-  atime = static_cast<time_t>(letoh(f->atime));
-  mtime = static_cast<time_t>(letoh(f->mtime));
-  uid = letoh(f->uid);
-  gid = letoh(f->gid);
+                                      u16& link_target_len) try {
+  std::span b(data, len);
+  atime = Read<u32>(b);
+  mtime = Read<u32>(b);
+  uid = Read<u16>(b);
+  gid = Read<u16>(b);
 
   // variable data field
   dev = 0;
   link_target = NULL;
   link_target_len = 0;
   if (S_ISBLK(mode) || S_ISCHR(mode)) {
-    if (len < 20) {
-      return false;
-    }
-
-    unsigned int maj, min;
-    maj = static_cast<unsigned int>(letoh(f->dev.major));
-    min = static_cast<unsigned int>(letoh(f->dev.minor));
-
+    unsigned int const maj = Read<u32>(b);
+    unsigned int const min = Read<u32>(b);
     dev = makedev(maj, min);
-    link_target = NULL;
-    link_target_len = 0;
   } else {
-    link_target = reinterpret_cast<const char*>(data + 12);
-    link_target_len = static_cast<u16>(len - 12);
+    link_target = reinterpret_cast<const char*>(b.data());
+    link_target_len = static_cast<u16>(b.size());
   }
 
   return true;
+} catch (...) {
+  return false;
 }
 
-inline static timespec ntfs2timespec(u64 t) {
-  timespec ts;
-  const u64 NTFS_TO_UNIX_OFFSET =
-      static_cast<u64>(369 * 365 + 89) * 24 * 3600 * 10'000'000;
-  t -= NTFS_TO_UNIX_OFFSET;
-  ts.tv_sec = static_cast<time_t>(t / 10'000'000);
-  ts.tv_nsec = static_cast<long int>(t % 10'000'000) * 100;
-  return ts;
-}
-
-bool ExtraField::parseNtfsExtraField(u16 len,
-                                     const u8* data,
+bool ExtraField::parseNtfsExtraField(u16 const len,
+                                     const u8* const data,
                                      struct timespec& mtime,
                                      struct timespec& atime,
-                                     struct timespec& ctime) {
-  bool hasTimes = false;
-  const u8* end = data + len;
-  data += 4;  // skip 'Reserved' field
+                                     struct timespec& ctime) try {
+  std::span b(data, len);
+  Read<u32>(b);  // skip 'Reserved' field
 
-  while (data + 4 < end) {
-    u16 tag = read<u16>(data);
-    u16 size = read<u16>(data);
-    if (data + size > end) {
+  bool hasTimes = false;
+  while (!b.empty()) {
+    u16 const tag = Read<u16>(b);
+    u16 const size = Read<u16>(b);
+    if (b.size() < size) {
       return false;
     }
 
     if (tag == 0x0001) {
-      if (size < 24) {
-        return false;
-      }
-
-      mtime = ntfs2timespec(read<u64>(data));
-      atime = ntfs2timespec(read<u64>(data));
-      ctime = ntfs2timespec(read<u64>(data));
-
+      std::span p = b.first(size);
+      mtime = ntfs2timespec(Read<u64>(p));
+      atime = ntfs2timespec(Read<u64>(p));
+      ctime = ntfs2timespec(Read<u64>(p));
       hasTimes = true;
-    } else {
-      data += size;
     }
+
+    b = b.subspan(size);
   }
 
   return hasTimes;
+} catch (...) {
+  return false;
 }

@@ -23,14 +23,14 @@
 #include <zip.h>
 
 // ZIP extra fields
-#define FZ_EF_TIMESTAMP (0x5455)
-#define FZ_EF_NTFS (0x000A)
-#define FZ_EF_PKWARE_UNIX (0x000D)
-#define FZ_EF_INFOZIP_UNIX1 (0x5855)
-#define FZ_EF_INFOZIP_UNIX2 (0x7855)
-#define FZ_EF_INFOZIP_UNIXN (0x7875)
-
-#define FZ_EF_NTFS_TIMESTAMP_LENGTH (28U)
+enum FieldIds {
+  FZ_EF_TIMESTAMP = 0x5455,
+  FZ_EF_NTFS = 0x000A,
+  FZ_EF_PKWARE_UNIX = 0x000D,
+  FZ_EF_INFOZIP_UNIX1 = 0x5855,
+  FZ_EF_INFOZIP_UNIX2 = 0x7855,
+  FZ_EF_INFOZIP_UNIXN = 0x7875,
+};
 
 struct ExtraField {
   /**
