@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "extra_field.h"
+
 #include <cassert>
 #include <cerrno>
 #include <cstdlib>
@@ -22,16 +24,14 @@
 
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
-#include <zip.h>
 
-#include "extra_field.h"
+using u8 = ExtraField::u8;
 
 /**
  * LOCAL extra field with both mtime and atime present in flags
  */
 void timestamp_mtime_atime_present_local() {
-  const zip_uint8_t data[] = {1 | 2, 0xD4, 0x6F, 0xCE, 0x51,
-                              0x72,  0xE3, 0xC7, 0x52};
+  const u8 data[] = {1 | 2, 0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52};
 
   bool has_atime, has_mtime, has_ctime;
   time_t atime, mtime, ctime;
@@ -48,8 +48,7 @@ void timestamp_mtime_atime_present_local() {
  * LOCAL extra field with both mtime and creation time present in flags
  */
 void timestamp_mtime_ctime_present_local() {
-  const zip_uint8_t data[] = {1 | 4, 0xD4, 0x6F, 0xCE, 0x51,
-                              0x72,  0xE3, 0xC7, 0x52};
+  const u8 data[] = {1 | 4, 0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52};
 
   bool has_atime, has_mtime, has_ctime;
   time_t atime, mtime, ctime;
@@ -66,7 +65,7 @@ void timestamp_mtime_ctime_present_local() {
  * Bad timestamp
  */
 void timestamp_bad() {
-  const zip_uint8_t data[] = {1 | 2 | 4, 0x72, 0xE3, 0xC7, 0x52};
+  const u8 data[] = {1 | 2 | 4, 0x72, 0xE3, 0xC7, 0x52};
 
   bool has_atime, has_mtime, has_ctime;
   time_t atime, mtime, ctime;
@@ -78,7 +77,7 @@ void timestamp_bad() {
  * Parse PKWARE Unix Extra Field - regular file
  */
 void unix_pkware_regular() {
-  const zip_uint8_t data[] = {
+  const u8 data[] = {
       0xD4, 0x6F, 0xCE, 0x51,  // atime
       0x72, 0xE3, 0xC7, 0x52,  // mtime
       0x02, 0x01,              // UID
@@ -90,7 +89,7 @@ void unix_pkware_regular() {
   gid_t gid;
   dev_t dev;
   const char* link;
-  uint16_t link_len;
+  size_t link_len;
   assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFREG | 0666,
                                           mtime, atime, uid, gid, dev, link,
                                           link_len));
@@ -106,7 +105,7 @@ void unix_pkware_regular() {
  * Parse PKWARE Unix Extra Field - block device
  */
 void unix_pkware_device() {
-  const zip_uint8_t data[] = {
+  const u8 data[] = {
       0xC8, 0x76, 0x45, 0x5D,  // atime
       0xC8, 0x76, 0x45, 0x5D,  // mtime
       0x00, 0x00,              // UID
@@ -120,7 +119,7 @@ void unix_pkware_device() {
   gid_t gid;
   dev_t dev;
   const char* link;
-  uint16_t link_len;
+  size_t link_len;
   assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFBLK | 0666,
                                           mtime, atime, uid, gid, dev, link,
                                           link_len));
@@ -136,7 +135,7 @@ void unix_pkware_device() {
  * Parse PKWARE Unix Extra Field - symlink
  */
 void unix_pkware_link() {
-  const zip_uint8_t data[] = {
+  const u8 data[] = {
       0xF3, 0x73, 0x49, 0x5D,                   // atime
       0xA9, 0x7B, 0x45, 0x5D,                   // mtime
       0xE8, 0x03,                               // UID
@@ -149,7 +148,7 @@ void unix_pkware_link() {
   gid_t gid;
   dev_t dev;
   const char* link;
-  uint16_t link_len;
+  size_t link_len;
   assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFLNK | 0777,
                                           mtime, atime, uid, gid, dev, link,
                                           link_len));
@@ -166,10 +165,9 @@ void unix_pkware_link() {
  * Parse Info-ZIP Unix Extra Field (type1)
  */
 void unix_infozip1() {
-  const zip_uint8_t data_local[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3,
-                                    0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
-  const zip_uint8_t data_central[] = {0x72, 0xE3, 0xC7, 0x52,
-                                      0xD4, 0x6F, 0xCE, 0x51};
+  const u8 data_local[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3,
+                           0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
+  const u8 data_central[] = {0x72, 0xE3, 0xC7, 0x52, 0xD4, 0x6F, 0xCE, 0x51};
 
   bool has_uid_gid;
   time_t atime, mtime;
@@ -197,8 +195,8 @@ void unix_infozip1() {
  * Parse Info-ZIP Unix Extra Field (type2)
  */
 void unix_infozip2() {
-  const zip_uint8_t data_local[] = {0x02, 0x01, 0x04, 0x03};
-  const zip_uint8_t data_central[] = {0};
+  const u8 data_local[] = {0x02, 0x01, 0x04, 0x03};
+  const u8 data_central[] = {0};
 
   uid_t uid;
   gid_t gid;
@@ -216,18 +214,17 @@ void unix_infozip2() {
  * Parse Info-ZIP New Unix Extra Field
  */
 void unix_infozip_new() {
-  const zip_uint8_t data1[] = {1, 1, 0x01, 1, 0xF1};
-  const zip_uint8_t data4[] = {1, 4,    0x04, 0x03, 0x02, 0x01,
-                               4, 0xF8, 0xF7, 0xF6, 0xF5};
-  const zip_uint8_t data16_fit[] = {
-      1,    16,   0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 16,   0xF2, 0xF1, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  const zip_uint8_t data16_uid_overflow[] = {
+  const u8 data1[] = {1, 1, 0x01, 1, 0xF1};
+  const u8 data4[] = {1, 4, 0x04, 0x03, 0x02, 0x01, 4, 0xF8, 0xF7, 0xF6, 0xF5};
+  const u8 data16_fit[] = {1,    16,   0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           16,   0xF2, 0xF1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  const u8 data16_uid_overflow[] = {
       1,    16,   0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08, 0x07, 0x06,
       0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 16,   0xFF, 0xFE, 0xFD, 0xFC, 0xFB,
       0xFA, 0xF9, 0xF8, 0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0};
-  const zip_uint8_t data16_gid_overflow[] = {
+  const u8 data16_gid_overflow[] = {
       1,    16,   0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 16,   0xFF, 0xFE, 0xFD, 0xFC, 0xFB,
       0xFA, 0xF9, 0xF8, 0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0};
@@ -261,7 +258,7 @@ void unix_infozip_new() {
  * Parse NTFS Extra Field
  */
 void ntfs_extra_field_parse() {
-  const zip_uint8_t data[] = {
+  const u8 data[] = {
       0x00, 0x00, 0x00, 0x00,                          // reserved
       0x01, 0x00,                                      // tag 1
       0x18, 0x00,                                      // size

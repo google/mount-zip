@@ -832,7 +832,7 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
   gid_t gid;
   dev_t dev;
   const char* link;
-  uint16_t link_len;
+  size_t link_len;
 
   if (!ExtraField::parsePkWareUnixField(len, field, mode, mt, at, uid, gid, dev,
                                         link, link_len)) {

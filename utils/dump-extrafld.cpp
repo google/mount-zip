@@ -25,6 +25,8 @@
 
 #include "lib/extra_field.h"
 
+using u8 = ExtraField::u8;
+
 void print_time(const char* label, struct timespec& time) {
   char str1[512], str2[16];
   time_t t = (time_t)time.tv_sec;
@@ -56,12 +58,12 @@ void print_time(const char* label, time_t time) {
 
 void dump_extrafld(zip_uint16_t id,
                    zip_uint16_t len,
-                   const zip_uint8_t* field,
+                   const u8* field,
                    bool central,
                    mode_t mode) {
-  const zip_uint8_t* end = field + len;
-  for (const zip_uint8_t* f = field; f < end; ++f) {
-    printf("0x%02X, ", *f);
+  const u8* end = field + len;
+  for (const u8* f = field; f < end; ++f) {
+    printf("\\x%02X", *f);
   }
   printf("\n");
   switch (id) {
@@ -95,7 +97,7 @@ void dump_extrafld(zip_uint16_t id,
       gid_t gid;
       dev_t dev;
       const char* link;
-      uint16_t link_len;
+      size_t link_len;
       bool res = ExtraField::parsePkWareUnixField(
           len, field, mode, mtime, atime, uid, gid, dev, link, link_len);
       if (!res) {
@@ -110,7 +112,7 @@ void dump_extrafld(zip_uint16_t id,
         printf("      device: %u, %u\n", major(dev), minor(dev));
       }
       if (link_len > 0) {
-        printf("      link target: %.*s\n", link_len, link);
+        printf("      link target: %.*s\n", static_cast<int>(link_len), link);
       }
       break;
     }
@@ -214,7 +216,7 @@ int main(int argc, char** argv) {
   }
 
   for (zip_int64_t i = 0; i < zip_get_num_entries(z, 0); ++i) {
-    zip_uint8_t opsys;
+    u8 opsys;
     zip_uint32_t attr;
     zip_file_get_external_attributes(z, i, 0, &opsys, &attr);
     const char* opsys_s;
@@ -450,7 +452,7 @@ int main(int argc, char** argv) {
     for (zip_int16_t j = 0;
          j < zip_file_extra_fields_count(z, i, ZIP_FL_CENTRAL); ++j) {
       zip_uint16_t id, len;
-      const zip_uint8_t* field =
+      const u8* field =
           zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
       printf("  0x%04X len=%d central: ", id, len);
       dump_extrafld(id, len, field, true, static_cast<mode_t>(unix_mode));
@@ -458,7 +460,7 @@ int main(int argc, char** argv) {
     for (zip_int16_t j = 0; j < zip_file_extra_fields_count(z, i, ZIP_FL_LOCAL);
          ++j) {
       zip_uint16_t id, len;
-      const zip_uint8_t* field =
+      const u8* field =
           zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_LOCAL);
       printf("  0x%04X len=%d local: ", id, len);
       dump_extrafld(id, len, field, false, static_cast<mode_t>(unix_mode));

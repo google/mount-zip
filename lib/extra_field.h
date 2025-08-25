@@ -33,6 +33,8 @@ enum FieldIds {
 };
 
 struct ExtraField {
+  using u8 = std::uint8_t;
+
   /**
    * Parse 'Extended Timestamp' LOCAL extra field (0x5455) to get mtime,
    * atime and creation time values.
@@ -46,8 +48,8 @@ struct ExtraField {
    * @param cretime (OUT) file creation time if present
    * @return successful completion flag
    */
-  static bool parseExtTimeStamp(zip_uint16_t len,
-                                const zip_uint8_t* data,
+  static bool parseExtTimeStamp(size_t len,
+                                const u8* data,
                                 bool& hasMTime,
                                 time_t& mtime,
                                 bool& hasATime,
@@ -70,8 +72,8 @@ struct ExtraField {
    * @return successful completion flag
    */
   static bool parseSimpleUnixField(zip_uint16_t type,
-                                   zip_uint16_t len,
-                                   const zip_uint8_t* data,
+                                   size_t len,
+                                   const u8* data,
                                    bool& hasUid,
                                    uid_t& uid,
                                    gid_t& gid,
@@ -91,8 +93,8 @@ struct ExtraField {
    * @return successful completion flag
    */
   static bool parseUnixUidGidField(zip_uint16_t type,
-                                   zip_uint16_t len,
-                                   const zip_uint8_t* data,
+                                   size_t len,
+                                   const u8* data,
                                    uid_t& uid,
                                    gid_t& gid);
 
@@ -116,8 +118,8 @@ struct ExtraField {
    * @param link_target_len (OUT) length of hard/symbolic link target
    * @return successful completion flag
    */
-  static bool parsePkWareUnixField(zip_uint16_t len,
-                                   const zip_uint8_t* data,
+  static bool parsePkWareUnixField(size_t len,
+                                   const u8* data,
                                    mode_t mode,
                                    time_t& mtime,
                                    time_t& atime,
@@ -125,7 +127,7 @@ struct ExtraField {
                                    gid_t& gid,
                                    dev_t& dev,
                                    const char*& link_target,
-                                   zip_uint16_t& link_target_len);
+                                   size_t& link_target_len);
 
   /**
    * Parse NTFS Extra FIeld
@@ -137,8 +139,8 @@ struct ExtraField {
    * @param cretime (OUT) file creation time if present
    * @return successful completion flag
    */
-  static bool parseNtfsExtraField(zip_uint16_t len,
-                                  const zip_uint8_t* data,
+  static bool parseNtfsExtraField(size_t len,
+                                  const u8* data,
                                   struct timespec& mtime,
                                   struct timespec& atime,
                                   struct timespec& cretime);

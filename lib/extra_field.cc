@@ -101,7 +101,7 @@ timespec ntfs2timespec(i64 const t) {
 
 }  // namespace
 
-bool ExtraField::parseExtTimeStamp(u16 const len,
+bool ExtraField::parseExtTimeStamp(size_t const len,
                                    const u8* const data,
                                    bool& has_mtime,
                                    time_t& mtime,
@@ -132,7 +132,7 @@ bool ExtraField::parseExtTimeStamp(u16 const len,
 }
 
 bool ExtraField::parseSimpleUnixField(u16 const type,
-                                      u16 const len,
+                                      size_t const len,
                                       const u8* const data,
                                       bool& hasUidGid,
                                       uid_t& uid,
@@ -163,7 +163,7 @@ bool ExtraField::parseSimpleUnixField(u16 const type,
 }
 
 bool ExtraField::parseUnixUidGidField(u16 const type,
-                                      u16 const len,
+                                      size_t const len,
                                       const u8* const data,
                                       uid_t& uid,
                                       gid_t& gid) try {
@@ -241,16 +241,16 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
   return false;
 }
 
-bool ExtraField::parsePkWareUnixField(u16 len,
-                                      const u8* data,
-                                      mode_t mode,
+bool ExtraField::parsePkWareUnixField(size_t const len,
+                                      const u8* const data,
+                                      mode_t const mode,
                                       time_t& mtime,
                                       time_t& atime,
                                       uid_t& uid,
                                       gid_t& gid,
                                       dev_t& dev,
                                       const char*& link_target,
-                                      u16& link_target_len) try {
+                                      size_t& link_target_len) try {
   std::span b(data, len);
   atime = Read<u32>(b);
   mtime = Read<u32>(b);
@@ -275,7 +275,7 @@ bool ExtraField::parsePkWareUnixField(u16 len,
   return false;
 }
 
-bool ExtraField::parseNtfsExtraField(u16 const len,
+bool ExtraField::parseNtfsExtraField(size_t const len,
                                      const u8* const data,
                                      struct timespec& mtime,
                                      struct timespec& atime,
