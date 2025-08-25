@@ -24,7 +24,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <span>
 #include <stdexcept>
 
@@ -36,6 +38,7 @@ using u8 = std::uint8_t;
 using u16 = std::uint16_t;
 using u32 = std::uint32_t;
 using u64 = std::uint64_t;
+using i64 = std::int64_t;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 
@@ -79,10 +82,21 @@ T Read(std::span<const B>& b) {
   return letoh(res);
 }
 
-timespec ntfs2timespec(u64 t) {
-  t -= static_cast<u64>(369 * 365 + 89) * 24 * 3600 * 10'000'000;
-  return {.tv_sec = static_cast<time_t>(t / 10'000'000),
-          .tv_nsec = static_cast<long int>(t % 10'000'000) * 100};
+timespec ntfs2timespec(i64 const t) {
+  i64 const offset = static_cast<i64>(369 * 365 + 89) * 24 * 3600 * 10'000'000;
+
+  if (t < offset) {
+    throw std::underflow_error("NTFS time stamp is too small");
+  }
+
+  const auto dm = std::div(t - offset, static_cast<i64>(10'000'000));
+
+  if (dm.quot > std::numeric_limits<time_t>::max()) {
+    throw std::overflow_error("NTFS time stamp is too big");
+  }
+
+  return {.tv_sec = static_cast<time_t>(dm.quot),
+          .tv_nsec = static_cast<long int>(dm.rem) * 100};
 }
 
 }  // namespace
