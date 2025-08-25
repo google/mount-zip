@@ -66,23 +66,23 @@ void dump_extrafld(zip_uint16_t id,
   printf("\n");
   switch (id) {
     case FZ_EF_TIMESTAMP: {
-      bool has_mtime, has_atime, has_cretime;
-      time_t mtime, atime, cretime;
+      bool has_mtime, has_atime, has_ctime;
+      time_t mtime, atime, ctime;
       ExtraField::parseExtTimeStamp(len, field, has_mtime, mtime, has_atime,
-                                    atime, has_cretime, cretime);
+                                    atime, has_ctime, ctime);
       printf("    extended timestamp\n");
       unsigned char flags = *field;
       printf("      flags %d: mod %d acc %d cre %d\n", flags, has_mtime,
-             has_atime, has_cretime);
+             has_atime, has_ctime);
       if (has_mtime) {
-        print_time("mtime:   ", mtime);
+        print_time("mtime: ", mtime);
       }
       if (!central) {
         if (has_atime) {
-          print_time("atime:   ", atime);
+          print_time("atime: ", atime);
         }
-        if (has_cretime) {
-          print_time("cretime: ", cretime);
+        if (has_ctime) {
+          print_time("ctime: ", ctime);
         }
       }
       break;
@@ -102,8 +102,8 @@ void dump_extrafld(zip_uint16_t id,
         printf("      parse failed\n");
         break;
       }
-      print_time("atime:   ", atime);
-      print_time("mtime:   ", mtime);
+      print_time("mtime: ", mtime);
+      print_time("atime: ", atime);
       printf("      UID %u\n", uid);
       printf("      GID %u\n", gid);
       if (S_ISBLK(mode) || S_ISCHR(mode)) {
@@ -131,8 +131,8 @@ void dump_extrafld(zip_uint16_t id,
         printf("      UID %u\n", uid);
         printf("      GID %u\n", gid);
       }
-      print_time("atime:   ", atime);
-      print_time("mtime:   ", mtime);
+      print_time("mtime: ", mtime);
+      print_time("atime: ", atime);
       break;
     }
 
@@ -178,16 +178,16 @@ void dump_extrafld(zip_uint16_t id,
 
     case FZ_EF_NTFS: {
       printf("    NTFS Extra Field\n");
-      struct timespec mtime, atime, cretime;
+      struct timespec mtime, atime, ctime;
       bool res =
-          ExtraField::parseNtfsExtraField(len, field, mtime, atime, cretime);
+          ExtraField::parseNtfsExtraField(len, field, mtime, atime, ctime);
       if (!res) {
         printf("      parse failed or no timestamp data\n");
         break;
       }
-      print_time("mtime:   ", mtime);
-      print_time("atime:   ", atime);
-      print_time("cretime: ", cretime);
+      print_time("mtime: ", mtime);
+      print_time("atime: ", atime);
+      print_time("ctime: ", ctime);
       break;
     }
   }
