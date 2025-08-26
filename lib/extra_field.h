@@ -45,7 +45,6 @@ struct Bytes : std::span<const std::byte> {
   Bytes(const T* const p, size_t n) : Base(std::as_bytes(std::span(p, n))) {}
 };
 
-
 // 'Extended Timestamp' LOCAL extra field (0x5455).
 struct ExtTimeStamp {
   time_t mtime = 0;
@@ -53,6 +52,16 @@ struct ExtTimeStamp {
   time_t ctime = 0;
 
   bool Parse(Bytes b);
+};
+
+// Info-ZIP UNIX extra field (5855) with timestamps and (maybe) UID/GID.
+struct SimpleUnixField {
+  time_t mtime = 0;
+  time_t atime = 0;
+  uid_t uid = -1;
+  gid_t gid = -1;
+
+  bool Parse(FieldId id, Bytes b);
 };
 
 struct ExtraField {

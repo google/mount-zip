@@ -197,16 +197,14 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         break;
 
       case FZ_EF_INFOZIP_UNIX1: {
-        time_t mt, at;
-        bool has_uid_gid;
-        if (!ExtraField::parseSimpleUnixField(type, b, has_uid_gid, uid, gid,
-                                              mt, at)) {
+        SimpleUnixField uf;
+        if (!uf.Parse(FZ_EF_INFOZIP_UNIX1, b)) {
           break;
         }
 
-        if (has_uid_gid && type >= last_processed_unix_field) {
-          node->uid = uid;
-          node->gid = gid;
+        if (uf.uid != -1 && uf.gid != -1 && type >= last_processed_unix_field) {
+          node->uid = uf.uid;
+          node->gid = uf.gid;
           last_processed_unix_field = type;
         }
 
@@ -215,11 +213,11 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         }
 
         if (!mtime_from_timestamp) {
-          node->mtime = {.tv_sec = mt};
+          node->mtime = {.tv_sec = uf.mtime};
         }
 
         if (!atime_from_timestamp) {
-          node->atime = {.tv_sec = at};
+          node->atime = {.tv_sec = uf.atime};
         }
 
         break;

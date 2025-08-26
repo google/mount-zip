@@ -150,28 +150,27 @@ void unix_pkware_link() {
  * Parse Info-ZIP Unix Extra Field (type1)
  */
 void unix_infozip1() {
-  const u8 data_local[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3,
-                           0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
-  const u8 data_central[] = {0x72, 0xE3, 0xC7, 0x52, 0xD4, 0x6F, 0xCE, 0x51};
-
-  bool has_uid_gid;
-  time_t atime, mtime;
-  uid_t uid;
-  gid_t gid;
   // local header
-  assert(ExtraField::parseSimpleUnixField(0x5855, data_local, has_uid_gid, uid,
-                                          gid, mtime, atime));
-  assert(has_uid_gid);
-  assert(atime == 0x51CE6FD4);
-  assert(mtime == 0x52C7E372);
-  assert(uid == 0x0102);
-  assert(gid == 0x0304);
+  {
+    const u8 data[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
+    SimpleUnixField uf;
+    assert(uf.Parse(FZ_EF_INFOZIP_UNIX1, data));
+    assert(uf.atime == 0x51CE6FD4);
+    assert(uf.mtime == 0x52C7E372);
+    assert(uf.uid == 0x0102);
+    assert(uf.gid == 0x0304);
+  }
+
   // central header
-  assert(ExtraField::parseSimpleUnixField(0x5855, data_central, has_uid_gid,
-                                          uid, gid, mtime, atime));
-  assert(!has_uid_gid);
-  assert(atime == 0x52C7E372);
-  assert(mtime == 0x51CE6FD4);
+  {
+    const u8 data[] = {0x72, 0xE3, 0xC7, 0x52, 0xD4, 0x6F, 0xCE, 0x51};
+    SimpleUnixField uf;
+    assert(uf.Parse(FZ_EF_INFOZIP_UNIX1, data));
+    assert(uf.atime == 0x52C7E372);
+    assert(uf.mtime == 0x51CE6FD4);
+    assert(uf.uid == -1);
+    assert(uf.gid == -1);
+  }
 }
 
 /**

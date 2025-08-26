@@ -122,14 +122,8 @@ bool ExtTimeStamp::Parse(Bytes b) try {
   return false;
 }
 
-bool ExtraField::parseSimpleUnixField(int const type,
-                                      Bytes b,
-                                      bool& hasUidGid,
-                                      uid_t& uid,
-                                      gid_t& gid,
-                                      time_t& mtime,
-                                      time_t& atime) try {
-  switch (type) {
+bool SimpleUnixField::Parse(FieldId id, Bytes b) try {
+  switch (id) {
     case FZ_EF_PKWARE_UNIX:
     case FZ_EF_INFOZIP_UNIX1:
       atime = Read<u32>(b);
@@ -138,9 +132,7 @@ bool ExtraField::parseSimpleUnixField(int const type,
       try {
         uid = Read<u16>(b);
         gid = Read<u16>(b);
-        hasUidGid = true;
       } catch (...) {
-        hasUidGid = false;
       }
       return true;
 

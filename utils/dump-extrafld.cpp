@@ -108,22 +108,19 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
 
     case FZ_EF_INFOZIP_UNIX1: {
       printf("    Info-ZIP Unix v1\n");
-      bool has_uid_gid;
-      time_t mtime, atime;
-      uid_t uid;
-      gid_t gid;
-      bool res = ExtraField::parseSimpleUnixField(id, b, has_uid_gid, uid, gid,
-                                                  mtime, atime);
-      if (!res) {
+      SimpleUnixField uf;
+      if (!uf.Parse(FZ_EF_INFOZIP_UNIX1, b)) {
         printf("      parse failed\n");
         break;
       }
-      if (has_uid_gid) {
-        printf("      UID %u\n", uid);
-        printf("      GID %u\n", gid);
+      if (uf.uid != -1) {
+        printf("      UID %u\n", uf.uid);
       }
-      print_time("mtime: ", mtime);
-      print_time("atime: ", atime);
+      if (uf.gid != -1) {
+        printf("      GID %u\n", uf.gid);
+      }
+      print_time("mtime: ", uf.mtime);
+      print_time("atime: ", uf.atime);
       break;
     }
 
