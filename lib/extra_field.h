@@ -36,13 +36,16 @@ enum FieldId {
 struct Bytes : std::span<const std::byte> {
   using Base = std::span<const std::byte>;
   using Base::operator=;
-  using Base::Base;
 
   template <typename T, size_t N>
   Bytes(const T (&x)[N]) : Base(std::as_bytes(std::span(x))) {}
 
   template <typename T>
   Bytes(const T* const p, size_t n) : Base(std::as_bytes(std::span(p, n))) {}
+
+  Bytes(const Base& x) : Base(x) {}
+
+  void remove_prefix(size_t n) { *this = subspan(n); }
 };
 
 // 'Extended Timestamp' LOCAL extra field (0x5455).

@@ -28,7 +28,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
-#include <span>
 #include <stdexcept>
 
 #include "log.h"
@@ -70,16 +69,15 @@ u64 letoh(u64 x) {
 #error "Unexpected byte order"
 #endif
 
-template <typename T, typename B>
-T Read(std::span<const B>& b) {
-  static_assert(sizeof(B) == 1);
+template <typename T>
+T Read(Bytes& b) {
   T res;
   if (b.size() < sizeof(res)) {
     throw std::out_of_range("Not enough bytes in buffer to read from");
   }
   assert(b.size() >= sizeof(res));
   std::memcpy(&res, b.data(), sizeof(res));
-  b = b.subspan(sizeof(res));
+  b.remove_prefix(sizeof(res));
   return letoh(res);
 }
 
@@ -167,8 +165,8 @@ bool ExtraField::parseUnixUidGidField(int const type,
           return false;
         }
 
-        std::span p = b.first(n);
-        b = b.subspan(n);
+        Bytes p = b.first(n);
+        b.remove_prefix(n);
 
         if (p.size() > sizeof(uid_t)) {
           if (std::ranges::any_of(p.subspan(sizeof(uid_t)),
@@ -193,8 +191,8 @@ bool ExtraField::parseUnixUidGidField(int const type,
           return false;
         }
 
-        std::span p = b.first(n);
-        b = b.subspan(n);
+        Bytes p = b.first(n);
+        b.remove_prefix(n);
 
         if (p.size() > sizeof(gid_t)) {
           if (std::ranges::any_of(p.subspan(sizeof(gid_t)), [](std::byte c) {
@@ -268,14 +266,14 @@ bool ExtraField::parseNtfsExtraField(Bytes b,
     }
 
     if (tag == 0x0001) {
-      std::span p = b.first(size);
+      Bytes p = b.first(size);
       mtime = ntfs2timespec(Read<u64>(p));
       atime = ntfs2timespec(Read<u64>(p));
       ctime = ntfs2timespec(Read<u64>(p));
       hasTimes = true;
     }
 
-    b = b.subspan(size);
+    b.remove_prefix(size);
   }
 
   return hasTimes;
