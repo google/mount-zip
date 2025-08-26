@@ -81,27 +81,21 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
 
     case FZ_EF_PKWARE_UNIX: {
       printf("    PKWare Unix\n");
-      time_t atime, mtime;
-      uid_t uid;
-      gid_t gid;
-      dev_t dev;
-      const char* link;
-      size_t link_len;
-      bool res = ExtraField::parsePkWareUnixField(b, mode, mtime, atime, uid,
-                                                  gid, dev, link, link_len);
-      if (!res) {
+      PkWareField f;
+      if (!f.Parse(b, mode)) {
         printf("      parse failed\n");
         break;
       }
-      print_time("mtime: ", mtime);
-      print_time("atime: ", atime);
-      printf("      UID:   %u\n", uid);
-      printf("      GID:   %u\n", gid);
+      print_time("mtime: ", f.mtime);
+      print_time("atime: ", f.atime);
+      printf("      UID:   %u\n", f.uid);
+      printf("      GID:   %u\n", f.gid);
       if (S_ISBLK(mode) || S_ISCHR(mode)) {
-        printf("      device: %u, %u\n", major(dev), minor(dev));
+        printf("      device: %u, %u\n", major(f.dev), minor(f.dev));
       }
-      if (link_len > 0) {
-        printf("      link target: %.*s\n", static_cast<int>(link_len), link);
+      if (!f.link_target.empty()) {
+        printf("      link target: %.*s\n",
+               static_cast<int>(f.link_target.size()), f.link_target.data());
       }
       break;
     }

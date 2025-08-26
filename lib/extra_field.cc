@@ -186,31 +186,20 @@ bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
   return false;
 }
 
-bool ExtraField::parsePkWareUnixField(Bytes b,
-                                      mode_t const mode,
-                                      time_t& mtime,
-                                      time_t& atime,
-                                      uid_t& uid,
-                                      gid_t& gid,
-                                      dev_t& dev,
-                                      const char*& link_target,
-                                      size_t& link_target_len) try {
+bool PkWareField::Parse(Bytes b, mode_t const mode) try {
   atime = Read<u32>(b);
   mtime = Read<u32>(b);
   uid = Read<u16>(b);
   gid = Read<u16>(b);
 
   // variable data field
-  dev = 0;
-  link_target = nullptr;
-  link_target_len = 0;
   if (S_ISBLK(mode) || S_ISCHR(mode)) {
     unsigned int const maj = Read<u32>(b);
     unsigned int const min = Read<u32>(b);
     dev = makedev(maj, min);
   } else {
-    link_target = reinterpret_cast<const char*>(b.data());
-    link_target_len = static_cast<u16>(b.size());
+    link_target =
+        std::string_view(reinterpret_cast<const char*>(b.data()), b.size());
   }
 
   return true;

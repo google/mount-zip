@@ -72,20 +72,14 @@ void unix_pkware_regular() {
       0x04, 0x03               // GID
   };
 
-  time_t atime, mtime;
-  uid_t uid;
-  gid_t gid;
-  dev_t dev;
-  const char* link;
-  size_t link_len;
-  assert(ExtraField::parsePkWareUnixField(data, S_IFREG | 0666, mtime, atime,
-                                          uid, gid, dev, link, link_len));
-  assert(atime == 0x51CE6FD4);
-  assert(mtime == 0x52C7E372);
-  assert(uid == 0x0102);
-  assert(gid == 0x0304);
-  assert(dev == 0);
-  assert(link_len == 0);
+  PkWareField f;
+  assert(f.Parse(data, S_IFREG | 0666));
+  assert(f.atime == 0x51CE6FD4);
+  assert(f.mtime == 0x52C7E372);
+  assert(f.uid == 0x0102);
+  assert(f.gid == 0x0304);
+  assert(f.dev == 0);
+  assert(f.link_target.empty());
 }
 
 /**
@@ -101,20 +95,14 @@ void unix_pkware_device() {
       0x01, 0x00, 0x00, 0x00   // minor
   };
 
-  time_t atime, mtime;
-  uid_t uid;
-  gid_t gid;
-  dev_t dev;
-  const char* link;
-  size_t link_len;
-  assert(ExtraField::parsePkWareUnixField(data, S_IFBLK | 0666, mtime, atime,
-                                          uid, gid, dev, link, link_len));
-  assert(atime == 0x5D4576C8);
-  assert(mtime == 0x5D4576C8);
-  assert(uid == 0x0000);
-  assert(gid == 0x0006);
-  assert(dev == makedev(8, 1));
-  assert(link_len == 0);
+  PkWareField f;
+  assert(f.Parse(data, S_IFBLK | 0666));
+  assert(f.atime == 0x5D4576C8);
+  assert(f.mtime == 0x5D4576C8);
+  assert(f.uid == 0x0000);
+  assert(f.gid == 0x0006);
+  assert(f.dev == makedev(8, 1));
+  assert(f.link_target.empty());
 }
 
 /**
@@ -129,21 +117,14 @@ void unix_pkware_link() {
       0x72, 0x65, 0x67, 0x75, 0x6C, 0x61, 0x72  // link target
   };
 
-  time_t atime, mtime;
-  uid_t uid;
-  gid_t gid;
-  dev_t dev;
-  const char* link;
-  size_t link_len;
-  assert(ExtraField::parsePkWareUnixField(data, S_IFLNK | 0777, mtime, atime,
-                                          uid, gid, dev, link, link_len));
-  assert(atime == 0x5D4973F3);
-  assert(mtime == 0x5D457BA9);
-  assert(uid == 1000);
-  assert(gid == 1000);
-  assert(dev == 0);
-  assert(link_len == 7);
-  assert(strncmp(link, "regular", link_len) == 0);
+  PkWareField f;
+  assert(f.Parse(data, S_IFLNK | 0777));
+  assert(f.atime == 0x5D4973F3);
+  assert(f.mtime == 0x5D457BA9);
+  assert(f.uid == 1000);
+  assert(f.gid == 1000);
+  assert(f.dev == 0);
+  assert(f.link_target == "regular");
 }
 
 /**
@@ -213,8 +194,6 @@ void unix_infozip_new() {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 16,   0xFF, 0xFE, 0xFD, 0xFC, 0xFB,
       0xFA, 0xF9, 0xF8, 0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0};
 
-  uid_t uid;
-  gid_t gid;
   // 8-bit
   {
     SimpleUnixField uf;

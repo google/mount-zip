@@ -70,36 +70,19 @@ struct SimpleUnixField {
   bool Parse(FieldId id, Bytes b);
 };
 
-struct ExtraField {
-  /**
-   * Parse PKWARE Unix Extra Field (000D). If file is a device (character or
-   * block) then device inor-major numbers are extracted into 'dev' parameter.
-   * For symbolic links and regular files link target pointer is extracted into
-   * 'link_target' field and 'link_target_len' variables.
-   *
-   * @param type extended field type ID
-   * @param b field data
-   * @param mode UNIX file mode
-   * @param mtime (OUT) file modification time if present
-   * @param atime (OUT) file access time if present
-   * @param uid (OUT) UID
-   * @param gid (OUT) GID
-   * @param dev (OUT) device major/minor numbers
-   * @param link_target (OUT) pointer to a first byte of hard/symbolic link
-   * target
-   * @param link_target_len (OUT) length of hard/symbolic link target
-   * @return successful completion flag
-   */
-  static bool parsePkWareUnixField(Bytes b,
-                                   mode_t mode,
-                                   time_t& mtime,
-                                   time_t& atime,
-                                   uid_t& uid,
-                                   gid_t& gid,
-                                   dev_t& dev,
-                                   const char*& link_target,
-                                   size_t& link_target_len);
+// PKWARE Unix Extra Field (000D).
+struct PkWareField {
+  time_t mtime = 0;
+  time_t atime = 0;
+  uid_t uid = -1;
+  gid_t gid = -1;
+  dev_t dev = 0;
+  std::string_view link_target;
 
+  bool Parse(Bytes b, mode_t mode);
+};
+
+struct ExtraField {
   /**
    * Parse NTFS Extra FIeld
    *

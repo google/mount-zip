@@ -828,25 +828,18 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
   }
 
   Bytes const b(field, len);
-  time_t mt, at;
-  uid_t uid;
-  gid_t gid;
-  dev_t dev;
-  const char* link;
-  size_t link_len;
-
-  if (!ExtraField::parsePkWareUnixField(b, mode, mt, at, uid, gid, dev, link,
-                                        link_len)) {
+  PkWareField f;
+  if (!f.Parse(b, mode)) {
     LOG(WARNING) << "Cannot parse PkWare Unix field for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }
 
-  if (link_len == 0 || !link) {
+  if (f.link_target.empty()) {
     LOG(ERROR) << "Cannot get target for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }
 
-  const Path target_path(link, link_len);
+  const Path target_path = f.link_target;
 
   const auto it =
       files_by_original_path_.find({z, target_path.WithoutTrailingSeparator()});

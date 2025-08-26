@@ -64,41 +64,35 @@ static void ProcessPkWareUnixField(DataNode* const node,
                                    const bool high_precision_time,
                                    FieldId& last_processed_unix_field) {
   assert(node);
-  time_t mt, at;
-  uid_t uid;
-  gid_t gid;
-  dev_t dev;
-  const char* link;
-  size_t link_len;
-  if (!ExtraField::parsePkWareUnixField(b, node->mode, mt, at, uid, gid, dev,
-                                        link, link_len)) {
+  PkWareField f;
+  if (!f.Parse(b, node->mode)) {
     return;
   }
 
   if (id >= last_processed_unix_field) {
-    node->uid = uid;
-    node->gid = gid;
+    node->uid = f.uid;
+    node->gid = f.gid;
     last_processed_unix_field = id;
   }
 
   if (!high_precision_time) {
     if (!mtime_from_timestamp) {
-      node->mtime = {.tv_sec = mt};
+      node->mtime = {.tv_sec = f.mtime};
     }
 
     if (!atime_from_timestamp) {
-      node->atime = {.tv_sec = at};
+      node->atime = {.tv_sec = f.atime};
     }
   }
 
-  node->dev = dev;
+  node->dev = f.dev;
 
   // Use PKWARE link target only if link target in Info-ZIP format is not
   // specified (empty file content)
-  if (S_ISLNK(node->mode) && node->size == 0 && link_len > 0) {
+  if (S_ISLNK(node->mode) && node->size == 0 && !f.link_target.empty()) {
     assert(link);
-    node->target.assign(link, link_len);
-    node->size = link_len;
+    node->target.assign(f.link_target);
+    node->size = f.link_target.size();
   }
 }
 
