@@ -102,26 +102,18 @@ timespec ntfs2timespec(i64 const t) {
 
 }  // namespace
 
-bool ExtraField::parseExtTimeStamp(Bytes b,
-                                   bool& has_mtime,
-                                   time_t& mtime,
-                                   bool& has_atime,
-                                   time_t& atime,
-                                   bool& has_ctime,
-                                   time_t& ctime) try {
+bool ExtTimeStamp::Parse(Bytes b) try {
   const u8 flags = Read<u8>(b);
 
-  has_mtime = flags & 1;
-  has_atime = flags & 2;
-  has_ctime = flags & 4;
-
-  if (has_mtime) {
+  if (flags & 1) {
     mtime = Read<u32>(b);
   }
-  if (has_atime) {
+
+  if (flags & 2) {
     atime = Read<u32>(b);
   }
-  if (has_ctime) {
+
+  if (flags & 4) {
     ctime = Read<u32>(b);
   }
 

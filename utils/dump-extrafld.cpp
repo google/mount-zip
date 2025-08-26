@@ -58,23 +58,22 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
   printf("\n");
   switch (id) {
     case FZ_EF_TIMESTAMP: {
-      bool has_mtime, has_atime, has_ctime;
-      time_t mtime, atime, ctime;
-      ExtraField::parseExtTimeStamp(b, has_mtime, mtime, has_atime, atime,
-                                    has_ctime, ctime);
+      ExtTimeStamp ts;
+      if (!ts.Parse(b)) {
+        break;
+      }
       printf("    Extended timestamp\n");
       int flags = static_cast<int>(b.front());
-      printf("      flags %d: mod %d acc %d cre %d\n", flags, has_mtime,
-             has_atime, has_ctime);
-      if (has_mtime) {
-        print_time("mtime:   ", mtime);
+      printf("      flags: %d\n", flags);
+      if (ts.mtime) {
+        print_time("mtime: ", ts.mtime);
       }
       if (!central) {
-        if (has_atime) {
-          print_time("atime:   ", atime);
+        if (ts.atime) {
+          print_time("atime: ", ts.atime);
         }
-        if (has_ctime) {
-          print_time("ctime:   ", ctime);
+        if (ts.ctime) {
+          print_time("ctime: ", ts.ctime);
         }
       }
       break;

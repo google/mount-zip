@@ -33,16 +33,11 @@ using u8 = std::uint8_t;
  */
 void timestamp_mtime_atime_present_local() {
   const u8 data[] = {1 | 2, 0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52};
-
-  bool has_atime, has_mtime, has_ctime;
-  time_t atime, mtime, ctime;
-  assert(ExtraField::parseExtTimeStamp(data, has_mtime, mtime, has_atime, atime,
-                                       has_ctime, ctime));
-  assert(has_mtime);
-  assert(has_atime);
-  assert(!has_ctime);
-  assert(mtime == 0x51CE6FD4);
-  assert(atime == 0X52C7E372);
+  ExtTimeStamp ts;
+  assert(ts.Parse(data));
+  assert(ts.mtime == 0x51CE6FD4);
+  assert(ts.atime == 0X52C7E372);
+  assert(ts.ctime == 0);
 }
 
 /**
@@ -50,16 +45,11 @@ void timestamp_mtime_atime_present_local() {
  */
 void timestamp_mtime_ctime_present_local() {
   const u8 data[] = {1 | 4, 0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52};
-
-  bool has_atime, has_mtime, has_ctime;
-  time_t atime, mtime, ctime;
-  assert(ExtraField::parseExtTimeStamp(data, has_mtime, mtime, has_atime, atime,
-                                       has_ctime, ctime));
-  assert(has_mtime);
-  assert(!has_atime);
-  assert(has_ctime);
-  assert(mtime == 0x51CE6FD4);
-  assert(ctime == 0x52C7E372);
+  ExtTimeStamp ts;
+  assert(ts.Parse(data));
+  assert(ts.mtime == 0x51CE6FD4);
+  assert(ts.atime == 0);
+  assert(ts.ctime == 0x52C7E372);
 }
 
 /**
@@ -67,11 +57,8 @@ void timestamp_mtime_ctime_present_local() {
  */
 void timestamp_bad() {
   const u8 data[] = {1 | 2 | 4, 0x72, 0xE3, 0xC7, 0x52};
-
-  bool has_atime, has_mtime, has_ctime;
-  time_t atime, mtime, ctime;
-  assert(!ExtraField::parseExtTimeStamp(data, has_mtime, mtime, has_atime,
-                                        atime, has_ctime, ctime));
+  ExtTimeStamp ts;
+  assert(!ts.Parse(data));
 }
 
 /**

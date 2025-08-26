@@ -123,7 +123,6 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
   count = zip_file_extra_fields_count(zip, node->id, ZIP_FL_CENTRAL);
   if (count > 0) {
     for (zip_int16_t i = 0; i < count; ++i) {
-      timespec mt, at, cret;
       zip_uint16_t type, len;
       const zip_uint8_t* const field = zip_file_extra_field_get(
           zip, node->id, i, &type, &len, ZIP_FL_CENTRAL);
@@ -137,13 +136,15 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
                                  last_processed_unix_field);
           break;
 
-        case FZ_EF_NTFS:
+        case FZ_EF_NTFS: {
+          timespec mt, at, cret;
           if (ExtraField::parseNtfsExtraField(b, mt, at, cret)) {
             node->mtime = mt;
             node->atime = at;
             high_precision_time = true;
           }
           break;
+        }
       }
     }
   }
@@ -155,22 +156,19 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
   }
 
   for (zip_int16_t i = 0; i < count; ++i) {
-    bool has_mt, has_at, has_cret;
-    time_t mt, at, cret;
     zip_uint16_t type, len;
     const zip_uint8_t* const field =
         zip_file_extra_field_get(zip, node->id, i, &type, &len, ZIP_FL_LOCAL);
     Bytes const b(field, len);
 
-    bool has_uid_gid;
     uid_t uid;
     gid_t gid;
     timespec mts, ats, bts;
 
     switch (type) {
-      case FZ_EF_TIMESTAMP:
-        if (!ExtraField::parseExtTimeStamp(b, has_mt, mt, has_at, at, has_cret,
-                                           cret)) {
+      case FZ_EF_TIMESTAMP: {
+        ExtTimeStamp ts;
+        if (!ts.Parse(b)) {
           break;
         }
 
@@ -178,17 +176,18 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           break;
         }
 
-        if (has_mt) {
-          node->mtime = {.tv_sec = mt};
+        if (ts.mtime) {
+          node->mtime = {.tv_sec = ts.mtime};
           mtime_from_timestamp = true;
         }
 
-        if (has_at) {
-          node->atime = {.tv_sec = at};
+        if (ts.atime) {
+          node->atime = {.tv_sec = ts.atime};
           atime_from_timestamp = true;
         }
 
         break;
+      }
 
       case FZ_EF_PKWARE_UNIX:
         has_pkware_field = true;
@@ -197,7 +196,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
                                last_processed_unix_field);
         break;
 
-      case FZ_EF_INFOZIP_UNIX1:
+      case FZ_EF_INFOZIP_UNIX1: {
+        time_t mt, at;
+        bool has_uid_gid;
         if (!ExtraField::parseSimpleUnixField(type, b, has_uid_gid, uid, gid,
                                               mt, at)) {
           break;
@@ -222,6 +223,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         }
 
         break;
+      }
 
       case FZ_EF_INFOZIP_UNIX2:
       case FZ_EF_INFOZIP_UNIXN:

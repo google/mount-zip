@@ -24,7 +24,7 @@
 #include <sys/types.h>
 
 // ZIP extra fields
-enum FieldIds {
+enum FieldId {
   FZ_EF_TIMESTAMP = 0x5455,
   FZ_EF_NTFS = 0x000A,
   FZ_EF_PKWARE_UNIX = 0x000D,
@@ -45,27 +45,17 @@ struct Bytes : std::span<const std::byte> {
   Bytes(const T* const p, size_t n) : Base(std::as_bytes(std::span(p, n))) {}
 };
 
-struct ExtraField {
-  /**
-   * Parse 'Extended Timestamp' LOCAL extra field (0x5455) to get mtime,
-   * atime and creation time values.
-   * @param b field data
-   * @param has_mtime (OUT) mtime presence
-   * @param mtime (OUT) file modification time if present
-   * @param has_atime (OUT) atime presence
-   * @param atime (OUT) file access time if present
-   * @param has_ctime (OUT) creation time presence
-   * @param ctime (OUT) file creation time if present
-   * @return successful completion flag
-   */
-  static bool parseExtTimeStamp(Bytes b,
-                                bool& has_mtime,
-                                time_t& mtime,
-                                bool& has_atime,
-                                time_t& atime,
-                                bool& has_ctime,
-                                time_t& ctime);
 
+// 'Extended Timestamp' LOCAL extra field (0x5455).
+struct ExtTimeStamp {
+  time_t mtime = 0;
+  time_t atime = 0;
+  time_t ctime = 0;
+
+  bool Parse(Bytes b);
+};
+
+struct ExtraField {
   /**
    * Parse Info-ZIP UNIX extra field (5855) to extract UID/GID and (maybe)
    * timestamps.
