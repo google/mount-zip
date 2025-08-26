@@ -57,12 +57,12 @@ bool DataNode::original_permissions = false;
 ino_t DataNode::ino_count = 0;
 
 static void ProcessPkWareUnixField(DataNode* const node,
-                                   const zip_uint16_t type,
+                                   const FieldId id,
                                    Bytes const b,
                                    const bool mtime_from_timestamp,
                                    const bool atime_from_timestamp,
                                    const bool high_precision_time,
-                                   int& last_processed_unix_field) {
+                                   FieldId& last_processed_unix_field) {
   assert(node);
   time_t mt, at;
   uid_t uid;
@@ -75,10 +75,10 @@ static void ProcessPkWareUnixField(DataNode* const node,
     return;
   }
 
-  if (type >= last_processed_unix_field) {
+  if (id >= last_processed_unix_field) {
     node->uid = uid;
     node->gid = gid;
-    last_processed_unix_field = type;
+    last_processed_unix_field = id;
   }
 
   if (!high_precision_time) {
@@ -115,7 +115,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
   bool high_precision_time = false;
   // UIDs and GIDs from UNIX extra fields with bigger type IDs have
   // precedence
-  int last_processed_unix_field = 0;
+  FieldId last_processed_unix_field = FieldId();
 
   bool has_pkware_field = false;
 
@@ -128,10 +128,11 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           zip, node->id, i, &type, &len, ZIP_FL_CENTRAL);
       Bytes const b(field, len);
 
-      switch (type) {
+      const FieldId id = FieldId(type);
+      switch (id) {
         case FZ_EF_PKWARE_UNIX:
           has_pkware_field = true;
-          ProcessPkWareUnixField(node, type, b, mtime_from_timestamp,
+          ProcessPkWareUnixField(node, id, b, mtime_from_timestamp,
                                  atime_from_timestamp, high_precision_time,
                                  last_processed_unix_field);
           break;
@@ -145,6 +146,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           }
           break;
         }
+
+        default:
+          break;
       }
     }
   }
@@ -160,8 +164,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
     const zip_uint8_t* const field =
         zip_file_extra_field_get(zip, node->id, i, &type, &len, ZIP_FL_LOCAL);
     Bytes const b(field, len);
+    const FieldId id = FieldId(type);
 
-    switch (type) {
+    switch (id) {
       case FZ_EF_TIMESTAMP: {
         ExtTimeStamp ts;
         if (!ts.Parse(b)) {
@@ -187,7 +192,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
       case FZ_EF_PKWARE_UNIX:
         has_pkware_field = true;
-        ProcessPkWareUnixField(node, type, b, mtime_from_timestamp,
+        ProcessPkWareUnixField(node, id, b, mtime_from_timestamp,
                                atime_from_timestamp, high_precision_time,
                                last_processed_unix_field);
         break;
@@ -198,10 +203,10 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           break;
         }
 
-        if (uf.uid != -1 && uf.gid != -1 && type >= last_processed_unix_field) {
+        if (uf.uid != -1 && uf.gid != -1 && id >= last_processed_unix_field) {
           node->uid = uf.uid;
           node->gid = uf.gid;
-          last_processed_unix_field = type;
+          last_processed_unix_field = id;
         }
 
         if (high_precision_time) {
@@ -222,17 +227,17 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
       case FZ_EF_INFOZIP_UNIX2:
       case FZ_EF_INFOZIP_UNIXN: {
         SimpleUnixField uf;
-        if (!uf.Parse(FieldId(type), b)) {
+        if (!uf.Parse(id, b)) {
           break;
         }
 
         assert(uf.uid != -1);
         assert(uf.gid != -1);
 
-        if (type >= last_processed_unix_field) {
+        if (id >= last_processed_unix_field) {
           node->uid = uf.uid;
           node->gid = uf.gid;
-          last_processed_unix_field = type;
+          last_processed_unix_field = id;
         }
 
         break;

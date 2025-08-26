@@ -20,6 +20,7 @@
 
 #include <ctime>
 #include <span>
+#include <string_view>
 
 #include <sys/types.h>
 
@@ -63,6 +64,8 @@ struct SimpleUnixField {
   time_t atime = 0;
   uid_t uid = -1;
   gid_t gid = -1;
+  dev_t dev = -1;
+  std::string_view link_target;
 
   bool Parse(FieldId id, Bytes b);
 };
