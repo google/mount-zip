@@ -126,11 +126,10 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
 
     case FZ_EF_INFOZIP_UNIX2: {
       printf("    Info-ZIP Unix v2\n");
-      uid_t uid;
-      gid_t gid;
-      if (ExtraField::parseUnixUidGidField(id, b, uid, gid)) {
-        printf("      UID %u\n", uid);
-        printf("      GID %u\n", gid);
+      SimpleUnixField uf;
+      if (uf.Parse(FZ_EF_INFOZIP_UNIX2, b)) {
+        printf("      UID %u\n", uf.uid);
+        printf("      GID %u\n", uf.gid);
       }
       break;
     }

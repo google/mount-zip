@@ -57,7 +57,7 @@ struct ExtTimeStamp {
   bool Parse(Bytes b);
 };
 
-// Info-ZIP UNIX extra field (5855) with timestamps and (maybe) UID/GID.
+// Info-ZIP UNIX extra field with timestamps and (maybe) UID/GID.
 struct SimpleUnixField {
   time_t mtime = 0;
   time_t atime = 0;
@@ -68,40 +68,6 @@ struct SimpleUnixField {
 };
 
 struct ExtraField {
-  /**
-   * Parse Info-ZIP UNIX extra field (5855) to extract UID/GID and (maybe)
-   * timestamps.
-   *
-   * @param type extended field type ID
-   * @param b field data
-   * @param hasUidGid (OUT) UID and GID are present
-   * @param uid (OUT) UID
-   * @param gid (OUT) GID
-   * @param mtime (OUT) file modification time if present
-   * @param atime (OUT) file access time if present
-   * @return successful completion flag
-   */
-  static bool parseSimpleUnixField(int type,
-                                   Bytes b,
-                                   bool& hasUid,
-                                   uid_t& uid,
-                                   gid_t& gid,
-                                   time_t& mtime,
-                                   time_t& atime);
-
-  /**
-   * Parse UNIX extra field to extract UID/GID:
-   *  7855    Info-ZIP Unix Extra Field (type 2)
-   *  7875    Info-ZIP New Unix Extra Field
-   *
-   * @param type extended field type ID
-   * @param b field data
-   * @param uid (OUT) UID
-   * @param gid (OUT) GID
-   * @return successful completion flag
-   */
-  static bool parseUnixUidGidField(int type, Bytes b, uid_t& uid, gid_t& gid);
-
   /**
    * Parse PKWARE Unix Extra Field (000D). If file is a device (character or
    * block) then device inor-major numbers are extracted into 'dev' parameter.

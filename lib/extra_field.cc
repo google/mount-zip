@@ -29,6 +29,7 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 
 #include "log.h"
 
@@ -81,6 +82,34 @@ T Read(Bytes& b) {
   return letoh(res);
 }
 
+template <typename T>
+T ReadVariableLength(Bytes& b) {
+  ssize_t const n = Read<u8>(b);
+  if (b.size() < n) {
+    throw std::out_of_range("Not enough bytes in buffer to read from");
+  }
+
+  Bytes p = b.first(n);
+  b.remove_prefix(n);
+
+  std::make_unsigned_t<T> res = 0;
+  if (p.size() > sizeof(res)) {
+    if (std::ranges::any_of(p.subspan(sizeof(res)),
+                            [](std::byte c) { return c != std::byte(); })) {
+      throw std::overflow_error("Too big");
+    }
+
+    p = p.first(sizeof(res));
+  }
+
+  for (size_t i = p.size(); i > 0;) {
+    res <<= 8;
+    res |= static_cast<u8>(p[--i]);
+  }
+
+  return res;
+}
+
 timespec ntfs2timespec(i64 const t) {
   i64 const offset = static_cast<i64>(369 * 365 + 89) * 24 * 3600 * 10'000'000;
 
@@ -120,7 +149,7 @@ bool ExtTimeStamp::Parse(Bytes b) try {
   return false;
 }
 
-bool SimpleUnixField::Parse(FieldId id, Bytes b) try {
+bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
   switch (id) {
     case FZ_EF_PKWARE_UNIX:
     case FZ_EF_INFOZIP_UNIX1:
@@ -134,87 +163,25 @@ bool SimpleUnixField::Parse(FieldId id, Bytes b) try {
       }
       return true;
 
-    default:
-      return false;
-  }
-} catch (...) {
-  return false;
-}
-
-bool ExtraField::parseUnixUidGidField(int const type,
-                                      Bytes b,
-                                      uid_t& uid,
-                                      gid_t& gid) try {
-  switch (type) {
     case FZ_EF_INFOZIP_UNIX2:
       uid = Read<u16>(b);
       gid = Read<u16>(b);
       return true;
 
     case FZ_EF_INFOZIP_UNIXN: {
-      // Version
+      // Check version
       if (Read<u8>(b) != 1) {
-        // Unsupported version
         return false;
       }
 
-      // UID
-      {
-        ssize_t const n = Read<u8>(b);
-        if (b.size() < n) {
-          return false;
-        }
-
-        Bytes p = b.first(n);
-        b.remove_prefix(n);
-
-        if (p.size() > sizeof(uid_t)) {
-          if (std::ranges::any_of(p.subspan(sizeof(uid_t)),
-                                  [](std::byte c) { return c != std::byte(); })) {
-            return false;
-          }
-
-          p = p.first(sizeof(uid_t));
-        }
-
-        uid = 0;
-        for (size_t i = p.size(); i > 0;) {
-          uid <<= 8;
-          uid |= static_cast<u8>(p[--i]);
-        }
-      }
-
-      // GID
-      {
-        ssize_t const n = Read<u8>(b);
-        if (b.size() < n) {
-          return false;
-        }
-
-        Bytes p = b.first(n);
-        b.remove_prefix(n);
-
-        if (p.size() > sizeof(gid_t)) {
-          if (std::ranges::any_of(p.subspan(sizeof(gid_t)), [](std::byte c) {
-                return c != std::byte();
-              })) {
-            return false;
-          }
-
-          p = p.first(sizeof(gid_t));
-        }
-
-        gid = 0;
-        for (size_t i = p.size(); i > 0;) {
-          gid <<= 8;
-          gid |= static_cast<u8>(p[--i]);
-        }
-      }
-
+      uid = ReadVariableLength<uid_t>(b);
+      gid = ReadVariableLength<gid_t>(b);
       return true;
     }
+
+    default:
+      return false;
   }
-  return false;
 } catch (...) {
   return false;
 }

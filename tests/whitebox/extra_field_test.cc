@@ -152,7 +152,8 @@ void unix_pkware_link() {
 void unix_infozip1() {
   // local header
   {
-    const u8 data[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
+    const u8 data[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3,
+                       0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
     SimpleUnixField uf;
     assert(uf.Parse(FZ_EF_INFOZIP_UNIX1, data));
     assert(uf.atime == 0x51CE6FD4);
@@ -177,17 +178,20 @@ void unix_infozip1() {
  * Parse Info-ZIP Unix Extra Field (type2)
  */
 void unix_infozip2() {
-  const u8 data_local[] = {0x02, 0x01, 0x04, 0x03};
-  const u8 data_central[] = {0};
-
-  uid_t uid;
-  gid_t gid;
   // local header
-  assert(ExtraField::parseUnixUidGidField(0x7855, data_local, uid, gid));
-  assert(uid == 0x0102);
-  assert(gid == 0x0304);
+  {
+    const u8 data[] = {0x02, 0x01, 0x04, 0x03};
+    SimpleUnixField uf;
+    assert(uf.Parse(FZ_EF_INFOZIP_UNIX2, data));
+    assert(uf.uid == 0x0102);
+    assert(uf.gid == 0x0304);
+  }
   // central header
-  assert(!ExtraField::parseUnixUidGidField(0x7855, data_central, uid, gid));
+  {
+    const u8 data[] = {0};
+    SimpleUnixField uf;
+    assert(!uf.Parse(FZ_EF_INFOZIP_UNIX2, data));
+  }
 }
 
 /**
@@ -212,23 +216,36 @@ void unix_infozip_new() {
   uid_t uid;
   gid_t gid;
   // 8-bit
-  assert(ExtraField::parseUnixUidGidField(0x7875, data1, uid, gid));
-  assert(uid == 0x01);
-  assert(gid == 0xF1);
+  {
+    SimpleUnixField uf;
+    assert(uf.Parse(FZ_EF_INFOZIP_UNIXN, data1));
+    assert(uf.uid == 0x01);
+    assert(uf.gid == 0xF1);
+  }
   // 32-bit
-  assert(ExtraField::parseUnixUidGidField(0x7875, data4, uid, gid));
-  assert(uid == 0x01020304);
-  assert(gid == 0xF5F6F7F8);
+  {
+    SimpleUnixField uf;
+    assert(uf.Parse(FZ_EF_INFOZIP_UNIXN, data4));
+    assert(uf.uid == 0x01020304);
+    assert(uf.gid == 0xF5F6F7F8);
+  }
   // 128-bit fit into uid_t and gid_t
-  assert(ExtraField::parseUnixUidGidField(0x7875, data16_fit, uid, gid));
-  assert(uid == 0x0102);
-  assert(gid == 0xF1F2);
+  {
+    SimpleUnixField uf;
+    assert(uf.Parse(FZ_EF_INFOZIP_UNIXN, data16_fit));
+    assert(uf.uid == 0x0102);
+    assert(uf.gid == 0xF1F2);
+  }
   // 128-bit, UID doesn't fit into uid_t
-  assert(
-      !ExtraField::parseUnixUidGidField(0x7875, data16_uid_overflow, uid, gid));
+  {
+    SimpleUnixField uf;
+    assert(!uf.Parse(FZ_EF_INFOZIP_UNIXN, data16_uid_overflow));
+  }
   // 128-bit, GID doesn't fit into gid_t
-  assert(
-      !ExtraField::parseUnixUidGidField(0x7875, data16_gid_overflow, uid, gid));
+  {
+    SimpleUnixField uf;
+    assert(!uf.Parse(FZ_EF_INFOZIP_UNIXN, data16_gid_overflow));
+  }
 }
 
 /**

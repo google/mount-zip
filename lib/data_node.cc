@@ -161,10 +161,6 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         zip_file_extra_field_get(zip, node->id, i, &type, &len, ZIP_FL_LOCAL);
     Bytes const b(field, len);
 
-    uid_t uid;
-    gid_t gid;
-    timespec mts, ats, bts;
-
     switch (type) {
       case FZ_EF_TIMESTAMP: {
         ExtTimeStamp ts;
@@ -224,20 +220,26 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
       }
 
       case FZ_EF_INFOZIP_UNIX2:
-      case FZ_EF_INFOZIP_UNIXN:
-        if (!ExtraField::parseUnixUidGidField(type, b, uid, gid)) {
+      case FZ_EF_INFOZIP_UNIXN: {
+        SimpleUnixField uf;
+        if (!uf.Parse(FieldId(type), b)) {
           break;
         }
 
+        assert(uf.uid != -1);
+        assert(uf.gid != -1);
+
         if (type >= last_processed_unix_field) {
-          node->uid = uid;
-          node->gid = gid;
+          node->uid = uf.uid;
+          node->gid = uf.gid;
           last_processed_unix_field = type;
         }
 
         break;
+      }
 
-      case FZ_EF_NTFS:
+      case FZ_EF_NTFS: {
+        timespec mts, ats, bts;
         if (ExtraField::parseNtfsExtraField(b, mts, ats, bts)) {
           break;
         }
@@ -245,6 +247,8 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         node->mtime = mts;
         node->atime = ats;
         high_precision_time = true;
+        break;
+      }
     }
   }
 
