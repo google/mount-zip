@@ -36,7 +36,9 @@ $(DEST): %.x: %.o $(LIB)
 	$(CXX) $(LDFLAGS) $< $(LIBS) -o $@
 
 $(OBJECTS): %.o: %.cc
-	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -I../../lib $< -o $@
+	$(CXX) -I../../lib -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@ -MMD -MP -MF $(@:.o=.d)
+
+-include $(SOURCES:.cc=.d)
 
 $(LIB):
 	make -C ../../lib
@@ -45,7 +47,7 @@ lib-clean:
 	make -C ../../lib clean
 
 clean: lib-clean test-clean
-	rm -f *.o $(DEST) $(OBJECTS)
+	rm -f *.d *.o *.x
 
 distclean: clean
 	make -C ../../lib clean
