@@ -17,9 +17,15 @@
 
 PKG_CONFIG ?= pkg-config
 LIBS = -L../lib -lmountzip $(shell $(PKG_CONFIG) libzip --libs)
-CXXFLAGS += -g -O0 -Wall -Wextra -Wlogical-op -Wshadow -pedantic
 CXXFLAGS += $(shell $(PKG_CONFIG) libzip --cflags)
+CXXFLAGS += -Wall -Wextra -Wno-nullability-extension -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++20
 CXXFLAGS += -D_FILE_OFFSET_BITS=64 
+
+ifeq ($(DEBUG), 1)
+CXXFLAGS += -O0 -g
+else
+CXXFLAGS += -O2 -DNDEBUG
+endif
 
 all: dump-extrafld create-content-size
 

@@ -18,9 +18,10 @@
 #ifndef EXTRA_FIELD_H
 #define EXTRA_FIELD_H
 
-#include <cstdint>
+#include <ctime>
+#include <span>
 
-#include <zip.h>
+#include <sys/types.h>
 
 // ZIP extra fields
 enum FieldIds {
@@ -32,38 +33,45 @@ enum FieldIds {
   FZ_EF_INFOZIP_UNIXN = 0x7875,
 };
 
-struct ExtraField {
-  using u8 = std::uint8_t;
+struct Bytes : std::span<const std::byte> {
+  using Base = std::span<const std::byte>;
+  using Base::operator=;
+  using Base::Base;
 
+  template <typename T, size_t N>
+  Bytes(const T (&x)[N]) : Base(std::as_bytes(std::span(x))) {}
+
+  template <typename T>
+  Bytes(const T* const p, size_t n) : Base(std::as_bytes(std::span(p, n))) {}
+};
+
+struct ExtraField {
   /**
    * Parse 'Extended Timestamp' LOCAL extra field (0x5455) to get mtime,
    * atime and creation time values.
-   * @param len (IN) field length in bytes
-   * @param data (IN) field data
-   * @param hasMTime (OUT) mtime presence
+   * @param b field data
+   * @param has_mtime (OUT) mtime presence
    * @param mtime (OUT) file modification time if present
-   * @param hasATime (OUT) atime presence
+   * @param has_atime (OUT) atime presence
    * @param atime (OUT) file access time if present
-   * @param hasCreTime (OUT) creation time presence
-   * @param cretime (OUT) file creation time if present
+   * @param has_ctime (OUT) creation time presence
+   * @param ctime (OUT) file creation time if present
    * @return successful completion flag
    */
-  static bool parseExtTimeStamp(size_t len,
-                                const u8* data,
-                                bool& hasMTime,
+  static bool parseExtTimeStamp(Bytes b,
+                                bool& has_mtime,
                                 time_t& mtime,
-                                bool& hasATime,
+                                bool& has_atime,
                                 time_t& atime,
-                                bool& hasCreTime,
-                                time_t& cretime);
+                                bool& has_ctime,
+                                time_t& ctime);
 
   /**
    * Parse Info-ZIP UNIX extra field (5855) to extract UID/GID and (maybe)
    * timestamps.
    *
    * @param type extended field type ID
-   * @param len field length in bytes
-   * @param data field data
+   * @param b field data
    * @param hasUidGid (OUT) UID and GID are present
    * @param uid (OUT) UID
    * @param gid (OUT) GID
@@ -71,9 +79,8 @@ struct ExtraField {
    * @param atime (OUT) file access time if present
    * @return successful completion flag
    */
-  static bool parseSimpleUnixField(zip_uint16_t type,
-                                   size_t len,
-                                   const u8* data,
+  static bool parseSimpleUnixField(int type,
+                                   Bytes b,
                                    bool& hasUid,
                                    uid_t& uid,
                                    gid_t& gid,
@@ -86,17 +93,12 @@ struct ExtraField {
    *  7875    Info-ZIP New Unix Extra Field
    *
    * @param type extended field type ID
-   * @param len field length in bytes
-   * @param data field data
+   * @param b field data
    * @param uid (OUT) UID
    * @param gid (OUT) GID
    * @return successful completion flag
    */
-  static bool parseUnixUidGidField(zip_uint16_t type,
-                                   size_t len,
-                                   const u8* data,
-                                   uid_t& uid,
-                                   gid_t& gid);
+  static bool parseUnixUidGidField(int type, Bytes b, uid_t& uid, gid_t& gid);
 
   /**
    * Parse PKWARE Unix Extra Field (000D). If file is a device (character or
@@ -105,8 +107,7 @@ struct ExtraField {
    * 'link_target' field and 'link_target_len' variables.
    *
    * @param type extended field type ID
-   * @param len field length in bytes
-   * @param data field data
+   * @param b field data
    * @param mode UNIX file mode
    * @param mtime (OUT) file modification time if present
    * @param atime (OUT) file access time if present
@@ -118,8 +119,7 @@ struct ExtraField {
    * @param link_target_len (OUT) length of hard/symbolic link target
    * @return successful completion flag
    */
-  static bool parsePkWareUnixField(size_t len,
-                                   const u8* data,
+  static bool parsePkWareUnixField(Bytes b,
                                    mode_t mode,
                                    time_t& mtime,
                                    time_t& atime,
@@ -132,18 +132,16 @@ struct ExtraField {
   /**
    * Parse NTFS Extra FIeld
    *
-   * @param len field length in bytes
-   * @param data field data
+   * @param b field data
    * @param mtime (OUT) file modification time if present
    * @param atime (OUT) file access time if present
-   * @param cretime (OUT) file creation time if present
+   * @param ctime (OUT) file creation time if present
    * @return successful completion flag
    */
-  static bool parseNtfsExtraField(size_t len,
-                                  const u8* data,
-                                  struct timespec& mtime,
-                                  struct timespec& atime,
-                                  struct timespec& cretime);
+  static bool parseNtfsExtraField(Bytes b,
+                                  timespec& mtime,
+                                  timespec& atime,
+                                  timespec& ctime);
 };
 
 #endif

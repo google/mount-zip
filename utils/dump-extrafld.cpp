@@ -25,9 +25,7 @@
 
 #include "lib/extra_field.h"
 
-using u8 = ExtraField::u8;
-
-void print_time(const char* label, struct timespec& time) {
+void print_time(const char* label, const timespec& time) {
   char str1[512], str2[16];
   time_t t = (time_t)time.tv_sec;
   struct tm* tmp;
@@ -50,41 +48,33 @@ void print_time(const char* label, struct timespec& time) {
 }
 
 void print_time(const char* label, time_t time) {
-  struct timespec ts;
-  ts.tv_sec = time;
-  ts.tv_nsec = 0;
-  print_time(label, ts);
+  print_time(label, timespec{.tv_sec = time, .tv_nsec = 0});
 }
 
-void dump_extrafld(zip_uint16_t id,
-                   zip_uint16_t len,
-                   const u8* field,
-                   bool central,
-                   mode_t mode) {
-  const u8* end = field + len;
-  for (const u8* f = field; f < end; ++f) {
-    printf("\\x%02X", *f);
+void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
+  for (const std::byte c : b) {
+    printf("\\x%02X", static_cast<int>(c));
   }
   printf("\n");
   switch (id) {
     case FZ_EF_TIMESTAMP: {
       bool has_mtime, has_atime, has_ctime;
       time_t mtime, atime, ctime;
-      ExtraField::parseExtTimeStamp(len, field, has_mtime, mtime, has_atime,
-                                    atime, has_ctime, ctime);
-      printf("    extended timestamp\n");
-      unsigned char flags = *field;
+      ExtraField::parseExtTimeStamp(b, has_mtime, mtime, has_atime, atime,
+                                    has_ctime, ctime);
+      printf("    Extended timestamp\n");
+      int flags = static_cast<int>(b.front());
       printf("      flags %d: mod %d acc %d cre %d\n", flags, has_mtime,
              has_atime, has_ctime);
       if (has_mtime) {
-        print_time("mtime: ", mtime);
+        print_time("mtime:   ", mtime);
       }
       if (!central) {
         if (has_atime) {
-          print_time("atime: ", atime);
+          print_time("atime:   ", atime);
         }
         if (has_ctime) {
-          print_time("ctime: ", ctime);
+          print_time("ctime:   ", ctime);
         }
       }
       break;
@@ -98,16 +88,16 @@ void dump_extrafld(zip_uint16_t id,
       dev_t dev;
       const char* link;
       size_t link_len;
-      bool res = ExtraField::parsePkWareUnixField(
-          len, field, mode, mtime, atime, uid, gid, dev, link, link_len);
+      bool res = ExtraField::parsePkWareUnixField(b, mode, mtime, atime, uid,
+                                                  gid, dev, link, link_len);
       if (!res) {
         printf("      parse failed\n");
         break;
       }
       print_time("mtime: ", mtime);
       print_time("atime: ", atime);
-      printf("      UID %u\n", uid);
-      printf("      GID %u\n", gid);
+      printf("      UID:   %u\n", uid);
+      printf("      GID:   %u\n", gid);
       if (S_ISBLK(mode) || S_ISCHR(mode)) {
         printf("      device: %u, %u\n", major(dev), minor(dev));
       }
@@ -123,8 +113,8 @@ void dump_extrafld(zip_uint16_t id,
       time_t mtime, atime;
       uid_t uid;
       gid_t gid;
-      bool res = ExtraField::parseSimpleUnixField(id, len, field, has_uid_gid,
-                                                  uid, gid, mtime, atime);
+      bool res = ExtraField::parseSimpleUnixField(id, b, has_uid_gid, uid, gid,
+                                                  mtime, atime);
       if (!res) {
         printf("      parse failed\n");
         break;
@@ -142,7 +132,7 @@ void dump_extrafld(zip_uint16_t id,
       printf("    Info-ZIP Unix v2\n");
       uid_t uid;
       gid_t gid;
-      if (ExtraField::parseUnixUidGidField(id, len, field, uid, gid)) {
+      if (ExtraField::parseUnixUidGidField(id, b, uid, gid)) {
         printf("      UID %u\n", uid);
         printf("      GID %u\n", gid);
       }
@@ -151,38 +141,41 @@ void dump_extrafld(zip_uint16_t id,
 
     case FZ_EF_INFOZIP_UNIXN: {
       printf("    Info-ZIP Unix (new)\n");
-      if (len < 2)
+      if (b.size() < 2)
         break;
-      unsigned char version = *field++;
-      printf("      version %d\n", version);
-      int l = *field++, shift = 0;
-      printf("      len(UID) %d\n", l);
-      if (field + l > end)
+      int version = static_cast<int>(b.front());
+      b = b.subspan(1);
+      printf("      version: %d\n", version);
+      int l = static_cast<int>(b.front());
+      b = b.subspan(1);
+      int shift = 0;
+      if (b.size() < l)
         break;
       unsigned long long uid = 0, gid = 0;
       while (l-- > 0) {
-        uid = uid + (*field++ << shift);
+        uid += static_cast<int>(b.front()) << shift;
+        b = b.subspan(1);
         shift += 8;
       }
-      printf("      UID %llu\n", uid);
-      l = *field++;
+      printf("      UID:     %llu\n", uid);
+      l = static_cast<int>(b.front());
+      b = b.subspan(1);
       shift = 0;
-      printf("      len(GID) %d\n", l);
-      if (field + l > end)
+      if (b.size() < l)
         break;
       while (l-- > 0) {
-        gid = gid + (*field++ << shift);
+        gid += static_cast<int>(b.front()) << shift;
+        b = b.subspan(1);
         shift += 8;
       }
-      printf("      GID %llu\n", gid);
+      printf("      GID:     %llu\n", gid);
       break;
     }
 
     case FZ_EF_NTFS: {
       printf("    NTFS Extra Field\n");
-      struct timespec mtime, atime, ctime;
-      bool res =
-          ExtraField::parseNtfsExtraField(len, field, mtime, atime, ctime);
+      timespec mtime, atime, ctime;
+      bool res = ExtraField::parseNtfsExtraField(b, mtime, atime, ctime);
       if (!res) {
         printf("      parse failed or no timestamp data\n");
         break;
@@ -216,7 +209,7 @@ int main(int argc, char** argv) {
   }
 
   for (zip_int64_t i = 0; i < zip_get_num_entries(z, 0); ++i) {
-    u8 opsys;
+    zip_uint8_t opsys;
     zip_uint32_t attr;
     zip_file_get_external_attributes(z, i, 0, &opsys, &attr);
     const char* opsys_s;
@@ -310,10 +303,8 @@ int main(int argc, char** argv) {
     {
       uint32_t len = 0;
       const char* comment = zip_file_get_comment(z, i, &len, ZIP_FL_ENC_RAW);
-      if (comment != NULL && len > 0) {
-        int len_int =
-            static_cast<int>(len);  // file comment length is actually 16-bit
-        printf("  comment: %*s\n", len_int, comment);
+      if (comment != nullptr && len > 0) {
+        printf("  comment: %*s\n", static_cast<int>(len), comment);
       }
     }
 
@@ -452,18 +443,21 @@ int main(int argc, char** argv) {
     for (zip_int16_t j = 0;
          j < zip_file_extra_fields_count(z, i, ZIP_FL_CENTRAL); ++j) {
       zip_uint16_t id, len;
-      const u8* field =
+      const auto* const field =
           zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
       printf("  0x%04X len=%d central: ", id, len);
-      dump_extrafld(id, len, field, true, static_cast<mode_t>(unix_mode));
+      dump_extrafld(id, Bytes(field, len), true,
+                    static_cast<mode_t>(unix_mode));
     }
+
     for (zip_int16_t j = 0; j < zip_file_extra_fields_count(z, i, ZIP_FL_LOCAL);
          ++j) {
       zip_uint16_t id, len;
-      const u8* field =
+      const auto* const field =
           zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_LOCAL);
       printf("  0x%04X len=%d local: ", id, len);
-      dump_extrafld(id, len, field, false, static_cast<mode_t>(unix_mode));
+      dump_extrafld(id, Bytes(field, len), false,
+                    static_cast<mode_t>(unix_mode));
     }
   }
 

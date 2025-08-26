@@ -827,6 +827,7 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
     return CreateFile(z, id, parent, name, mode);
   }
 
+  Bytes const b(field, len);
   time_t mt, at;
   uid_t uid;
   gid_t gid;
@@ -834,8 +835,8 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
   const char* link;
   size_t link_len;
 
-  if (!ExtraField::parsePkWareUnixField(len, field, mode, mt, at, uid, gid, dev,
-                                        link, link_len)) {
+  if (!ExtraField::parsePkWareUnixField(b, mode, mt, at, uid, gid, dev, link,
+                                        link_len)) {
     LOG(WARNING) << "Cannot parse PkWare Unix field for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }

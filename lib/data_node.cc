@@ -58,8 +58,7 @@ ino_t DataNode::ino_count = 0;
 
 static void ProcessPkWareUnixField(DataNode* const node,
                                    const zip_uint16_t type,
-                                   const zip_uint16_t len,
-                                   const zip_uint8_t* const field,
+                                   Bytes const b,
                                    const bool mtime_from_timestamp,
                                    const bool atime_from_timestamp,
                                    const bool high_precision_time,
@@ -71,8 +70,8 @@ static void ProcessPkWareUnixField(DataNode* const node,
   dev_t dev;
   const char* link;
   size_t link_len;
-  if (!ExtraField::parsePkWareUnixField(len, field, node->mode, mt, at, uid,
-                                        gid, dev, link, link_len)) {
+  if (!ExtraField::parsePkWareUnixField(b, node->mode, mt, at, uid, gid, dev,
+                                        link, link_len)) {
     return;
   }
 
@@ -128,17 +127,18 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
       zip_uint16_t type, len;
       const zip_uint8_t* const field = zip_file_extra_field_get(
           zip, node->id, i, &type, &len, ZIP_FL_CENTRAL);
+      Bytes const b(field, len);
 
       switch (type) {
         case FZ_EF_PKWARE_UNIX:
           has_pkware_field = true;
-          ProcessPkWareUnixField(node, type, len, field, mtime_from_timestamp,
+          ProcessPkWareUnixField(node, type, b, mtime_from_timestamp,
                                  atime_from_timestamp, high_precision_time,
                                  last_processed_unix_field);
           break;
 
         case FZ_EF_NTFS:
-          if (ExtraField::parseNtfsExtraField(len, field, mt, at, cret)) {
+          if (ExtraField::parseNtfsExtraField(b, mt, at, cret)) {
             node->mtime = mt;
             node->atime = at;
             high_precision_time = true;
@@ -160,6 +160,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
     zip_uint16_t type, len;
     const zip_uint8_t* const field =
         zip_file_extra_field_get(zip, node->id, i, &type, &len, ZIP_FL_LOCAL);
+    Bytes const b(field, len);
 
     bool has_uid_gid;
     uid_t uid;
@@ -168,8 +169,8 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
     switch (type) {
       case FZ_EF_TIMESTAMP:
-        if (!ExtraField::parseExtTimeStamp(len, field, has_mt, mt, has_at, at,
-                                           has_cret, cret)) {
+        if (!ExtraField::parseExtTimeStamp(b, has_mt, mt, has_at, at, has_cret,
+                                           cret)) {
           break;
         }
 
@@ -191,14 +192,14 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
       case FZ_EF_PKWARE_UNIX:
         has_pkware_field = true;
-        ProcessPkWareUnixField(node, type, len, field, mtime_from_timestamp,
+        ProcessPkWareUnixField(node, type, b, mtime_from_timestamp,
                                atime_from_timestamp, high_precision_time,
                                last_processed_unix_field);
         break;
 
       case FZ_EF_INFOZIP_UNIX1:
-        if (!ExtraField::parseSimpleUnixField(type, len, field, has_uid_gid,
-                                              uid, gid, mt, at)) {
+        if (!ExtraField::parseSimpleUnixField(type, b, has_uid_gid, uid, gid,
+                                              mt, at)) {
           break;
         }
 
@@ -224,7 +225,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
       case FZ_EF_INFOZIP_UNIX2:
       case FZ_EF_INFOZIP_UNIXN:
-        if (!ExtraField::parseUnixUidGidField(type, len, field, uid, gid)) {
+        if (!ExtraField::parseUnixUidGidField(type, b, uid, gid)) {
           break;
         }
 
@@ -237,7 +238,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         break;
 
       case FZ_EF_NTFS:
-        if (ExtraField::parseNtfsExtraField(len, field, mts, ats, bts)) {
+        if (ExtraField::parseNtfsExtraField(b, mts, ats, bts)) {
           break;
         }
 

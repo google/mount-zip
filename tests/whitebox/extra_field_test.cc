@@ -19,13 +19,14 @@
 
 #include <cassert>
 #include <cerrno>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
-using u8 = ExtraField::u8;
+using u8 = std::uint8_t;
 
 /**
  * LOCAL extra field with both mtime and atime present in flags
@@ -35,8 +36,8 @@ void timestamp_mtime_atime_present_local() {
 
   bool has_atime, has_mtime, has_ctime;
   time_t atime, mtime, ctime;
-  assert(ExtraField::parseExtTimeStamp(sizeof(data), data, has_mtime, mtime,
-                                       has_atime, atime, has_ctime, ctime));
+  assert(ExtraField::parseExtTimeStamp(data, has_mtime, mtime, has_atime, atime,
+                                       has_ctime, ctime));
   assert(has_mtime);
   assert(has_atime);
   assert(!has_ctime);
@@ -52,8 +53,8 @@ void timestamp_mtime_ctime_present_local() {
 
   bool has_atime, has_mtime, has_ctime;
   time_t atime, mtime, ctime;
-  assert(ExtraField::parseExtTimeStamp(sizeof(data), data, has_mtime, mtime,
-                                       has_atime, atime, has_ctime, ctime));
+  assert(ExtraField::parseExtTimeStamp(data, has_mtime, mtime, has_atime, atime,
+                                       has_ctime, ctime));
   assert(has_mtime);
   assert(!has_atime);
   assert(has_ctime);
@@ -69,8 +70,8 @@ void timestamp_bad() {
 
   bool has_atime, has_mtime, has_ctime;
   time_t atime, mtime, ctime;
-  assert(!ExtraField::parseExtTimeStamp(sizeof(data), data, has_mtime, mtime,
-                                        has_atime, atime, has_ctime, ctime));
+  assert(!ExtraField::parseExtTimeStamp(data, has_mtime, mtime, has_atime,
+                                        atime, has_ctime, ctime));
 }
 
 /**
@@ -90,9 +91,8 @@ void unix_pkware_regular() {
   dev_t dev;
   const char* link;
   size_t link_len;
-  assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFREG | 0666,
-                                          mtime, atime, uid, gid, dev, link,
-                                          link_len));
+  assert(ExtraField::parsePkWareUnixField(data, S_IFREG | 0666, mtime, atime,
+                                          uid, gid, dev, link, link_len));
   assert(atime == 0x51CE6FD4);
   assert(mtime == 0x52C7E372);
   assert(uid == 0x0102);
@@ -120,9 +120,8 @@ void unix_pkware_device() {
   dev_t dev;
   const char* link;
   size_t link_len;
-  assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFBLK | 0666,
-                                          mtime, atime, uid, gid, dev, link,
-                                          link_len));
+  assert(ExtraField::parsePkWareUnixField(data, S_IFBLK | 0666, mtime, atime,
+                                          uid, gid, dev, link, link_len));
   assert(atime == 0x5D4576C8);
   assert(mtime == 0x5D4576C8);
   assert(uid == 0x0000);
@@ -149,9 +148,8 @@ void unix_pkware_link() {
   dev_t dev;
   const char* link;
   size_t link_len;
-  assert(ExtraField::parsePkWareUnixField(sizeof(data), data, S_IFLNK | 0777,
-                                          mtime, atime, uid, gid, dev, link,
-                                          link_len));
+  assert(ExtraField::parsePkWareUnixField(data, S_IFLNK | 0777, mtime, atime,
+                                          uid, gid, dev, link, link_len));
   assert(atime == 0x5D4973F3);
   assert(mtime == 0x5D457BA9);
   assert(uid == 1000);
@@ -174,18 +172,16 @@ void unix_infozip1() {
   uid_t uid;
   gid_t gid;
   // local header
-  assert(ExtraField::parseSimpleUnixField(0x5855, sizeof(data_local),
-                                          data_local, has_uid_gid, uid, gid,
-                                          mtime, atime));
+  assert(ExtraField::parseSimpleUnixField(0x5855, data_local, has_uid_gid, uid,
+                                          gid, mtime, atime));
   assert(has_uid_gid);
   assert(atime == 0x51CE6FD4);
   assert(mtime == 0x52C7E372);
   assert(uid == 0x0102);
   assert(gid == 0x0304);
   // central header
-  assert(ExtraField::parseSimpleUnixField(0x5855, sizeof(data_central),
-                                          data_central, has_uid_gid, uid, gid,
-                                          mtime, atime));
+  assert(ExtraField::parseSimpleUnixField(0x5855, data_central, has_uid_gid,
+                                          uid, gid, mtime, atime));
   assert(!has_uid_gid);
   assert(atime == 0x52C7E372);
   assert(mtime == 0x51CE6FD4);
@@ -201,13 +197,11 @@ void unix_infozip2() {
   uid_t uid;
   gid_t gid;
   // local header
-  assert(ExtraField::parseUnixUidGidField(0x7855, sizeof(data_local),
-                                          data_local, uid, gid));
+  assert(ExtraField::parseUnixUidGidField(0x7855, data_local, uid, gid));
   assert(uid == 0x0102);
   assert(gid == 0x0304);
   // central header
-  assert(!ExtraField::parseUnixUidGidField(0x7855, sizeof(data_central),
-                                           data_central, uid, gid));
+  assert(!ExtraField::parseUnixUidGidField(0x7855, data_central, uid, gid));
 }
 
 /**
@@ -232,26 +226,23 @@ void unix_infozip_new() {
   uid_t uid;
   gid_t gid;
   // 8-bit
-  assert(
-      ExtraField::parseUnixUidGidField(0x7875, sizeof(data1), data1, uid, gid));
+  assert(ExtraField::parseUnixUidGidField(0x7875, data1, uid, gid));
   assert(uid == 0x01);
   assert(gid == 0xF1);
   // 32-bit
-  assert(
-      ExtraField::parseUnixUidGidField(0x7875, sizeof(data4), data4, uid, gid));
+  assert(ExtraField::parseUnixUidGidField(0x7875, data4, uid, gid));
   assert(uid == 0x01020304);
   assert(gid == 0xF5F6F7F8);
   // 128-bit fit into uid_t and gid_t
-  assert(ExtraField::parseUnixUidGidField(0x7875, sizeof(data16_fit),
-                                          data16_fit, uid, gid));
+  assert(ExtraField::parseUnixUidGidField(0x7875, data16_fit, uid, gid));
   assert(uid == 0x0102);
   assert(gid == 0xF1F2);
   // 128-bit, UID doesn't fit into uid_t
-  assert(!ExtraField::parseUnixUidGidField(0x7875, sizeof(data16_uid_overflow),
-                                           data16_uid_overflow, uid, gid));
+  assert(
+      !ExtraField::parseUnixUidGidField(0x7875, data16_uid_overflow, uid, gid));
   // 128-bit, GID doesn't fit into gid_t
-  assert(!ExtraField::parseUnixUidGidField(0x7875, sizeof(data16_gid_overflow),
-                                           data16_gid_overflow, uid, gid));
+  assert(
+      !ExtraField::parseUnixUidGidField(0x7875, data16_gid_overflow, uid, gid));
 }
 
 /**
@@ -276,8 +267,7 @@ void ntfs_extra_field_parse() {
   };
 
   struct timespec mtime, atime, btime;
-  assert(
-      ExtraField::parseNtfsExtraField(sizeof(data), data, mtime, atime, btime));
+  assert(ExtraField::parseNtfsExtraField(data, mtime, atime, btime));
 
   assert(mtime.tv_sec == 1560435721);
   assert(mtime.tv_nsec == 722114700);

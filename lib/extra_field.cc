@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -101,15 +102,13 @@ timespec ntfs2timespec(i64 const t) {
 
 }  // namespace
 
-bool ExtraField::parseExtTimeStamp(size_t const len,
-                                   const u8* const data,
+bool ExtraField::parseExtTimeStamp(Bytes b,
                                    bool& has_mtime,
                                    time_t& mtime,
                                    bool& has_atime,
                                    time_t& atime,
                                    bool& has_ctime,
                                    time_t& ctime) try {
-  std::span b(data, len);
   const u8 flags = Read<u8>(b);
 
   has_mtime = flags & 1;
@@ -131,15 +130,13 @@ bool ExtraField::parseExtTimeStamp(size_t const len,
   return false;
 }
 
-bool ExtraField::parseSimpleUnixField(u16 const type,
-                                      size_t const len,
-                                      const u8* const data,
+bool ExtraField::parseSimpleUnixField(int const type,
+                                      Bytes b,
                                       bool& hasUidGid,
                                       uid_t& uid,
                                       gid_t& gid,
                                       time_t& mtime,
                                       time_t& atime) try {
-  std::span b(data, len);
   switch (type) {
     case FZ_EF_PKWARE_UNIX:
     case FZ_EF_INFOZIP_UNIX1:
@@ -162,12 +159,10 @@ bool ExtraField::parseSimpleUnixField(u16 const type,
   return false;
 }
 
-bool ExtraField::parseUnixUidGidField(u16 const type,
-                                      size_t const len,
-                                      const u8* const data,
+bool ExtraField::parseUnixUidGidField(int const type,
+                                      Bytes b,
                                       uid_t& uid,
                                       gid_t& gid) try {
-  std::span b(data, len);
   switch (type) {
     case FZ_EF_INFOZIP_UNIX2:
       uid = Read<u16>(b);
@@ -193,7 +188,7 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
 
         if (p.size() > sizeof(uid_t)) {
           if (std::ranges::any_of(p.subspan(sizeof(uid_t)),
-                                  [](u8 c) { return c != 0; })) {
+                                  [](std::byte c) { return c != std::byte(); })) {
             return false;
           }
 
@@ -203,7 +198,7 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
         uid = 0;
         for (size_t i = p.size(); i > 0;) {
           uid <<= 8;
-          uid |= p[--i];
+          uid |= static_cast<u8>(p[--i]);
         }
       }
 
@@ -218,8 +213,9 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
         b = b.subspan(n);
 
         if (p.size() > sizeof(gid_t)) {
-          if (std::ranges::any_of(p.subspan(sizeof(gid_t)),
-                                  [](u8 c) { return c != 0; })) {
+          if (std::ranges::any_of(p.subspan(sizeof(gid_t)), [](std::byte c) {
+                return c != std::byte();
+              })) {
             return false;
           }
 
@@ -229,7 +225,7 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
         gid = 0;
         for (size_t i = p.size(); i > 0;) {
           gid <<= 8;
-          gid |= p[--i];
+          gid |= static_cast<u8>(p[--i]);
         }
       }
 
@@ -241,8 +237,7 @@ bool ExtraField::parseUnixUidGidField(u16 const type,
   return false;
 }
 
-bool ExtraField::parsePkWareUnixField(size_t const len,
-                                      const u8* const data,
+bool ExtraField::parsePkWareUnixField(Bytes b,
                                       mode_t const mode,
                                       time_t& mtime,
                                       time_t& atime,
@@ -251,7 +246,6 @@ bool ExtraField::parsePkWareUnixField(size_t const len,
                                       dev_t& dev,
                                       const char*& link_target,
                                       size_t& link_target_len) try {
-  std::span b(data, len);
   atime = Read<u32>(b);
   mtime = Read<u32>(b);
   uid = Read<u16>(b);
@@ -275,12 +269,10 @@ bool ExtraField::parsePkWareUnixField(size_t const len,
   return false;
 }
 
-bool ExtraField::parseNtfsExtraField(size_t const len,
-                                     const u8* const data,
-                                     struct timespec& mtime,
-                                     struct timespec& atime,
-                                     struct timespec& ctime) try {
-  std::span b(data, len);
+bool ExtraField::parseNtfsExtraField(Bytes b,
+                                     timespec& mtime,
+                                     timespec& atime,
+                                     timespec& ctime) try {
   Read<u32>(b);  // skip 'Reserved' field
 
   bool hasTimes = false;
