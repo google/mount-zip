@@ -248,15 +248,15 @@ void ntfs_extra_field_parse() {
       0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01   // btime
   };
 
-  struct timespec mtime, atime, btime;
-  assert(ExtraField::parseNtfsExtraField(data, mtime, atime, btime));
+  NtfsField f;
+  assert(f.Parse(data));
 
-  assert(mtime.tv_sec == 1560435721);
-  assert(mtime.tv_nsec == 722114700);
-  assert(atime.tv_sec == 1234567890);
-  assert(atime.tv_nsec == 123456700);
-  assert(btime.tv_sec == 0);
-  assert(btime.tv_nsec == 0xFF * 100);
+  assert(f.mtime.tv_sec == 1560435721);
+  assert(f.mtime.tv_nsec == 722114700);
+  assert(f.atime.tv_sec == 1234567890);
+  assert(f.atime.tv_nsec == 123456700);
+  assert(f.ctime.tv_sec == 0);
+  assert(f.ctime.tv_nsec == 0xFF * 100);
 }
 
 int main(int, char**) {

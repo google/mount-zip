@@ -132,10 +132,10 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           break;
 
         case FZ_EF_NTFS: {
-          timespec mt, at, cret;
-          if (ExtraField::parseNtfsExtraField(b, mt, at, cret)) {
-            node->mtime = mt;
-            node->atime = at;
+          NtfsField f;
+          if (f.Parse(b)) {
+            node->mtime = f.mtime;
+            node->atime = f.atime;
             high_precision_time = true;
           }
           break;
@@ -238,13 +238,13 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
       }
 
       case FZ_EF_NTFS: {
-        timespec mts, ats, bts;
-        if (ExtraField::parseNtfsExtraField(b, mts, ats, bts)) {
+        NtfsField f;
+        if (f.Parse(b)) {
           break;
         }
 
-        node->mtime = mts;
-        node->atime = ats;
+        node->mtime = f.mtime;
+        node->atime = f.atime;
         high_precision_time = true;
         break;
       }

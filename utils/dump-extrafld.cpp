@@ -163,15 +163,14 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
 
     case FZ_EF_NTFS: {
       printf("    NTFS Extra Field\n");
-      timespec mtime, atime, ctime;
-      bool res = ExtraField::parseNtfsExtraField(b, mtime, atime, ctime);
-      if (!res) {
+      NtfsField f;
+      if (!f.Parse(b)) {
         printf("      parse failed or no timestamp data\n");
         break;
       }
-      print_time("mtime: ", mtime);
-      print_time("atime: ", atime);
-      print_time("ctime: ", ctime);
+      print_time("mtime: ", f.mtime);
+      print_time("atime: ", f.atime);
+      print_time("ctime: ", f.ctime);
       break;
     }
   }

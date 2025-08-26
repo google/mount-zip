@@ -207,10 +207,7 @@ bool PkWareField::Parse(Bytes b, mode_t const mode) try {
   return false;
 }
 
-bool ExtraField::parseNtfsExtraField(Bytes b,
-                                     timespec& mtime,
-                                     timespec& atime,
-                                     timespec& ctime) try {
+bool NtfsField::Parse(Bytes b) try {
   Read<u32>(b);  // skip 'Reserved' field
 
   bool hasTimes = false;

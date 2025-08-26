@@ -82,20 +82,13 @@ struct PkWareField {
   bool Parse(Bytes b, mode_t mode);
 };
 
-struct ExtraField {
-  /**
-   * Parse NTFS Extra FIeld
-   *
-   * @param b field data
-   * @param mtime (OUT) file modification time if present
-   * @param atime (OUT) file access time if present
-   * @param ctime (OUT) file creation time if present
-   * @return successful completion flag
-   */
-  static bool parseNtfsExtraField(Bytes b,
-                                  timespec& mtime,
-                                  timespec& atime,
-                                  timespec& ctime);
+// NTFS Extra Field
+struct NtfsField {
+  timespec mtime = {};
+  timespec atime = {};
+  timespec ctime = {};
+
+  bool Parse(Bytes b);
 };
 
 #endif
