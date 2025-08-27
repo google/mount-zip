@@ -58,24 +58,27 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
   printf("\n");
   switch (id) {
     case FZ_EF_TIMESTAMP: {
-      ExtTimeStamp ts;
-      if (!ts.Parse(b)) {
+      printf("    Extended timestamp\n");
+      ExtTimeStamp f;
+      if (!f.Parse(b)) {
+        printf("      Cannot parse\n");
         break;
       }
-      printf("    Extended timestamp\n");
+
       int flags = static_cast<int>(b.front());
       printf("      flags: %d\n", flags);
-      if (ts.mtime) {
-        print_time("mtime: ", ts.mtime);
+      if (f.mtime) {
+        print_time("mtime: ", f.mtime);
       }
       if (!central) {
-        if (ts.atime) {
-          print_time("atime: ", ts.atime);
+        if (f.atime) {
+          print_time("atime: ", f.atime);
         }
-        if (ts.ctime) {
-          print_time("ctime: ", ts.ctime);
+        if (f.ctime) {
+          print_time("ctime: ", f.ctime);
         }
       }
+
       break;
     }
 
@@ -83,9 +86,10 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       printf("    PKWare Unix\n");
       PkWareField f;
       if (!f.Parse(b, mode)) {
-        printf("      parse failed\n");
+        printf("      Cannot parse\n");
         break;
       }
+
       print_time("mtime: ", f.mtime);
       print_time("atime: ", f.atime);
       printf("      UID:   %u\n", f.uid);
@@ -104,9 +108,10 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       printf("    Info-ZIP Unix v1\n");
       SimpleUnixField uf;
       if (!uf.Parse(FZ_EF_INFOZIP_UNIX1, b)) {
-        printf("      parse failed\n");
+        printf("      Cannot parse\n");
         break;
       }
+
       if (uf.uid != -1) {
         printf("      UID %u\n", uf.uid);
       }
@@ -120,11 +125,14 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
 
     case FZ_EF_INFOZIP_UNIX2: {
       printf("    Info-ZIP Unix v2\n");
-      SimpleUnixField uf;
-      if (uf.Parse(FZ_EF_INFOZIP_UNIX2, b)) {
-        printf("      UID %u\n", uf.uid);
-        printf("      GID %u\n", uf.gid);
+      SimpleUnixField f;
+      if (!f.Parse(FZ_EF_INFOZIP_UNIX2, b)) {
+        printf("      Cannot parse\n");
+        break;
       }
+
+      printf("      UID %u\n", f.uid);
+      printf("      GID %u\n", f.gid);
       break;
     }
 
@@ -165,9 +173,10 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       printf("    NTFS Extra Field\n");
       NtfsField f;
       if (!f.Parse(b)) {
-        printf("      parse failed or no timestamp data\n");
+        printf("      Cannot parse\n");
         break;
       }
+
       print_time("mtime: ", f.mtime);
       print_time("atime: ", f.atime);
       print_time("ctime: ", f.ctime);
