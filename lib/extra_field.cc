@@ -134,10 +134,16 @@ bool ExtTimeStamp::Parse(Bytes b) try {
 
   if (flags & 1) {
     mtime = Read<u32>(b);
+    if (b.empty()) {
+      return true;
+    }
   }
 
   if (flags & 2) {
     atime = Read<u32>(b);
+    if (b.empty()) {
+      return true;
+    }
   }
 
   if (flags & 4) {

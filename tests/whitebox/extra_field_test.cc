@@ -58,7 +58,10 @@ void timestamp_mtime_ctime_present_local() {
 void timestamp_bad() {
   const u8 data[] = {1 | 2 | 4, 0x72, 0xE3, 0xC7, 0x52};
   ExtTimeStamp ts;
-  assert(!ts.Parse(data));
+  assert(ts.Parse(data));
+  assert(ts.mtime == 0x52C7E372);
+  assert(ts.atime == 0);
+  assert(ts.ctime == 0);
 }
 
 /**
