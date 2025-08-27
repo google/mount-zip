@@ -56,197 +56,130 @@ bool DataNode::original_permissions = false;
 
 ino_t DataNode::ino_count = 0;
 
-static void ProcessPkWareUnixField(DataNode* const node,
-                                   const FieldId id,
-                                   Bytes const b,
-                                   const bool mtime_from_timestamp,
-                                   const bool atime_from_timestamp,
-                                   const bool high_precision_time,
-                                   FieldId& last_processed_unix_field) {
-  assert(node);
-  PkWareField f;
-  if (!f.Parse(b, node->mode)) {
-    return;
-  }
-
-  if (id >= last_processed_unix_field) {
-    node->uid = f.uid;
-    node->gid = f.gid;
-    last_processed_unix_field = id;
-  }
-
-  if (!high_precision_time) {
-    if (!mtime_from_timestamp) {
-      node->mtime = {.tv_sec = f.mtime};
-    }
-
-    if (!atime_from_timestamp) {
-      node->atime = {.tv_sec = f.atime};
-    }
-  }
-
-  node->dev = f.dev;
-
-  // Use PKWARE link target only if link target in Info-ZIP format is not
-  // specified (empty file content)
-  if (S_ISLNK(node->mode) && node->size == 0 && !f.link_target.empty()) {
-    assert(link);
-    node->target.assign(f.link_target);
-    node->size = f.link_target.size();
-  }
-}
-
 // Gets timestamp information from extra fields.
 // Gets owner and group information.
 static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
   assert(node);
   assert(zip);
 
-  zip_int16_t count;
   // times from timestamp have precedence to UNIX field times
-  bool mtime_from_timestamp = false, atime_from_timestamp = false;
+  bool mtime_from_timestamp = false;
+  bool atime_from_timestamp = false;
   // high-precision timestamps have the highest precedence
   bool high_precision_time = false;
-  // UIDs and GIDs from UNIX extra fields with bigger type IDs have
-  // precedence
-  FieldId last_processed_unix_field = FieldId();
-
   bool has_pkware_field = false;
+  // UIDs and GIDs from UNIX extra fields with bigger type IDs have precedence
+  FieldId highest_field_id = FieldId();
 
-  // read central directory
-  count = zip_file_extra_fields_count(zip, node->id, ZIP_FL_CENTRAL);
-  if (count > 0) {
-    for (zip_int16_t i = 0; i < count; ++i) {
-      zip_uint16_t type, len;
-      const zip_uint8_t* const field = zip_file_extra_field_get(
-          zip, node->id, i, &type, &len, ZIP_FL_CENTRAL);
-      Bytes const b(field, len);
+  for (zip_flags_t const flags : {ZIP_FL_CENTRAL, ZIP_FL_LOCAL}) {
+    zip_int16_t const n = zip_file_extra_fields_count(zip, node->id, flags);
+    for (zip_int16_t i = 0; i < n; ++i) {
+      zip_uint16_t field_type, field_size;
+      const zip_uint8_t* const field_data = zip_file_extra_field_get(
+          zip, node->id, i, &field_type, &field_size, flags);
+      Bytes const b(field_data, field_size);
+      FieldId const field_id = FieldId(field_type);
 
-      const FieldId id = FieldId(type);
-      switch (id) {
-        case FZ_EF_PKWARE_UNIX:
-          has_pkware_field = true;
-          ProcessPkWareUnixField(node, id, b, mtime_from_timestamp,
-                                 atime_from_timestamp, high_precision_time,
-                                 last_processed_unix_field);
+      switch (field_id) {
+        case FZ_EF_TIMESTAMP: {
+          ExtTimeStamp ts;
+          if (high_precision_time || !ts.Parse(b)) {
+            break;
+          }
+
+          if (ts.mtime) {
+            node->mtime = {.tv_sec = ts.mtime};
+            mtime_from_timestamp = true;
+          }
+
+          if (ts.atime) {
+            node->atime = {.tv_sec = ts.atime};
+            atime_from_timestamp = true;
+          }
+
           break;
+        }
+
+        case FZ_EF_PKWARE_UNIX: {
+          PkWareField f;
+          if (!f.Parse(b, node->mode)) {
+            break;
+          }
+
+          has_pkware_field = true;
+          assert(f.uid != -1);
+          assert(f.gid != -1);
+
+          if (field_id >= highest_field_id) {
+            node->uid = f.uid;
+            node->gid = f.gid;
+            highest_field_id = field_id;
+          }
+
+          if (!high_precision_time) {
+            if (!mtime_from_timestamp) {
+              node->mtime = {.tv_sec = f.mtime};
+            }
+
+            if (!atime_from_timestamp) {
+              node->atime = {.tv_sec = f.atime};
+            }
+          }
+
+          node->dev = f.dev;
+
+          // Use PKWARE link target only if link target in Info-ZIP format is
+          // not specified (empty file content)
+          if (S_ISLNK(node->mode) && node->size == 0 &&
+              !f.link_target.empty()) {
+            assert(link);
+            node->target.assign(f.link_target);
+            node->size = f.link_target.size();
+          }
+
+          break;
+        }
+
+        case FZ_EF_INFOZIP_UNIX1:
+        case FZ_EF_INFOZIP_UNIX2:
+        case FZ_EF_INFOZIP_UNIXN: {
+          SimpleUnixField f;
+          if (!f.Parse(field_id, b)) {
+            break;
+          }
+
+          if (f.uid != -1 && f.gid != -1 && field_id >= highest_field_id) {
+            node->uid = f.uid;
+            node->gid = f.gid;
+            highest_field_id = field_id;
+          }
+
+          if (high_precision_time) {
+            break;
+          }
+
+          if (!mtime_from_timestamp) {
+            node->mtime = {.tv_sec = f.mtime};
+          }
+
+          if (!atime_from_timestamp) {
+            node->atime = {.tv_sec = f.atime};
+          }
+
+          break;
+        }
 
         case FZ_EF_NTFS: {
           NtfsField f;
-          if (f.Parse(b)) {
-            node->mtime = f.mtime;
-            node->atime = f.atime;
-            high_precision_time = true;
+          if (!f.Parse(b)) {
+            break;
           }
+
+          node->mtime = f.mtime;
+          node->atime = f.atime;
+          high_precision_time = true;
           break;
         }
-
-        default:
-          break;
-      }
-    }
-  }
-
-  // read local headers
-  count = zip_file_extra_fields_count(zip, node->id, ZIP_FL_LOCAL);
-  if (count < 0) {
-    return has_pkware_field;
-  }
-
-  for (zip_int16_t i = 0; i < count; ++i) {
-    zip_uint16_t type, len;
-    const zip_uint8_t* const field =
-        zip_file_extra_field_get(zip, node->id, i, &type, &len, ZIP_FL_LOCAL);
-    Bytes const b(field, len);
-    const FieldId id = FieldId(type);
-
-    switch (id) {
-      case FZ_EF_TIMESTAMP: {
-        ExtTimeStamp ts;
-        if (!ts.Parse(b)) {
-          break;
-        }
-
-        if (high_precision_time) {
-          break;
-        }
-
-        if (ts.mtime) {
-          node->mtime = {.tv_sec = ts.mtime};
-          mtime_from_timestamp = true;
-        }
-
-        if (ts.atime) {
-          node->atime = {.tv_sec = ts.atime};
-          atime_from_timestamp = true;
-        }
-
-        break;
-      }
-
-      case FZ_EF_PKWARE_UNIX:
-        has_pkware_field = true;
-        ProcessPkWareUnixField(node, id, b, mtime_from_timestamp,
-                               atime_from_timestamp, high_precision_time,
-                               last_processed_unix_field);
-        break;
-
-      case FZ_EF_INFOZIP_UNIX1: {
-        SimpleUnixField uf;
-        if (!uf.Parse(FZ_EF_INFOZIP_UNIX1, b)) {
-          break;
-        }
-
-        if (uf.uid != -1 && uf.gid != -1 && id >= last_processed_unix_field) {
-          node->uid = uf.uid;
-          node->gid = uf.gid;
-          last_processed_unix_field = id;
-        }
-
-        if (high_precision_time) {
-          break;
-        }
-
-        if (!mtime_from_timestamp) {
-          node->mtime = {.tv_sec = uf.mtime};
-        }
-
-        if (!atime_from_timestamp) {
-          node->atime = {.tv_sec = uf.atime};
-        }
-
-        break;
-      }
-
-      case FZ_EF_INFOZIP_UNIX2:
-      case FZ_EF_INFOZIP_UNIXN: {
-        SimpleUnixField uf;
-        if (!uf.Parse(id, b)) {
-          break;
-        }
-
-        assert(uf.uid != -1);
-        assert(uf.gid != -1);
-
-        if (id >= last_processed_unix_field) {
-          node->uid = uf.uid;
-          node->gid = uf.gid;
-          last_processed_unix_field = id;
-        }
-
-        break;
-      }
-
-      case FZ_EF_NTFS: {
-        NtfsField f;
-        if (f.Parse(b)) {
-          break;
-        }
-
-        node->mtime = f.mtime;
-        node->atime = f.atime;
-        high_precision_time = true;
-        break;
       }
     }
   }

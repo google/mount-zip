@@ -70,7 +70,7 @@ struct SimpleUnixField {
   bool Parse(FieldId id, Bytes b);
 };
 
-// PKWARE Unix Extra Field (000D).
+// PKWARE Unix Extra Field (0x000D).
 struct PkWareField {
   time_t mtime = 0;
   time_t atime = 0;
@@ -82,7 +82,7 @@ struct PkWareField {
   bool Parse(Bytes b, mode_t mode);
 };
 
-// NTFS Extra Field
+// NTFS Extra Field.
 struct NtfsField {
   timespec mtime = {};
   timespec atime = {};
