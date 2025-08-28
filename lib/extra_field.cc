@@ -141,9 +141,6 @@ bool ExtTimeStamp::Parse(Bytes b) try {
 
   if (flags & 2) {
     atime = Read<u32>(b);
-    if (b.empty()) {
-      return true;
-    }
   }
 
   if (flags & 4) {
@@ -157,19 +154,16 @@ bool ExtTimeStamp::Parse(Bytes b) try {
 
 bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
   switch (id) {
-    case FZ_EF_PKWARE_UNIX:
     case FZ_EF_INFOZIP_UNIX1:
       atime = Read<u32>(b);
       mtime = Read<u32>(b);
-
-      try {
-        uid = Read<u16>(b);
-        gid = Read<u16>(b);
-      } catch (...) {
-      }
-      return true;
+      [[fallthrough]];
 
     case FZ_EF_INFOZIP_UNIX2:
+      if (b.empty()) {
+        return true;
+      }
+
       uid = Read<u16>(b);
       gid = Read<u16>(b);
       return true;
@@ -216,7 +210,7 @@ bool PkWareField::Parse(Bytes b, mode_t const mode) try {
 bool NtfsField::Parse(Bytes b) try {
   Read<u32>(b);  // skip 'Reserved' field
 
-  bool hasTimes = false;
+  bool has_times = false;
   while (!b.empty()) {
     u16 const tag = Read<u16>(b);
     u16 const size = Read<u16>(b);
@@ -229,13 +223,13 @@ bool NtfsField::Parse(Bytes b) try {
       mtime = ntfs2timespec(Read<u64>(p));
       atime = ntfs2timespec(Read<u64>(p));
       ctime = ntfs2timespec(Read<u64>(p));
-      hasTimes = true;
+      has_times = true;
     }
 
     b.remove_prefix(size);
   }
 
-  return hasTimes;
+  return has_times;
 } catch (...) {
   return false;
 }
