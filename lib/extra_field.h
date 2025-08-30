@@ -49,46 +49,17 @@ struct Bytes : std::span<const std::byte> {
   void remove_prefix(size_t n) { *this = subspan(n); }
 };
 
-// 'Extended Timestamp' LOCAL extra field (0x5455).
-struct ExtTimeStamp {
-  time_t mtime = 0;
-  time_t atime = 0;
-  time_t ctime = 0;
-
-  bool Parse(Bytes b);
-};
-
-// Info-ZIP UNIX extra field with timestamps and (maybe) UID/GID.
-struct SimpleUnixField {
-  time_t mtime = 0;
-  time_t atime = 0;
+// UNIX extra fields.
+struct ExtraFields {
+  timespec mtime = {.tv_sec = -1};
+  timespec atime = {.tv_sec = -1};
+  timespec ctime = {.tv_sec = -1};
   uid_t uid = -1;
   gid_t gid = -1;
   dev_t dev = -1;
   std::string_view link_target;
 
-  bool Parse(FieldId id, Bytes b);
-};
-
-// PKWARE Unix Extra Field (0x000D).
-struct PkWareField {
-  time_t mtime = 0;
-  time_t atime = 0;
-  uid_t uid = -1;
-  gid_t gid = -1;
-  dev_t dev = 0;
-  std::string_view link_target;
-
-  bool Parse(Bytes b, mode_t mode);
-};
-
-// NTFS Extra Field.
-struct NtfsField {
-  timespec mtime = {};
-  timespec atime = {};
-  timespec ctime = {};
-
-  bool Parse(Bytes b);
+  bool Parse(FieldId id, Bytes b, mode_t mode = 0);
 };
 
 #endif

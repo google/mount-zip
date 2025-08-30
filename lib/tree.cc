@@ -830,8 +830,8 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
   }
 
   Bytes const b(field, len);
-  PkWareField f;
-  if (!f.Parse(b, mode)) {
+  ExtraFields f;
+  if (!f.Parse(FieldId::PKWARE_UNIX, b, mode)) {
     LOG(WARNING) << "Cannot parse PkWare Unix field for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }

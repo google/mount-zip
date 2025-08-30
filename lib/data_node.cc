@@ -82,18 +82,18 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
       switch (field_id) {
         case FieldId::UNIX_TIMESTAMP: {
-          ExtTimeStamp ts;
-          if (high_precision_time || !ts.Parse(b)) {
+          ExtraFields f;
+          if (high_precision_time || !f.Parse(field_id, b)) {
             break;
           }
 
-          if (ts.mtime) {
-            node->mtime = {.tv_sec = ts.mtime};
+          if (f.mtime.tv_sec != -1) {
+            node->mtime = f.mtime;
             mtime_from_timestamp = true;
           }
 
-          if (ts.atime) {
-            node->atime = {.tv_sec = ts.atime};
+          if (f.atime.tv_sec != -1) {
+            node->atime = f.atime;
             atime_from_timestamp = true;
           }
 
@@ -101,8 +101,8 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         }
 
         case FieldId::PKWARE_UNIX: {
-          PkWareField f;
-          if (!f.Parse(b, node->mode)) {
+          ExtraFields f;
+          if (!f.Parse(field_id, b, node->mode)) {
             break;
           }
 
@@ -118,15 +118,17 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
 
           if (!high_precision_time) {
             if (!mtime_from_timestamp) {
-              node->mtime = {.tv_sec = f.mtime};
+              node->mtime = f.mtime;
             }
 
             if (!atime_from_timestamp) {
-              node->atime = {.tv_sec = f.atime};
+              node->atime = f.atime;
             }
           }
 
-          node->dev = f.dev;
+          if (f.dev != -1) {
+            node->dev = f.dev;
+          }
 
           // Use PKWARE link target only if link target in Info-ZIP format is
           // not specified (empty file content)
@@ -143,7 +145,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
         case FieldId::INFOZIP_UNIX_1:
         case FieldId::INFOZIP_UNIX_2:
         case FieldId::INFOZIP_UNIX_3: {
-          SimpleUnixField f;
+          ExtraFields f;
           if (!f.Parse(field_id, b)) {
             break;
           }
@@ -159,24 +161,31 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           }
 
           if (!mtime_from_timestamp) {
-            node->mtime = {.tv_sec = f.mtime};
+            node->mtime = f.mtime;
           }
 
           if (!atime_from_timestamp) {
-            node->atime = {.tv_sec = f.atime};
+            node->atime = f.atime;
           }
 
           break;
         }
 
         case FieldId::NTFS_TIMESTAMP: {
-          NtfsField f;
-          if (!f.Parse(b)) {
+          ExtraFields f;
+          if (!f.Parse(field_id, b)) {
             break;
           }
 
-          node->mtime = f.mtime;
-          node->atime = f.atime;
+          if (f.mtime.tv_sec != -1) {
+            node->mtime = f.mtime;
+          }
+          if (f.atime.tv_sec != -1) {
+            node->atime = f.atime;
+          }
+          if (f.ctime.tv_sec != -1) {
+            node->ctime = f.ctime;
+          }
           high_precision_time = true;
           break;
         }

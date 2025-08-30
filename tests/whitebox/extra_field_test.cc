@@ -33,11 +33,14 @@ using u8 = std::uint8_t;
  */
 void timestamp_mtime_atime_present_local() {
   const u8 data[] = {1 | 2, 0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52};
-  ExtTimeStamp ts;
-  assert(ts.Parse(data));
-  assert(ts.mtime == 0x51CE6FD4);
-  assert(ts.atime == 0X52C7E372);
-  assert(ts.ctime == 0);
+  ExtraFields f;
+  assert(f.Parse(FieldId::UNIX_TIMESTAMP, data));
+  assert(f.mtime.tv_sec == 0x51CE6FD4);
+  assert(f.mtime.tv_nsec == 0);
+  assert(f.atime.tv_sec == 0x52C7E372);
+  assert(f.atime.tv_nsec == 0);
+  assert(f.ctime.tv_sec == -1);
+  assert(f.ctime.tv_nsec == 0);
 }
 
 /**
@@ -45,11 +48,14 @@ void timestamp_mtime_atime_present_local() {
  */
 void timestamp_mtime_ctime_present_local() {
   const u8 data[] = {1 | 4, 0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3, 0xC7, 0x52};
-  ExtTimeStamp ts;
-  assert(ts.Parse(data));
-  assert(ts.mtime == 0x51CE6FD4);
-  assert(ts.atime == 0);
-  assert(ts.ctime == 0x52C7E372);
+  ExtraFields f;
+  assert(f.Parse(FieldId::UNIX_TIMESTAMP, data));
+  assert(f.mtime.tv_sec == 0x51CE6FD4);
+  assert(f.mtime.tv_nsec == 0);
+  assert(f.atime.tv_sec == -1);
+  assert(f.atime.tv_nsec == 0);
+  assert(f.ctime.tv_sec == 0x52C7E372);
+  assert(f.ctime.tv_nsec == 0);
 }
 
 /**
@@ -57,11 +63,14 @@ void timestamp_mtime_ctime_present_local() {
  */
 void timestamp_bad() {
   const u8 data[] = {1 | 2 | 4, 0x72, 0xE3, 0xC7, 0x52};
-  ExtTimeStamp ts;
-  assert(ts.Parse(data));
-  assert(ts.mtime == 0x52C7E372);
-  assert(ts.atime == 0);
-  assert(ts.ctime == 0);
+  ExtraFields f;
+  assert(f.Parse(FieldId::UNIX_TIMESTAMP, data));
+  assert(f.mtime.tv_sec == 0x52C7E372);
+  assert(f.mtime.tv_nsec == 0);
+  assert(f.atime.tv_sec == -1);
+  assert(f.atime.tv_nsec == 0);
+  assert(f.ctime.tv_sec == -1);
+  assert(f.ctime.tv_nsec == 0);
 }
 
 /**
@@ -75,13 +84,17 @@ void unix_pkware_regular() {
       0x04, 0x03               // GID
   };
 
-  PkWareField f;
-  assert(f.Parse(data, S_IFREG | 0666));
-  assert(f.atime == 0x51CE6FD4);
-  assert(f.mtime == 0x52C7E372);
+  ExtraFields f;
+  assert(f.Parse(FieldId::PKWARE_UNIX, data, S_IFREG | 0666));
+  assert(f.atime.tv_sec == 0x51CE6FD4);
+  assert(f.atime.tv_nsec == 0);
+  assert(f.mtime.tv_sec == 0x52C7E372);
+  assert(f.mtime.tv_nsec == 0);
+  assert(f.ctime.tv_sec == -1);
+  assert(f.ctime.tv_nsec == 0);
   assert(f.uid == 0x0102);
   assert(f.gid == 0x0304);
-  assert(f.dev == 0);
+  assert(f.dev == -1);
   assert(f.link_target.empty());
 }
 
@@ -90,18 +103,22 @@ void unix_pkware_regular() {
  */
 void unix_pkware_device() {
   const u8 data[] = {
-      0xC8, 0x76, 0x45, 0x5D,  // atime
-      0xC8, 0x76, 0x45, 0x5D,  // mtime
-      0x00, 0x00,              // UID
-      0x06, 0x00,              // GID
-      0x08, 0x00, 0x00, 0x00,  // major
-      0x01, 0x00, 0x00, 0x00   // minor
+    0xC8, 0x76, 0x45, 0x5D,  // atime
+    0xC8, 0x76, 0x45, 0x5D,  // mtime
+    0x00, 0x00,              // UID
+    0x06, 0x00,              // GID
+    0x08, 0x00, 0x00, 0x00,  // major
+    0x01, 0x00, 0x00, 0x00   // minor
   };
 
-  PkWareField f;
-  assert(f.Parse(data, S_IFBLK | 0666));
-  assert(f.atime == 0x5D4576C8);
-  assert(f.mtime == 0x5D4576C8);
+  ExtraFields f;
+  assert(f.Parse(FieldId::PKWARE_UNIX, data, S_IFBLK | 0666));
+  assert(f.atime.tv_sec == 0x5D4576C8);
+  assert(f.atime.tv_nsec == 0);
+  assert(f.mtime.tv_sec == 0x5D4576C8);
+  assert(f.mtime.tv_nsec == 0);
+  assert(f.ctime.tv_sec == -1);
+  assert(f.ctime.tv_nsec == 0);
   assert(f.uid == 0x0000);
   assert(f.gid == 0x0006);
   assert(f.dev == makedev(8, 1));
@@ -120,13 +137,17 @@ void unix_pkware_link() {
       0x72, 0x65, 0x67, 0x75, 0x6C, 0x61, 0x72  // link target
   };
 
-  PkWareField f;
-  assert(f.Parse(data, S_IFLNK | 0777));
-  assert(f.atime == 0x5D4973F3);
-  assert(f.mtime == 0x5D457BA9);
+  ExtraFields f;
+  assert(f.Parse(FieldId::PKWARE_UNIX, data, S_IFLNK | 0777));
+  assert(f.atime.tv_sec == 0x5D4973F3);
+  assert(f.atime.tv_nsec == 0);
+  assert(f.mtime.tv_sec == 0x5D457BA9);
+  assert(f.mtime.tv_nsec == 0);
+  assert(f.ctime.tv_sec == -1);
+  assert(f.ctime.tv_nsec == 0);
   assert(f.uid == 1000);
   assert(f.gid == 1000);
-  assert(f.dev == 0);
+  assert(f.dev == -1);
   assert(f.link_target == "regular");
 }
 
@@ -138,23 +159,27 @@ void unix_infozip1() {
   {
     const u8 data[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3,
                        0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
-    SimpleUnixField uf;
-    assert(uf.Parse(FieldId::INFOZIP_UNIX_1, data));
-    assert(uf.atime == 0x51CE6FD4);
-    assert(uf.mtime == 0x52C7E372);
-    assert(uf.uid == 0x0102);
-    assert(uf.gid == 0x0304);
+    ExtraFields f;
+    assert(f.Parse(FieldId::INFOZIP_UNIX_1, data));
+    assert(f.atime.tv_sec == 0x51CE6FD4);
+    assert(f.atime.tv_nsec == 0);
+    assert(f.mtime.tv_sec == 0x52C7E372);
+    assert(f.mtime.tv_nsec == 0);
+    assert(f.uid == 0x0102);
+    assert(f.gid == 0x0304);
   }
 
   // central header
   {
     const u8 data[] = {0x72, 0xE3, 0xC7, 0x52, 0xD4, 0x6F, 0xCE, 0x51};
-    SimpleUnixField uf;
-    assert(uf.Parse(FieldId::INFOZIP_UNIX_1, data));
-    assert(uf.atime == 0x52C7E372);
-    assert(uf.mtime == 0x51CE6FD4);
-    assert(uf.uid == -1);
-    assert(uf.gid == -1);
+    ExtraFields f;
+    assert(f.Parse(FieldId::INFOZIP_UNIX_1, data));
+    assert(f.atime.tv_sec == 0x52C7E372);
+    assert(f.atime.tv_nsec == 0);
+    assert(f.mtime.tv_sec == 0x51CE6FD4);
+    assert(f.mtime.tv_nsec == 0);
+    assert(f.uid == -1);
+    assert(f.gid == -1);
   }
 }
 
@@ -165,16 +190,16 @@ void unix_infozip2() {
   // local header
   {
     const u8 data[] = {0x02, 0x01, 0x04, 0x03};
-    SimpleUnixField uf;
-    assert(uf.Parse(FieldId::INFOZIP_UNIX_2, data));
-    assert(uf.uid == 0x0102);
-    assert(uf.gid == 0x0304);
+    ExtraFields f;
+    assert(f.Parse(FieldId::INFOZIP_UNIX_2, data));
+    assert(f.uid == 0x0102);
+    assert(f.gid == 0x0304);
   }
   // central header
   {
     const u8 data[] = {0};
-    SimpleUnixField uf;
-    assert(!uf.Parse(FieldId::INFOZIP_UNIX_2, data));
+    ExtraFields f;
+    assert(!f.Parse(FieldId::INFOZIP_UNIX_2, data));
   }
 }
 
@@ -199,34 +224,34 @@ void unix_infozip_new() {
 
   // 8-bit
   {
-    SimpleUnixField uf;
-    assert(uf.Parse(FieldId::INFOZIP_UNIX_3, data1));
-    assert(uf.uid == 0x01);
-    assert(uf.gid == 0xF1);
+    ExtraFields f;
+    assert(f.Parse(FieldId::INFOZIP_UNIX_3, data1));
+    assert(f.uid == 0x01);
+    assert(f.gid == 0xF1);
   }
   // 32-bit
   {
-    SimpleUnixField uf;
-    assert(uf.Parse(FieldId::INFOZIP_UNIX_3, data4));
-    assert(uf.uid == 0x01020304);
-    assert(uf.gid == 0xF5F6F7F8);
+    ExtraFields f;
+    assert(f.Parse(FieldId::INFOZIP_UNIX_3, data4));
+    assert(f.uid == 0x01020304);
+    assert(f.gid == 0xF5F6F7F8);
   }
   // 128-bit fit into uid_t and gid_t
   {
-    SimpleUnixField uf;
-    assert(uf.Parse(FieldId::INFOZIP_UNIX_3, data16_fit));
-    assert(uf.uid == 0x0102);
-    assert(uf.gid == 0xF1F2);
+    ExtraFields f;
+    assert(f.Parse(FieldId::INFOZIP_UNIX_3, data16_fit));
+    assert(f.uid == 0x0102);
+    assert(f.gid == 0xF1F2);
   }
   // 128-bit, UID doesn't fit into uid_t
   {
-    SimpleUnixField uf;
-    assert(!uf.Parse(FieldId::INFOZIP_UNIX_3, data16_uid_overflow));
+    ExtraFields f;
+    assert(!f.Parse(FieldId::INFOZIP_UNIX_3, data16_uid_overflow));
   }
   // 128-bit, GID doesn't fit into gid_t
   {
-    SimpleUnixField uf;
-    assert(!uf.Parse(FieldId::INFOZIP_UNIX_3, data16_gid_overflow));
+    ExtraFields f;
+    assert(!f.Parse(FieldId::INFOZIP_UNIX_3, data16_gid_overflow));
   }
 }
 
@@ -251,8 +276,8 @@ void ntfs_extra_field_parse() {
       0xFF, 0x80, 0x3E, 0xD5, 0xDE, 0xB1, 0x9D, 0x01   // btime
   };
 
-  NtfsField f;
-  assert(f.Parse(data));
+  ExtraFields f;
+  assert(f.Parse(FieldId::NTFS_TIMESTAMP, data));
 
   assert(f.mtime.tv_sec == 1560435721);
   assert(f.mtime.tv_nsec == 722114700);

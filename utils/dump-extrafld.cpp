@@ -26,6 +26,9 @@
 #include "lib/extra_field.h"
 
 void print_time(const char* label, const timespec& time) {
+  if (time.tv_sec == -1) {
+    return;
+  }
   struct tm tmp;
   if (!localtime_r(&time.tv_sec, &tmp)) {
     perror("localtime");
@@ -52,54 +55,51 @@ void print_time(const char* label, time_t time) {
   print_time(label, timespec{.tv_sec = time, .tv_nsec = 0});
 }
 
-void dump_extrafld(FieldId id, Bytes b, bool central, mode_t mode) {
+void dump_extrafld(FieldId id, Bytes b, mode_t mode) {
   for (const std::byte c : b) {
-    printf("\\x%02X", static_cast<int>(c));
+    printf("\\x%02X", static_cast<unsigned int>(c));
   }
   printf("\n");
   switch (id) {
     case FieldId::UNIX_TIMESTAMP: {
       printf("    UNIX timestamp\n");
-      ExtTimeStamp f;
-      if (!f.Parse(b)) {
+      ExtraFields f;
+      if (!f.Parse(id, b)) {
         printf("      Cannot parse\n");
         break;
       }
 
       int flags = static_cast<int>(b.front());
       printf("      flags: %d\n", flags);
-      if (f.mtime) {
-        print_time("mtime: ", f.mtime);
-      }
-      if (!central) {
-        if (f.atime) {
-          print_time("atime: ", f.atime);
-        }
-        if (f.ctime) {
-          print_time("ctime: ", f.ctime);
-        }
-      }
+      print_time("mtime: ", f.mtime);
+      print_time("atime: ", f.atime);
+      print_time("ctime: ", f.ctime);
 
       break;
     }
 
     case FieldId::PKWARE_UNIX: {
       printf("    PKWare Unix\n");
-      PkWareField f;
-      if (!f.Parse(b, mode)) {
+      ExtraFields f;
+      if (!f.Parse(id, b, mode)) {
         printf("      Cannot parse\n");
         break;
       }
 
       print_time("mtime: ", f.mtime);
       print_time("atime: ", f.atime);
-      printf("      UID:   %u\n", f.uid);
-      printf("      GID:   %u\n", f.gid);
-      if (S_ISBLK(mode) || S_ISCHR(mode)) {
+      print_time("ctime: ", f.ctime);
+      if (f.uid != -1) {
+        printf("      UID:   %u\n", f.uid);
+      }
+      if (f.gid != -1) {
+        printf("      GID:   %u\n", f.gid);
+      }
+      if (f.dev != -1) {
         printf("      device: %u, %u\n", major(f.dev), minor(f.dev));
       }
       if (!f.link_target.empty()) {
-        printf("      link target: %.*s\n",
+        printf("      link:   %.*s\n",
                static_cast<int>(f.link_target.size()), f.link_target.data());
       }
       break;
@@ -107,27 +107,30 @@ void dump_extrafld(FieldId id, Bytes b, bool central, mode_t mode) {
 
     case FieldId::INFOZIP_UNIX_1: {
       printf("    Info-ZIP Unix v1\n");
-      SimpleUnixField uf;
-      if (!uf.Parse(FieldId::INFOZIP_UNIX_1, b)) {
+      ExtraFields f;
+      if (!f.Parse(id, b)) {
         printf("      Cannot parse\n");
         break;
       }
 
-      if (uf.uid != -1) {
-        printf("      UID %u\n", uf.uid);
+      if (f.uid != -1) {
+        printf("      UID %u\n", f.uid);
       }
-      if (uf.gid != -1) {
-        printf("      GID %u\n", uf.gid);
+
+      if (f.gid != -1) {
+        printf("      GID %u\n", f.gid);
       }
-      print_time("mtime: ", uf.mtime);
-      print_time("atime: ", uf.atime);
+
+      print_time("mtime: ", f.mtime);
+      print_time("atime: ", f.atime);
+      print_time("ctime: ", f.ctime);
       break;
     }
 
     case FieldId::INFOZIP_UNIX_2: {
       printf("    Info-ZIP Unix v2\n");
-      SimpleUnixField f;
-      if (!f.Parse(FieldId::INFOZIP_UNIX_2, b)) {
+      ExtraFields f;
+      if (!f.Parse(id, b)) {
         printf("      Cannot parse\n");
         break;
       }
@@ -172,8 +175,8 @@ void dump_extrafld(FieldId id, Bytes b, bool central, mode_t mode) {
 
     case FieldId::NTFS_TIMESTAMP: {
       printf("    NTFS timestamp\n");
-      NtfsField f;
-      if (!f.Parse(b)) {
+      ExtraFields f;
+      if (!f.Parse(id, b)) {
         printf("      Cannot parse\n");
         break;
       }
@@ -460,8 +463,7 @@ int main(int argc, char** argv) {
         const auto* const field =
             zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
         printf("  Central x%04X len=%d ", id, len);
-        dump_extrafld(FieldId(id), Bytes(field, len), true,
-                      static_cast<mode_t>(unix_mode));
+        dump_extrafld(FieldId(id), Bytes(field, len), static_cast<mode_t>(unix_mode));
       }
     }
 
@@ -472,8 +474,7 @@ int main(int argc, char** argv) {
         const auto* const field =
             zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_LOCAL);
         printf("  Local x%04X len=%d ", id, len);
-        dump_extrafld(FieldId(id), Bytes(field, len), false,
-                      static_cast<mode_t>(unix_mode));
+        dump_extrafld(FieldId(id), Bytes(field, len), static_cast<mode_t>(unix_mode));
       }
     }
   }

@@ -129,34 +129,50 @@ timespec ntfs2timespec(i64 const t) {
 
 }  // namespace
 
-bool ExtTimeStamp::Parse(Bytes b) try {
-  const u8 flags = Read<u8>(b);
+bool ExtraFields::Parse(FieldId const id, Bytes b, mode_t mode) try {
+  switch (id) {
+    case FieldId::UNIX_TIMESTAMP: {
+      const u8 flags = Read<u8>(b);
 
-  if (flags & 1) {
-    mtime = Read<u32>(b);
-    if (b.empty()) {
+      if (flags & 1) {
+        mtime = {.tv_sec = Read<u32>(b)};
+        if (b.empty()) {
+          return true;
+        }
+      }
+
+      if (flags & 2) {
+        atime = {.tv_sec = Read<u32>(b)};
+      }
+
+      if (flags & 4) {
+        ctime = {.tv_sec = Read<u32>(b)};
+      }
+
       return true;
     }
-  }
 
-  if (flags & 2) {
-    atime = Read<u32>(b);
-  }
+    case FieldId::PKWARE_UNIX:
+      atime = {.tv_sec=Read<u32>(b)};
+      mtime = {.tv_sec=Read<u32>(b)};
+      uid = Read<u16>(b);
+      gid = Read<u16>(b);
 
-  if (flags & 4) {
-    ctime = Read<u32>(b);
-  }
+      // variable data field
+      if (S_ISBLK(mode) || S_ISCHR(mode)) {
+        unsigned int const maj = Read<u32>(b);
+        unsigned int const min = Read<u32>(b);
+        dev = makedev(maj, min);
+      } else {
+        link_target =
+            std::string_view(reinterpret_cast<const char*>(b.data()), b.size());
+      }
 
-  return true;
-} catch (...) {
-  return false;
-}
+      return true;
 
-bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
-  switch (id) {
     case FieldId::INFOZIP_UNIX_1:
-      atime = Read<u32>(b);
-      mtime = Read<u32>(b);
+      atime = {.tv_sec = Read<u32>(b)};
+      mtime = {.tv_sec = Read<u32>(b)};
       [[fallthrough]];
 
     case FieldId::INFOZIP_UNIX_2:
@@ -168,7 +184,7 @@ bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
       gid = Read<u16>(b);
       return true;
 
-    case FieldId::INFOZIP_UNIX_3: {
+    case FieldId::INFOZIP_UNIX_3:
       // Check version
       if (Read<u8>(b) != 1) {
         return false;
@@ -177,59 +193,35 @@ bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
       uid = ReadVariableLength<uid_t>(b);
       gid = ReadVariableLength<gid_t>(b);
       return true;
+
+    case FieldId::NTFS_TIMESTAMP: {
+      Read<u32>(b);  // skip 'Reserved' field
+
+      bool has_times = false;
+      while (!b.empty()) {
+        u16 const tag = Read<u16>(b);
+        u16 const size = Read<u16>(b);
+        if (b.size() < size) {
+          return false;
+        }
+
+        if (tag == 0x0001) {
+          Bytes p = b.first(size);
+          mtime = ntfs2timespec(Read<u64>(p));
+          atime = ntfs2timespec(Read<u64>(p));
+          ctime = ntfs2timespec(Read<u64>(p));
+          has_times = true;
+        }
+
+        b.remove_prefix(size);
+      }
+
+      return has_times;
     }
 
     default:
       return false;
   }
-} catch (...) {
-  return false;
-}
-
-bool PkWareField::Parse(Bytes b, mode_t const mode) try {
-  atime = Read<u32>(b);
-  mtime = Read<u32>(b);
-  uid = Read<u16>(b);
-  gid = Read<u16>(b);
-
-  // variable data field
-  if (S_ISBLK(mode) || S_ISCHR(mode)) {
-    unsigned int const maj = Read<u32>(b);
-    unsigned int const min = Read<u32>(b);
-    dev = makedev(maj, min);
-  } else {
-    link_target =
-        std::string_view(reinterpret_cast<const char*>(b.data()), b.size());
-  }
-
-  return true;
-} catch (...) {
-  return false;
-}
-
-bool NtfsField::Parse(Bytes b) try {
-  Read<u32>(b);  // skip 'Reserved' field
-
-  bool has_times = false;
-  while (!b.empty()) {
-    u16 const tag = Read<u16>(b);
-    u16 const size = Read<u16>(b);
-    if (b.size() < size) {
-      return false;
-    }
-
-    if (tag == 0x0001) {
-      Bytes p = b.first(size);
-      mtime = ntfs2timespec(Read<u64>(p));
-      atime = ntfs2timespec(Read<u64>(p));
-      ctime = ntfs2timespec(Read<u64>(p));
-      has_times = true;
-    }
-
-    b.remove_prefix(size);
-  }
-
-  return has_times;
 } catch (...) {
   return false;
 }
