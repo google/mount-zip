@@ -26,19 +26,20 @@
 #include "lib/extra_field.h"
 
 void print_time(const char* label, const timespec& time) {
-  char str1[512], str2[16];
-  time_t t = (time_t)time.tv_sec;
-  struct tm* tmp;
-  tmp = localtime(&t);
-  if (tmp == NULL) {
+  struct tm tmp;
+  if (!localtime_r(&time.tv_sec, &tmp)) {
     perror("localtime");
     exit(EXIT_FAILURE);
   }
-  if (strftime(str1, sizeof(str1), "%Y-%m-%d %H:%M:%S", tmp) == 0) {
+
+  char str1[512];
+  if (strftime(str1, sizeof(str1), "%Y-%m-%d %H:%M:%S", &tmp) == 0) {
     fprintf(stderr, "strftime returned 0");
     exit(EXIT_FAILURE);
   }
-  if (strftime(str2, sizeof(str2), "%z", tmp) == 0) {
+
+  char str2[16];
+  if (strftime(str2, sizeof(str2), "%z", &tmp) == 0) {
     fprintf(stderr, "strftime returned 0");
     exit(EXIT_FAILURE);
   }
@@ -58,7 +59,7 @@ void dump_extrafld(FieldId id, Bytes b, bool central, mode_t mode) {
   printf("\n");
   switch (id) {
     case FieldId::UNIX_TIMESTAMP: {
-      printf("    Extended timestamp\n");
+      printf("    UNIX timestamp\n");
       ExtTimeStamp f;
       if (!f.Parse(b)) {
         printf("      Cannot parse\n");
@@ -170,7 +171,7 @@ void dump_extrafld(FieldId id, Bytes b, bool central, mode_t mode) {
     }
 
     case FieldId::NTFS_TIMESTAMP: {
-      printf("    NTFS Extra Field\n");
+      printf("    NTFS timestamp\n");
       NtfsField f;
       if (!f.Parse(b)) {
         printf("      Cannot parse\n");
@@ -205,7 +206,8 @@ int main(int argc, char** argv) {
       printf("archive comment: %*s\n", len, comment);
   }
 
-  for (zip_int64_t i = 0; i < zip_get_num_entries(z, 0); ++i) {
+  zip_int64_t const n = zip_get_num_entries(z, 0);
+  for (zip_int64_t i = 0; i < n; ++i) {
     zip_uint8_t opsys;
     zip_uint32_t attr;
     zip_file_get_external_attributes(z, i, 0, &opsys, &attr);
@@ -215,7 +217,7 @@ int main(int argc, char** argv) {
         opsys_s = "UNIX";
         break;
       case ZIP_OPSYS_DOS:
-        opsys_s = "DOS compatible";
+        opsys_s = "DOS";
         break;
       case ZIP_OPSYS_WINDOWS_NTFS:
         opsys_s = "Windows NTFS";
@@ -224,8 +226,9 @@ int main(int argc, char** argv) {
         opsys_s = "MVS (PKWARE) or Windows NTFS (Info-Zip)";
         break;
       default:
-        opsys_s = "unknown";
+        opsys_s = "Unknown";
     }
+
     unsigned int unix_mode = attr >> 16;
     printf("%s\t(opsys: %s (%d), mode1: 0%06o, mode2: 0x%04X):\n",
            zip_get_name(z, i, ZIP_FL_ENC_STRICT), opsys_s, opsys, unix_mode,
@@ -246,28 +249,28 @@ int main(int argc, char** argv) {
         printf("  type: ");
         switch (mode & S_IFMT) {
           case S_IFSOCK:
-            printf("socket");
+            printf("Socket");
             break;
           case S_IFLNK:
-            printf("symlink");
+            printf("Symlink");
             break;
           case S_IFREG:
-            printf("regular file");
+            printf("Regular file");
             break;
           case S_IFBLK:
-            printf("block device");
+            printf("Block device");
             break;
           case S_IFDIR:
-            printf("directory");
+            printf("Directory");
             break;
           case S_IFCHR:
-            printf("character device");
+            printf("Character device");
             break;
           case S_IFIFO:
             printf("FIFO");
             break;
           default:
-            printf("unknown (0x%0X)", mode & S_IFMT);
+            printf("Unknown (0x%0X)", mode & S_IFMT);
         }
         printf("\n");
         printf("  mode: %03o ", mode);
@@ -317,44 +320,44 @@ int main(int argc, char** argv) {
       printf("      comp.size:  %llu\n",
              (long long unsigned int)stat.comp_size);
     if (stat.valid & ZIP_STAT_MTIME)
-      print_time("stat.mtime: ", stat.mtime);
+      print_time("mtime:      ", stat.mtime);
     if (stat.valid & ZIP_STAT_CRC)
       printf("      CRC:        0x%08lX\n", (long unsigned int)stat.crc);
     if (stat.valid & ZIP_STAT_COMP_METHOD) {
       const char* method;
       switch (stat.comp_method) {
         case ZIP_CM_STORE:
-          method = "stored (uncompressed)";
+          method = "Stored (uncompressed)";
           break;
         case ZIP_CM_SHRINK:
-          method = "shrunk";
+          method = "Shrunk";
           break;
         case ZIP_CM_REDUCE_1:
-          method = "reduced with factor 1";
+          method = "Reduced with factor 1";
           break;
         case ZIP_CM_REDUCE_2:
-          method = "reduced with factor 2";
+          method = "Reduced with factor 2";
           break;
         case ZIP_CM_REDUCE_3:
-          method = "reduced with factor 3";
+          method = "Reduced with factor 3";
           break;
         case ZIP_CM_REDUCE_4:
-          method = "reduced with factor 4";
+          method = "Reduced with factor 4";
           break;
         case ZIP_CM_IMPLODE:
-          method = "imploded";
+          method = "Imploded";
           break;
         case 7:
-          method = "tokenizing compression";
+          method = "Tokenizing compression";
           break;
         case ZIP_CM_DEFLATE:
-          method = "deflated";
+          method = "Deflated";
           break;
         case ZIP_CM_DEFLATE64:
-          method = "deflate64";
+          method = "Deflate64";
           break;
         case ZIP_CM_PKWARE_IMPLODE:
-          method = "PKWARE imploding";
+          method = "PKWARE Imploding";
           break;
         case ZIP_CM_BZIP2:
           method = "BZIP2";
@@ -388,39 +391,55 @@ int main(int argc, char** argv) {
           method = "Reserved by PKWARE";
           break;
         default:
-          method = "UNKNOWN";
+          method = "Unknown";
       }
       printf("      compressed: %s (%u)\n", method, stat.comp_method);
     }
+
     if (stat.valid & ZIP_STAT_ENCRYPTION_METHOD) {
       const char* method;
       switch (stat.encryption_method) {
-        case 0:
-          method = "none";
+        case ZIP_EM_NONE:
+          method = "None";
+          break;
+        case ZIP_EM_TRAD_PKWARE:
+          method = "PKWARE ZipCrypto";
+          break;
+        case ZIP_EM_AES_128:
+          method = "AES 128 ";
+          break;
+        case ZIP_EM_AES_192:
+          method = "AES 192 ";
+          break;
+        case ZIP_EM_AES_256:
+          method = "AES 256 ";
           break;
         case 0x6601:
           method = "DES";
           break;
-        case 0x6602:
-          method = "RC2 (version needed to extract < 5.2)";
+        case 0x6609:
+          method = "3DES 112";
           break;
         case 0x6603:
           method = "3DES 168";
           break;
-        case 0x6609:
-          method = "3DES 112";
-          break;
         case 0x660E:
-          method = "AES 128 ";
+          method = "PKZIP AES 128 ";
           break;
         case 0x660F:
-          method = "AES 192 ";
+          method = "PKZIP AES 192 ";
           break;
         case 0x6610:
-          method = "AES 256 ";
+          method = "PKZIP AES 256 ";
+          break;
+        case 0x6602:
+          method = "RC2 (version needed to extract < 5.2)";
           break;
         case 0x6702:
           method = "RC2 (version needed to extract >= 5.2)";
+          break;
+        case 0x6801:
+          method = "RC4";
           break;
         case 0x6720:
           method = "Blowfish";
@@ -428,33 +447,34 @@ int main(int argc, char** argv) {
         case 0x6721:
           method = "Twofish";
           break;
-        case 0x6801:
-          method = "RC4";
-          break;
         default:
-          method = "UNKNOWN";
+          method = "Unknown";
       }
       printf("      encrypted:  %s (0x%04X)\n", method, stat.encryption_method);
     }
 
-    for (zip_int16_t j = 0;
-         j < zip_file_extra_fields_count(z, i, ZIP_FL_CENTRAL); ++j) {
-      zip_uint16_t id, len;
-      const auto* const field =
-          zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
-      printf("  0x%04X len=%d central: ", id, len);
-      dump_extrafld(FieldId(id), Bytes(field, len), true,
-                    static_cast<mode_t>(unix_mode));
+    {
+      int const n = zip_file_extra_fields_count(z, i, ZIP_FL_CENTRAL);
+      for (int j = 0; j < n; ++j) {
+        zip_uint16_t id, len;
+        const auto* const field =
+            zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
+        printf("  Central x%04X len=%d ", id, len);
+        dump_extrafld(FieldId(id), Bytes(field, len), true,
+                      static_cast<mode_t>(unix_mode));
+      }
     }
 
-    for (zip_int16_t j = 0; j < zip_file_extra_fields_count(z, i, ZIP_FL_LOCAL);
-         ++j) {
-      zip_uint16_t id, len;
-      const auto* const field =
-          zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_LOCAL);
-      printf("  0x%04X len=%d local: ", id, len);
-      dump_extrafld(FieldId(id), Bytes(field, len), false,
-                    static_cast<mode_t>(unix_mode));
+    {
+      int const n = zip_file_extra_fields_count(z, i, ZIP_FL_LOCAL);
+      for (int j = 0; j < n; ++j) {
+        zip_uint16_t id, len;
+        const auto* const field =
+            zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_LOCAL);
+        printf("  Local x%04X len=%d ", id, len);
+        dump_extrafld(FieldId(id), Bytes(field, len), false,
+                      static_cast<mode_t>(unix_mode));
+      }
     }
   }
 
