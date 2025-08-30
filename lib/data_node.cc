@@ -81,7 +81,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
       FieldId const field_id = FieldId(field_type);
 
       switch (field_id) {
-        case FZ_EF_TIMESTAMP: {
+        case FieldId::UNIX_TIMESTAMP: {
           ExtTimeStamp ts;
           if (high_precision_time || !ts.Parse(b)) {
             break;
@@ -100,7 +100,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           break;
         }
 
-        case FZ_EF_PKWARE_UNIX: {
+        case FieldId::PKWARE_UNIX: {
           PkWareField f;
           if (!f.Parse(b, node->mode)) {
             break;
@@ -140,9 +140,9 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           break;
         }
 
-        case FZ_EF_INFOZIP_UNIX1:
-        case FZ_EF_INFOZIP_UNIX2:
-        case FZ_EF_INFOZIP_UNIXN: {
+        case FieldId::INFOZIP_UNIX_1:
+        case FieldId::INFOZIP_UNIX_2:
+        case FieldId::INFOZIP_UNIX_3: {
           SimpleUnixField f;
           if (!f.Parse(field_id, b)) {
             break;
@@ -169,7 +169,7 @@ static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
           break;
         }
 
-        case FZ_EF_NTFS: {
+        case FieldId::NTFS_TIMESTAMP: {
           NtfsField f;
           if (!f.Parse(b)) {
             break;

@@ -51,13 +51,13 @@ void print_time(const char* label, time_t time) {
   print_time(label, timespec{.tv_sec = time, .tv_nsec = 0});
 }
 
-void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
+void dump_extrafld(FieldId id, Bytes b, bool central, mode_t mode) {
   for (const std::byte c : b) {
     printf("\\x%02X", static_cast<int>(c));
   }
   printf("\n");
   switch (id) {
-    case FZ_EF_TIMESTAMP: {
+    case FieldId::UNIX_TIMESTAMP: {
       printf("    Extended timestamp\n");
       ExtTimeStamp f;
       if (!f.Parse(b)) {
@@ -82,7 +82,7 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       break;
     }
 
-    case FZ_EF_PKWARE_UNIX: {
+    case FieldId::PKWARE_UNIX: {
       printf("    PKWare Unix\n");
       PkWareField f;
       if (!f.Parse(b, mode)) {
@@ -104,10 +104,10 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       break;
     }
 
-    case FZ_EF_INFOZIP_UNIX1: {
+    case FieldId::INFOZIP_UNIX_1: {
       printf("    Info-ZIP Unix v1\n");
       SimpleUnixField uf;
-      if (!uf.Parse(FZ_EF_INFOZIP_UNIX1, b)) {
+      if (!uf.Parse(FieldId::INFOZIP_UNIX_1, b)) {
         printf("      Cannot parse\n");
         break;
       }
@@ -123,10 +123,10 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       break;
     }
 
-    case FZ_EF_INFOZIP_UNIX2: {
+    case FieldId::INFOZIP_UNIX_2: {
       printf("    Info-ZIP Unix v2\n");
       SimpleUnixField f;
-      if (!f.Parse(FZ_EF_INFOZIP_UNIX2, b)) {
+      if (!f.Parse(FieldId::INFOZIP_UNIX_2, b)) {
         printf("      Cannot parse\n");
         break;
       }
@@ -136,7 +136,7 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       break;
     }
 
-    case FZ_EF_INFOZIP_UNIXN: {
+    case FieldId::INFOZIP_UNIX_3: {
       printf("    Info-ZIP Unix (new)\n");
       if (b.size() < 2)
         break;
@@ -169,7 +169,7 @@ void dump_extrafld(zip_uint16_t id, Bytes b, bool central, mode_t mode) {
       break;
     }
 
-    case FZ_EF_NTFS: {
+    case FieldId::NTFS_TIMESTAMP: {
       printf("    NTFS Extra Field\n");
       NtfsField f;
       if (!f.Parse(b)) {
@@ -443,7 +443,7 @@ int main(int argc, char** argv) {
       const auto* const field =
           zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_CENTRAL);
       printf("  0x%04X len=%d central: ", id, len);
-      dump_extrafld(id, Bytes(field, len), true,
+      dump_extrafld(FieldId(id), Bytes(field, len), true,
                     static_cast<mode_t>(unix_mode));
     }
 
@@ -453,7 +453,7 @@ int main(int argc, char** argv) {
       const auto* const field =
           zip_file_extra_field_get(z, i, j, &id, &len, ZIP_FL_LOCAL);
       printf("  0x%04X len=%d local: ", id, len);
-      dump_extrafld(id, Bytes(field, len), false,
+      dump_extrafld(FieldId(id), Bytes(field, len), false,
                     static_cast<mode_t>(unix_mode));
     }
   }

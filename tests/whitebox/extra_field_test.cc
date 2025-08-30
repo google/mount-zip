@@ -139,7 +139,7 @@ void unix_infozip1() {
     const u8 data[] = {0xD4, 0x6F, 0xCE, 0x51, 0x72, 0xE3,
                        0xC7, 0x52, 0x02, 0x01, 0x04, 0x03};
     SimpleUnixField uf;
-    assert(uf.Parse(FZ_EF_INFOZIP_UNIX1, data));
+    assert(uf.Parse(FieldId::INFOZIP_UNIX_1, data));
     assert(uf.atime == 0x51CE6FD4);
     assert(uf.mtime == 0x52C7E372);
     assert(uf.uid == 0x0102);
@@ -150,7 +150,7 @@ void unix_infozip1() {
   {
     const u8 data[] = {0x72, 0xE3, 0xC7, 0x52, 0xD4, 0x6F, 0xCE, 0x51};
     SimpleUnixField uf;
-    assert(uf.Parse(FZ_EF_INFOZIP_UNIX1, data));
+    assert(uf.Parse(FieldId::INFOZIP_UNIX_1, data));
     assert(uf.atime == 0x52C7E372);
     assert(uf.mtime == 0x51CE6FD4);
     assert(uf.uid == -1);
@@ -166,7 +166,7 @@ void unix_infozip2() {
   {
     const u8 data[] = {0x02, 0x01, 0x04, 0x03};
     SimpleUnixField uf;
-    assert(uf.Parse(FZ_EF_INFOZIP_UNIX2, data));
+    assert(uf.Parse(FieldId::INFOZIP_UNIX_2, data));
     assert(uf.uid == 0x0102);
     assert(uf.gid == 0x0304);
   }
@@ -174,7 +174,7 @@ void unix_infozip2() {
   {
     const u8 data[] = {0};
     SimpleUnixField uf;
-    assert(!uf.Parse(FZ_EF_INFOZIP_UNIX2, data));
+    assert(!uf.Parse(FieldId::INFOZIP_UNIX_2, data));
   }
 }
 
@@ -200,33 +200,33 @@ void unix_infozip_new() {
   // 8-bit
   {
     SimpleUnixField uf;
-    assert(uf.Parse(FZ_EF_INFOZIP_UNIXN, data1));
+    assert(uf.Parse(FieldId::INFOZIP_UNIX_3, data1));
     assert(uf.uid == 0x01);
     assert(uf.gid == 0xF1);
   }
   // 32-bit
   {
     SimpleUnixField uf;
-    assert(uf.Parse(FZ_EF_INFOZIP_UNIXN, data4));
+    assert(uf.Parse(FieldId::INFOZIP_UNIX_3, data4));
     assert(uf.uid == 0x01020304);
     assert(uf.gid == 0xF5F6F7F8);
   }
   // 128-bit fit into uid_t and gid_t
   {
     SimpleUnixField uf;
-    assert(uf.Parse(FZ_EF_INFOZIP_UNIXN, data16_fit));
+    assert(uf.Parse(FieldId::INFOZIP_UNIX_3, data16_fit));
     assert(uf.uid == 0x0102);
     assert(uf.gid == 0xF1F2);
   }
   // 128-bit, UID doesn't fit into uid_t
   {
     SimpleUnixField uf;
-    assert(!uf.Parse(FZ_EF_INFOZIP_UNIXN, data16_uid_overflow));
+    assert(!uf.Parse(FieldId::INFOZIP_UNIX_3, data16_uid_overflow));
   }
   // 128-bit, GID doesn't fit into gid_t
   {
     SimpleUnixField uf;
-    assert(!uf.Parse(FZ_EF_INFOZIP_UNIXN, data16_gid_overflow));
+    assert(!uf.Parse(FieldId::INFOZIP_UNIX_3, data16_gid_overflow));
   }
 }
 

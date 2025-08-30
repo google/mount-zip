@@ -154,12 +154,12 @@ bool ExtTimeStamp::Parse(Bytes b) try {
 
 bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
   switch (id) {
-    case FZ_EF_INFOZIP_UNIX1:
+    case FieldId::INFOZIP_UNIX_1:
       atime = Read<u32>(b);
       mtime = Read<u32>(b);
       [[fallthrough]];
 
-    case FZ_EF_INFOZIP_UNIX2:
+    case FieldId::INFOZIP_UNIX_2:
       if (b.empty()) {
         return true;
       }
@@ -168,7 +168,7 @@ bool SimpleUnixField::Parse(FieldId const id, Bytes b) try {
       gid = Read<u16>(b);
       return true;
 
-    case FZ_EF_INFOZIP_UNIXN: {
+    case FieldId::INFOZIP_UNIX_3: {
       // Check version
       if (Read<u8>(b) != 1) {
         return false;

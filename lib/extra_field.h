@@ -24,14 +24,14 @@
 
 #include <sys/types.h>
 
-// ZIP extra fields
-enum FieldId {
-  FZ_EF_TIMESTAMP = 0x5455,
-  FZ_EF_NTFS = 0x000A,
-  FZ_EF_PKWARE_UNIX = 0x000D,
-  FZ_EF_INFOZIP_UNIX1 = 0x5855,
-  FZ_EF_INFOZIP_UNIX2 = 0x7855,
-  FZ_EF_INFOZIP_UNIXN = 0x7875,
+// ZIP extra field ID.
+enum class FieldId {
+  UNIX_TIMESTAMP = 0x5455,
+  NTFS_TIMESTAMP = 0x000A,
+  PKWARE_UNIX = 0x000D,
+  INFOZIP_UNIX_1 = 0x5855,
+  INFOZIP_UNIX_2 = 0x7855,
+  INFOZIP_UNIX_3 = 0x7875,
 };
 
 struct Bytes : std::span<const std::byte> {

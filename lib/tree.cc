@@ -814,11 +814,13 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
 
   zip_uint16_t len;
   const zip_uint8_t* field = zip_file_extra_field_get_by_id(
-      z, id, FZ_EF_PKWARE_UNIX, 0, &len, ZIP_FL_CENTRAL);
+      z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &len,
+      ZIP_FL_CENTRAL);
 
   if (!field) {
-    field = zip_file_extra_field_get_by_id(z, id, FZ_EF_PKWARE_UNIX, 0, &len,
-                                           ZIP_FL_LOCAL);
+    field = zip_file_extra_field_get_by_id(
+        z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &len,
+        ZIP_FL_LOCAL);
   }
 
   if (!field) {
