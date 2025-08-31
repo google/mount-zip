@@ -143,21 +143,21 @@ $ fusermount -u mnt
 *   Unpacks files when reading them (on-the-go decompression)
 *   Supports all file types, including named sockets, FIFOs, block and character
     devices, symbolic links and hard links
-*   Supports UNIX access modes and DOS file permissions
+*   Supports Unix access modes and DOS file permissions
 *   Supports owner and group information (UID and GID)
 *   Supports relative and absolute paths
-*   Supports high precision time stamps
+*   Supports high precision timestamps
 *   Works on 32-bit and 64-bit devices
 *   Supports ZIP64 extensions, even on 32-bit devices:
     *   Supports ZIP archives containing more than 65,535 files
     *   Supports ZIP archives and files bigger than 4 GB
-*   Supports ZIP format extensions:
-    *   000A PKWARE NTFS Extra Field: High-precision timestamps
-    *   000D PKWARE UNIX Extra Field: File type
-    *   5455 Extended Timestamp
-    *   5855 Info-ZIP Unix Extra Field (type 1)
-    *   7855 Info-ZIP Unix Extra Field (type 2)
-    *   7875 Info-ZIP New Unix Extra Field: Variable-length UIDs and GIDs
+*   Supports the following ZIP format extensions:
+    *   000A PKWARE NTFS high-precision timestamps
+    *   000D PKWARE Unix file type
+    *   5455 Unix timestamps
+    *   5855 Info-ZIP Unix extra fields (type 1)
+    *   7855 Info-ZIP Unix extra fields (type 2)
+    *   7875 Info-ZIP Unix extra fields (type 3): UID and GID
 
 ## File Name Encoding
 
