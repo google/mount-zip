@@ -447,14 +447,7 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
     }
   }
 
-  struct HardLink {
-    zip_t* zip;
-    std::string prefix;
-    i64 id;
-    mode_t mode;
-  };
-
-  std::vector<HardLink> hard_links;
+  std::vector<FileNode*> hard_links;
   Beat should_display_progress;
   i64 total_extracted_size = 0;
   const auto progress = [&should_display_progress, &total_uncompressed_size,
@@ -527,13 +520,9 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
         continue;
       }
 
-      if (is_hard_link) {
-        if (opts_.include_hard_links) {
-          hard_links.push_back({z, prefix, id, mode});
-        } else {
-          LOG(INFO) << "Skipped " << type << " [" << ++DataNode::ino_count
-                    << "] " << Path(path);
-        }
+      if (is_hard_link && !opts_.include_hard_links) {
+        LOG(INFO) << "Skipped " << type << " [" << ++DataNode::ino_count << "] "
+                  << Path(path);
         assert(total_uncompressed_size >= size);
         total_uncompressed_size -= size;
         continue;
@@ -548,6 +537,11 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
       files_by_original_path_.insert(*node);
       total_block_count_ += 1;
       total_block_count_ += node->operator DataNode::Stat().st_blocks;
+
+      if (is_hard_link) {
+        hard_links.push_back(node);
+        continue;
+      }
 
       if (!zip_encryption_method_supported(sb.encryption_method, 1)) {
         ZipError e(StrCat("Cannot decrypt ", *node, ": ",
@@ -595,21 +589,8 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
   }
 
   // Add hard links
-  for (auto& [z, prefix, id, mode] : hard_links) {
-    const Path original_path = zip_get_name(z, id, zipFlags);
-    path = prefix;
-    Path(toUtf8(original_path)).NormalizeAppend(&path);
-    const auto [parent_path, name] = Path(path).Split();
-    FileNode* const parent = CreateDir(parent_path);
-    assert(parent);
-    FileNode* const node =
-        CreateHardLink(z, id, parent, name, mode, std::move(prefix), toUtf8);
-    assert(node);
-    assert(node->parent == parent);
-    parent->AddChild(node);
-    node->original_path = Path(original_path).WithoutTrailingSeparator();
-    files_by_original_path_.insert(*node);
-    total_block_count_ += 1;
+  for (FileNode* const node : hard_links) {
+    CreateHardLink(node);
   }
 
   if (should_display_progress.Count()) {
@@ -795,71 +776,44 @@ FileNode* Tree::CreateFile(zip_t* const z,
                                            .name = std::string(name)}));
 }
 
-FileNode* Tree::CreateHardLink(zip_t* const z,
-                               i64 id,
-                               FileNode* parent,
-                               std::string_view name,
-                               mode_t mode,
-                               std::string /*prefix*/,
-                               const ToUtf8& /*toUtf8*/) {
-  assert(parent);
-  assert(!name.empty());
-  assert(id >= 0);
+void Tree::CreateHardLink(FileNode* const node) {
+  assert(node);
 
-  FileNode::Ptr node(new FileNode{
-      .zip = z, .id = id, .parent = parent, .name = std::string(name)});
-
-  zip_uint16_t field_size;
-  const auto* field_data = zip_file_extra_field_get_by_id(
-      z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &field_size,
-      ZIP_FL_CENTRAL);
-
-  if (!field_data) {
-    field_data = zip_file_extra_field_get_by_id(
-        z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &field_size,
-        ZIP_FL_LOCAL);
-  }
-
-  ExtraFields f;
-  if (!field_data ||
-      !f.Parse(FieldId::PKWARE_UNIX, Bytes(field_data, field_size), mode)) {
-    // Ignoring hard link without a valid PKWARE UNIX field.
-    LOG(ERROR) << "Cannot parse PkWare Unix field for hard link " << *node;
-    return CreateFile(z, id, parent, name, mode);
-  }
-
-  if (f.link_target.empty()) {
+  const Path target_path = Path(node->data.target);
+  if (target_path.empty()) {
     LOG(ERROR) << "Cannot get target for hard link " << *node;
-    return CreateFile(z, id, parent, name, mode);
+    return;
   }
 
-  const Path target_path = f.link_target;
-
-  const auto it =
-      files_by_original_path_.find({z, target_path.WithoutTrailingSeparator()});
+  const auto it = files_by_original_path_.find(
+      {node->zip, target_path.WithoutTrailingSeparator()});
   if (it == files_by_original_path_.end()) {
     LOG(ERROR) << "Cannot find target for hard link " << *node << " -> "
                << target_path;
-    return CreateFile(z, id, parent, name, mode);
+    return;
   }
 
   const FileNode& target = *it;
 
-  if (target.GetType() != GetFileType(mode)) {
+  if (&node->GetTarget() == &target.GetTarget()) {
+    LOG(ERROR) << "Self-referencial hard link " << *node << " -> " << target;
+    return;
+  }
+
+  if (target.GetType() != node->GetType()) {
     // PkZip saves hard-link flag for symlinks with inode link count > 1.
-    if (!S_ISLNK(mode)) {
+    if (node->GetType() != FileType::Symlink) {
       LOG(ERROR) << "Mismatched types for hard link " << *node << " -> "
                  << target;
     }
 
-    return CreateFile(z, id, parent, name, mode);
+    return;
   }
 
   node->link = &target.GetTarget();
   node->link->nlink++;
 
   LOG(DEBUG) << "Created hard link " << *node << " -> " << target;
-  return Attach(std::move(node));
 }
 
 FileNode* Tree::Find(std::string_view path) {

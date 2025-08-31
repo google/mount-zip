@@ -121,13 +121,7 @@ class Tree {
                        mode_t mode);
 
   // Creates and attaches a hard link node.
-  FileNode* CreateHardLink(zip_t* z,
-                           i64 id,
-                           FileNode* parent,
-                           std::string_view name,
-                           mode_t mode,
-                           std::string target_path,
-                           const ToUtf8& toUtf8);
+  void CreateHardLink(FileNode* node);
 
   // Attaches the given |node|, renaming it if necessary to prevent name
   // collisions.

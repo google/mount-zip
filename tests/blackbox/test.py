@@ -1212,14 +1212,14 @@ def TestMultiple():
           'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
       },
       '0regular (1)': {
-          'ino': 3,
+          'ino': 4,
           'mode': '-rw-r--r--',
           'nlink': 2,
           'size': 10,
           'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
       },
       'hlink (1)': {
-          'ino': 3,
+          'ino': 4,
           'mode': '-rw-r--r--',
           'nlink': 2,
           'size': 10,
@@ -1246,20 +1246,20 @@ def TestMultiple():
           'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
       },
       '0regular (1)': {
-          'ino': 3,
+          'ino': 4,
           'mode': '-rw-r--r--',
           'nlink': 1,
           'size': 10,
           'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
       },
       '1symlink': {
-          'ino': 4,
+          'ino': 5,
           'mode': 'lrwxrwxrwx',
           'nlink': 2,
           'target': '0regular',
       },
       'hlink (1)': {
-          'ino': 4,
+          'ino': 5,
           'mode': 'lrwxrwxrwx',
           'nlink': 2,
           'target': '0regular',
@@ -1285,22 +1285,22 @@ def TestMultiple():
           'size': 10,
           'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
       },
-      'hlink-symlink': {'ino': 4, 'mode': 'drwxr-xr-x', 'nlink': 2},
+      'hlink-symlink': {'ino': 5, 'mode': 'drwxr-xr-x', 'nlink': 2},
       'hlink-symlink/0regular': {
-          'ino': 5,
+          'ino': 6,
           'mode': '-rw-r--r--',
           'nlink': 1,
           'size': 10,
           'md5': 'e09c80c42fda55f9d992e59ca6b3307d',
       },
       'hlink-symlink/1symlink': {
-          'ino': 6,
+          'ino': 7,
           'mode': 'lrwxrwxrwx',
           'nlink': 2,
           'target': '0regular',
       },
       'hlink-symlink/hlink': {
-          'ino': 6,
+          'ino': 7,
           'mode': 'lrwxrwxrwx',
           'nlink': 2,
           'target': '0regular',
@@ -2070,7 +2070,7 @@ def TestZipWithSpecialFiles():
       },
   }
 
-  MountZipAndCheckTree(zip_name, want_tree, want_blocks=17, want_inodes=15)
+  MountZipAndCheckTree(zip_name, want_tree, want_blocks=19, want_inodes=15)
 
   # Check that the inode numbers of hardlinks match
   got_tree, _ = MountZipAndGetTree(zip_name)
@@ -2278,7 +2278,7 @@ def TestZipWithSpecialFiles():
   MountZipAndCheckTree(
       zip_name,
       want_tree,
-      want_blocks=9,
+      want_blocks=11,
       want_inodes=7,
       options=['-o', 'nospecials'],
   )
@@ -2397,7 +2397,7 @@ def TestZipWithSpecialFiles():
   MountZipAndCheckTree(
       zip_name,
       want_tree,
-      want_blocks=17,
+      want_blocks=19,
       want_inodes=15,
       options=['-o', 'default_permissions'],
   )
