@@ -152,24 +152,6 @@ bool ExtraFields::Parse(FieldId const id, Bytes b, mode_t mode) try {
       return true;
     }
 
-    case FieldId::PKWARE_UNIX:
-      atime = {.tv_sec=Read<u32>(b)};
-      mtime = {.tv_sec=Read<u32>(b)};
-      uid = Read<u16>(b);
-      gid = Read<u16>(b);
-
-      // variable data field
-      if (S_ISBLK(mode) || S_ISCHR(mode)) {
-        unsigned int const maj = Read<u32>(b);
-        unsigned int const min = Read<u32>(b);
-        dev = makedev(maj, min);
-      } else {
-        link_target =
-            std::string_view(reinterpret_cast<const char*>(b.data()), b.size());
-      }
-
-      return true;
-
     case FieldId::INFOZIP_UNIX_1:
       atime = {.tv_sec = Read<u32>(b)};
       mtime = {.tv_sec = Read<u32>(b)};
@@ -192,6 +174,24 @@ bool ExtraFields::Parse(FieldId const id, Bytes b, mode_t mode) try {
 
       uid = ReadVariableLength<uid_t>(b);
       gid = ReadVariableLength<gid_t>(b);
+      return true;
+
+    case FieldId::PKWARE_UNIX:
+      atime = {.tv_sec=Read<u32>(b)};
+      mtime = {.tv_sec=Read<u32>(b)};
+      uid = Read<u16>(b);
+      gid = Read<u16>(b);
+
+      // variable data field
+      if (S_ISBLK(mode) || S_ISCHR(mode)) {
+        unsigned int const maj = Read<u32>(b);
+        unsigned int const min = Read<u32>(b);
+        dev = makedev(maj, min);
+      } else {
+        link_target =
+            std::string_view(reinterpret_cast<const char*>(b.data()), b.size());
+      }
+
       return true;
 
     case FieldId::NTFS_TIMESTAMP: {
