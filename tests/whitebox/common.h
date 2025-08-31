@@ -166,7 +166,6 @@ const zip_uint8_t* zip_file_extra_field_get_by_id(struct zip*,
                                                   zip_uint16_t,
                                                   zip_uint16_t*,
                                                   zip_flags_t) {
-  assert(false);
   return NULL;
 }
 

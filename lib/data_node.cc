@@ -56,146 +56,6 @@ bool DataNode::original_permissions = false;
 
 ino_t DataNode::ino_count = 0;
 
-// Gets timestamp information from extra fields.
-// Gets owner and group information.
-static bool ProcessExtraFields(DataNode* const node, zip_t* const zip) {
-  assert(node);
-  assert(zip);
-
-  // times from timestamp have precedence to UNIX field times
-  bool mtime_from_timestamp = false;
-  bool atime_from_timestamp = false;
-  // high-precision timestamps have the highest precedence
-  bool high_precision_time = false;
-  bool has_pkware_field = false;
-  // UIDs and GIDs from UNIX extra fields with bigger type IDs have precedence
-  FieldId highest_field_id = FieldId();
-
-  for (zip_flags_t const flags : {ZIP_FL_CENTRAL, ZIP_FL_LOCAL}) {
-    zip_int16_t const n = zip_file_extra_fields_count(zip, node->id, flags);
-    for (zip_int16_t i = 0; i < n; ++i) {
-      zip_uint16_t field_type, field_size;
-      const zip_uint8_t* const field_data = zip_file_extra_field_get(
-          zip, node->id, i, &field_type, &field_size, flags);
-      Bytes const b(field_data, field_size);
-      FieldId const field_id = FieldId(field_type);
-
-      switch (field_id) {
-        case FieldId::UNIX_TIMESTAMP: {
-          ExtraFields f;
-          if (high_precision_time || !f.Parse(field_id, b)) {
-            break;
-          }
-
-          if (f.mtime.tv_sec != -1) {
-            node->mtime = f.mtime;
-            mtime_from_timestamp = true;
-          }
-
-          if (f.atime.tv_sec != -1) {
-            node->atime = f.atime;
-            atime_from_timestamp = true;
-          }
-
-          break;
-        }
-
-        case FieldId::PKWARE_UNIX: {
-          ExtraFields f;
-          if (!f.Parse(field_id, b, node->mode)) {
-            break;
-          }
-
-          has_pkware_field = true;
-          assert(f.uid != -1);
-          assert(f.gid != -1);
-
-          if (field_id >= highest_field_id) {
-            node->uid = f.uid;
-            node->gid = f.gid;
-            highest_field_id = field_id;
-          }
-
-          if (!high_precision_time) {
-            if (!mtime_from_timestamp) {
-              node->mtime = f.mtime;
-            }
-
-            if (!atime_from_timestamp) {
-              node->atime = f.atime;
-            }
-          }
-
-          if (f.dev != -1) {
-            node->dev = f.dev;
-          }
-
-          // Use PKWARE link target only if link target in Info-ZIP format is
-          // not specified (empty file content)
-          if (S_ISLNK(node->mode) && node->size == 0 &&
-              !f.link_target.empty()) {
-            assert(link);
-            node->target.assign(f.link_target);
-            node->size = f.link_target.size();
-          }
-
-          break;
-        }
-
-        case FieldId::INFOZIP_UNIX_1:
-        case FieldId::INFOZIP_UNIX_2:
-        case FieldId::INFOZIP_UNIX_3: {
-          ExtraFields f;
-          if (!f.Parse(field_id, b)) {
-            break;
-          }
-
-          if (f.uid != -1 && f.gid != -1 && field_id >= highest_field_id) {
-            node->uid = f.uid;
-            node->gid = f.gid;
-            highest_field_id = field_id;
-          }
-
-          if (high_precision_time) {
-            break;
-          }
-
-          if (!mtime_from_timestamp) {
-            node->mtime = f.mtime;
-          }
-
-          if (!atime_from_timestamp) {
-            node->atime = f.atime;
-          }
-
-          break;
-        }
-
-        case FieldId::NTFS_TIMESTAMP: {
-          ExtraFields f;
-          if (!f.Parse(field_id, b)) {
-            break;
-          }
-
-          if (f.mtime.tv_sec != -1) {
-            node->mtime = f.mtime;
-          }
-          if (f.atime.tv_sec != -1) {
-            node->atime = f.atime;
-          }
-          if (f.ctime.tv_sec != -1) {
-            node->ctime = f.ctime;
-          }
-          high_precision_time = true;
-          break;
-        }
-      }
-    }
-  }
-
-  return has_pkware_field;
-}
-
 DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
   assert(zip);
   zip_stat_t st;
@@ -212,7 +72,71 @@ DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
 
   DataNode node{
       .id = id, .mode = mode, .size = st.size, .mtime = {.tv_sec = st.mtime}};
-  const bool has_pkware_field = ProcessExtraFields(&node, zip);
+
+  bool has_pkware_field = false;
+
+  // Gets timestamp, owner and group information from extra fields.
+  // Process the extra fields in this precise order because of the following
+  // precedences:
+  // - Times from timestamp have precedence over the UNIX field times.
+  // - High-precision NTFS timestamps precedence over the UNIX timestamps.
+  // - UIDs and GIDs from UNIX fields with bigger field IDs have higher
+  // - precedence.
+  using enum FieldId;
+  for (FieldId const field_id :
+       {PKWARE_UNIX, INFOZIP_UNIX_1, INFOZIP_UNIX_2, INFOZIP_UNIX_3,
+        UNIX_TIMESTAMP, NTFS_TIMESTAMP}) {
+    zip_flags_t const flags = ZIP_FL_CENTRAL | ZIP_FL_LOCAL;
+    zip_uint16_t const n = zip_file_extra_fields_count_by_id(
+        zip, node.id, static_cast<zip_uint16_t>(field_id), flags);
+    for (zip_uint16_t i = 0; i < n; ++i) {
+      zip_uint16_t field_size;
+      const auto* field_data = zip_file_extra_field_get_by_id(
+          zip, node.id, static_cast<zip_uint16_t>(field_id), i, &field_size,
+          flags);
+
+      ExtraFields f;
+      if (!field_data || field_size == 0 ||
+          !f.Parse(field_id, Bytes(field_data, field_size), node.mode)) {
+        continue;
+      }
+
+      if (f.mtime.tv_sec != -1) {
+        node.mtime = f.mtime;
+      }
+
+      if (f.atime.tv_sec != -1) {
+        node.atime = f.atime;
+      }
+
+      if (f.ctime.tv_sec != -1) {
+        node.ctime = f.ctime;
+      }
+
+      if (f.uid != -1) {
+        node.uid = f.uid;
+      }
+
+      if (f.gid != -1) {
+        node.gid = f.gid;
+      }
+
+      if (f.dev != -1) {
+        node.dev = f.dev;
+      }
+
+      // Use PKWARE link target only if link target in Info-ZIP format is not
+      // specified (empty file content).
+      if (!f.link_target.empty() && S_ISLNK(node.mode) && node.size == 0) {
+        node.target = std::string(f.link_target);
+        node.size = f.link_target.size();
+      }
+
+      if (field_id == PKWARE_UNIX) {
+        has_pkware_field = true;
+      }
+    }
+  }
 
   // InfoZIP may produce FIFO-marked node with content, PkZip - can't.
   if (S_ISFIFO(node.mode) && (node.size != 0 || !has_pkware_field)) {
