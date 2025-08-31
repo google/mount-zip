@@ -679,23 +679,20 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
 
   zip_uint8_t opsys;
   zip_uint32_t attr;
-  zip_file_get_external_attributes(z, id, 0, &opsys, &attr);
+  if (zip_file_get_external_attributes(z, id, 0, &opsys, &attr) < 0) {
+    throw ZipError(StrCat("Cannot get attributes of entry #", id), z);
+  }
 
   mode_t mode = static_cast<mode_t>(attr >> 16);
   bool is_hard_link = false;
 
-  /*
-   * PKWARE describes "OS made by" now (since 1998) as follows:
-   * The upper byte indicates the compatibility of the file attribute
-   * information. If the external file attributes are compatible with MS-DOS
-   * and can be read by PKZIP for DOS version 2.04g then this value will be
-   * zero.
-   */
+  // PKWARE describes "OS made by" now (since 1998) as follows: The upper byte
+  // indicates the compatibility of the file attribute information. If the
+  // external file attributes are compatible with MS-DOS and can be read by
+  // PKZIP for DOS version 2.04g then this value will be zero.
   if (opsys == ZIP_OPSYS_DOS && GetFileType(mode) != FileType::Unknown) {
     opsys = ZIP_OPSYS_UNIX;
   }
-
-  const zip_uint32_t FZ_ATTR_HARDLINK = 0x800;
 
   switch (opsys) {
     case ZIP_OPSYS_UNIX:
@@ -709,7 +706,7 @@ Tree::EntryAttributes Tree::GetEntryAttributes(
       }
 
       // Always ignore hard link flag for dirs
-      is_hard_link = (attr & FZ_ATTR_HARDLINK) != 0 && !is_dir;
+      is_hard_link = (attr & 0x800) != 0 && !is_dir;
       break;
 
     case ZIP_OPSYS_DOS:
@@ -812,27 +809,22 @@ FileNode* Tree::CreateHardLink(zip_t* const z,
   FileNode::Ptr node(new FileNode{
       .zip = z, .id = id, .parent = parent, .name = std::string(name)});
 
-  zip_uint16_t len;
-  const zip_uint8_t* field = zip_file_extra_field_get_by_id(
-      z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &len,
+  zip_uint16_t field_size;
+  const auto* field_data = zip_file_extra_field_get_by_id(
+      z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &field_size,
       ZIP_FL_CENTRAL);
 
-  if (!field) {
-    field = zip_file_extra_field_get_by_id(
-        z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &len,
+  if (!field_data) {
+    field_data = zip_file_extra_field_get_by_id(
+        z, id, static_cast<unsigned int>(FieldId::PKWARE_UNIX), 0, &field_size,
         ZIP_FL_LOCAL);
   }
 
-  if (!field) {
-    // Ignoring hard link without PKWARE UNIX field
-    LOG(INFO) << "Cannot find PkWare Unix field for hard link " << *node;
-    return CreateFile(z, id, parent, name, mode);
-  }
-
-  Bytes const b(field, len);
   ExtraFields f;
-  if (!f.Parse(FieldId::PKWARE_UNIX, b, mode)) {
-    LOG(WARNING) << "Cannot parse PkWare Unix field for hard link " << *node;
+  if (!field_data ||
+      !f.Parse(FieldId::PKWARE_UNIX, Bytes(field_data, field_size), mode)) {
+    // Ignoring hard link without a valid PKWARE UNIX field.
+    LOG(ERROR) << "Cannot parse PkWare Unix field for hard link " << *node;
     return CreateFile(z, id, parent, name, mode);
   }
 
