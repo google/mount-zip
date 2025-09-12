@@ -20,6 +20,7 @@ LIBS = -L../lib -lmountzip $(shell $(PKG_CONFIG) libzip --libs)
 CXXFLAGS += $(shell $(PKG_CONFIG) libzip --cflags)
 CXXFLAGS += -Wall -Wextra -Wno-nullability-extension -Wno-sign-compare -Wno-missing-field-initializers -pedantic -std=c++23
 CXXFLAGS += -D_FILE_OFFSET_BITS=64 
+LDFLAGS += -lstdc++
 
 ifeq ($(DEBUG), 1)
 CXXFLAGS += -O0 -g

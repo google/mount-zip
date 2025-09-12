@@ -40,7 +40,7 @@ void PrintTime(const char* label, const timespec& time) {
   }
 
   char str1[512];
-  if (strftime(str1, sizeof(str1), "%Y-%m-%d %H:%M:%S", &tmp) == 0) {
+  if (strftime(str1, sizeof(str1), "%F %T", &tmp) == 0) {
     std::println(stderr, "strftime returned 0");
     return;
   }
