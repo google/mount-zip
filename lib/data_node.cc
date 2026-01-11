@@ -97,7 +97,7 @@ DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
 
       ExtraFields f;
       if (!field_data || field_size == 0 ||
-          !f.Parse(field_id, Bytes(field_data, field_size), node.mode)) {
+          !f.Parse(field_id, Bytes(field_data, field_size), mode)) {
         continue;
       }
 
@@ -127,9 +127,11 @@ DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
 
       // Use PKWARE link target only if link target in Info-ZIP format is not
       // specified (empty file content).
-      if (!f.link_target.empty() && S_ISLNK(node.mode) && node.size == 0) {
+      if (!f.link_target.empty()) {
         node.target = std::string(f.link_target);
-        node.size = f.link_target.size();
+        if (S_ISLNK(mode) && node.size == 0) {
+          node.size = f.link_target.size();
+        }
       }
 
       if (field_id == PKWARE_UNIX) {
@@ -139,7 +141,7 @@ DataNode DataNode::Make(zip_t* const zip, const i64 id, const mode_t mode) {
   }
 
   // InfoZIP may produce FIFO-marked node with content, PkZip - can't.
-  if (S_ISFIFO(node.mode) && (node.size != 0 || !has_pkware_field)) {
+  if (S_ISFIFO(mode) && (node.size != 0 || !has_pkware_field)) {
     SetFileType(&node.mode, FileType::File);
   }
 
