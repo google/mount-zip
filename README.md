@@ -3,7 +3,7 @@ title: MOUNT-ZIP
 section: 1
 header: User Manual
 footer: mount-zip 1.11
-date: August 2025
+date: February 2026
 ---
 # NAME
 
@@ -127,7 +127,7 @@ bar
 When finished, unmount the file system:
 
 ```
-$ fusermount -u mnt
+$ umount mnt
 ```
 
 # FEATURES

@@ -39,12 +39,13 @@ $ sudo apt install g++ pkg-config make pandoc
 
 To test **mount-zip**, you also need the following tools:
 
+*   `umount`
 *   [Python >= 3.8](https://www.python.org)
 
 On Debian systems, you can get these tools by installing the following packages:
 
 ```sh
-$ sudo apt install python3
+$ sudo apt install mount python3
 ```
 
 ## Build **mount-zip**
