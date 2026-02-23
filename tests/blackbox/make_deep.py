@@ -1,6 +1,6 @@
-# Copyright 2021 Google LLC
-# Copyright 2010-2021 Alexander Galanin <al@galanin.nnov.ru>
-# http://galanin.nnov.ru/~al
+#!/bin/python3
+
+# Copyright 2026 Google LLC
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,28 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-all: check
+import os
+import os.path
+from zipfile import ZipFile
 
-check: data/big.zip data/collisions.zip data/deep.zip
-	python3 test.py
+dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+tmp = os.path.join(dir, 'deep.zip~')
 
-check-fast:
-	python3 test.py --fast
+try:
+  with ZipFile(tmp, 'w') as z:
+    n = 30000
+    while n > 0:
+        with z.open('a/' * n + 'pwn.txt', mode='w', force_zip64=True) as f:
+            f.write(b'At depth of %d\n' % n)
+        n = n * 3 // 4
 
-data/big.zip: make_big_zip.py
-	python3 make_big_zip.py
-
-data/collisions.zip: make_collisions.py
-	python3 make_collisions.py
-
-data/deep.zip: make_deep.py
-	python3 make_deep.py
-
-rebuild:
-	make -C ../../lib all
-	make -C ../.. all
-
-force-rebuild:
-	make -C ../.. clean all
-
-.PHONY: all check check-fast rebuild force-rebuild
+  os.replace(tmp, os.path.join(dir, 'deep.zip'))
+except:
+  os.remove(tmp)

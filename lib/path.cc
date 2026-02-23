@@ -178,11 +178,13 @@ void Path::NormalizeAppend(std::string* const to) const {
     }
   } while (in.Consume("./") || in.Consume("../"));
 
+  const size_t initial_size = result.size();
+
   // Extract part after part
   while (true) {
     size_type i = in.find_first_not_of('/');
     if (i == npos) {
-      return;
+      break;
     }
 
     in.remove_prefix(i);
@@ -212,5 +214,12 @@ void Path::NormalizeAppend(std::string* const to) const {
     } else {
       Append(&result, StrCat(part, extension));
     }
+  }
+
+  if (result.size() > PATH_MAX) {
+    std::string last_part(Path(result).Split().second);
+    result.resize(initial_size);
+    Append(&result, "Too Deep");
+    Append(&result, last_part);
   }
 }
