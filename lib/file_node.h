@@ -22,6 +22,7 @@
 #include <memory>
 #include <ostream>
 #include <string>
+#include <vector>
 
 #include <unistd.h>
 #include <zip.h>
@@ -114,17 +115,41 @@ struct FileNode {
   }
 
   // Gets the full absolute path of this node.
-  std::string GetPath(size_t const reserve = 0) const {
+  std::string GetPath() const {
     if (!parent) {
-      std::string s;
-      s.reserve(reserve + name.size() + 1);
-      s = name;
-      return s;
+      assert(name == "/");
+      return "/";
     }
 
-    std::string s = parent->GetPath(reserve + name.size() + 1);
-    Path::Append(&s, name);
-    return s;
+    std::vector<const FileNode*> nodes;
+    nodes.reserve(32);
+
+    size_t n = 0;
+    const FileNode* node = this;
+    do {
+      assert(node->parent);
+      nodes.push_back(node);
+      n += node->name.size() + 1;
+      node = node->parent;
+    } while (node->parent);
+
+    assert(node);
+    assert(!node->parent);
+    assert(node->name == "/");
+
+    std::string path;
+    path.reserve(n);
+
+    do {
+      assert(!nodes.empty());
+      path += '/';
+      path += nodes.back()->name;
+      nodes.pop_back();
+    } while (!nodes.empty());
+
+    assert(nodes.empty());
+    assert(path.size() == n);
+    return path;
   }
 
   // Adds a child to this node.
