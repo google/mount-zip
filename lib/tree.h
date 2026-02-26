@@ -37,6 +37,9 @@ class Tree {
     // Null, empty or "auto" for automatic detection.
     const char* encoding = nullptr;
 
+    // Include directories?
+    bool include_directories = true;
+
     // Include symbolic links?
     bool include_symlinks = true;
 

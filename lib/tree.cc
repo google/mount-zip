@@ -494,6 +494,12 @@ Tree::Tree(std::span<const std::string> paths, Options opts)
       const FileType type = GetFileType(mode);
 
       if (type == FileType::Directory) {
+        if (!opts_.include_directories) {
+          LOG(INFO) << "Skipped " << type << " [" << ++DataNode::ino_count
+                    << "] " << Path(path);
+          continue;
+        }
+
         FileNode* const node = CreateDir(path);
         assert(node);
         assert(!node->link);
@@ -824,6 +830,10 @@ FileNode* Tree::Find(std::string_view path) {
 }
 
 FileNode* Tree::CreateDir(std::string_view path) {
+  if (!opts_.include_directories) {
+    return root_;
+  }
+
   const auto [parent_path, name] = Path(path).Split();
   FileNode::Ptr to_rename;
   FileNode* parent;

@@ -70,6 +70,11 @@ working directory.
 :   Do not merge multiple ZIP archives on top of each other. Instead, create a
     subdirectory for each ZIP archive inside the mount point.
 
+**-o nodirs**
+:   No directories. Flatten the archive structure by presenting all its files in
+    its root directory. This might make sense if you're not interested in the
+    archive tree structure, but only in its file data, e.g. for malware scanning.
+
 **-o nospecials**
 :   Hide special files (FIFOs, sockets, devices).
 
