@@ -1,3 +1,18 @@
+2026-02-27 François Degros <fdegros@chromium.org>
+
+	* Released mount-zip 1.12:
+	- Fix a build error on macOS
+	- Improve the build system to automatically find and use
+	dependencies
+	- Handle long and deeply nested paths more appropriately
+	(https://github.com/google/fuse-archive/issues/56)
+	- Add a `-o nodirs` option to flatten a ZIP's tree structure
+	- Simplify handling of hard links
+	- Simplify handling of extra fields
+	- Check for overflow when converting NTFS timestamps
+	- Fix a build error by explicitly using `boost::hash`
+	(https://github.com/google/mount-zip/issues/34)
+
 2025-08-03 François Degros <fdegros@chromium.org>
 
 	* Released mount-zip 1.10:
