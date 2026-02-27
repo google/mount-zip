@@ -38,10 +38,12 @@ zip_int64_t callback(void* user,
       return 0;
     case ZIP_SOURCE_READ: {
       size_t nr = std::numeric_limits<size_t>::max();
-      if (len < nr)
+      if (len < nr) {
         nr = static_cast<size_t>(len);
-      if (ctx->size - ctx->offset < nr)
+      }
+      if (ctx->size - ctx->offset < nr) {
         nr = static_cast<size_t>(ctx->size - ctx->offset);
+      }
       memset(data, 0, nr);
       ctx->offset += nr;
       return nr;

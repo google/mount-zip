@@ -135,8 +135,9 @@ int main(int argc, char** argv) {
       int len = 0;
       const char* const comment =
           zip_get_archive_comment(z.get(), &len, ZIP_FL_ENC_RAW);
-      if (comment != nullptr && len > 0)
+      if (comment != nullptr && len > 0) {
         std::println("  comment: {}", std::string_view(comment, len));
+      }
     }
 
     zip_int64_t const n = zip_get_num_entries(z.get(), 0);

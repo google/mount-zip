@@ -96,23 +96,15 @@ struct FileNode {
   using ByPath = bi::unordered_set_member_hook<LinkMode, bi::store_hash<true>>;
   ByPath by_path, by_original_path;
 
-  const DataNode& GetTarget() const {
-    return link ? *link : data;
-  }
+  const DataNode& GetTarget() const { return link ? *link : data; }
 
   // Gets attributes.
   using Stat = struct stat;
-  operator Stat() const {
-    return GetTarget();
-  }
+  operator Stat() const { return GetTarget(); }
 
-  FileType GetType() const {
-    return GetFileType(GetTarget().mode);
-  }
+  FileType GetType() const { return GetFileType(GetTarget().mode); }
 
-  bool IsDir() const {
-    return GetType() == FileType::Directory;
-  }
+  bool IsDir() const { return GetType() == FileType::Directory; }
 
   // Gets the full absolute path of this node.
   std::string GetPath() const {
@@ -192,9 +184,7 @@ struct FileNode {
   }
 
   // Gets a Reader to read file contents.
-  Reader::Ptr GetReader() const {
-    return GetTarget().GetReader(zip, *this);
-  }
+  Reader::Ptr GetReader() const { return GetTarget().GetReader(zip, *this); }
 
   // Output operator for debugging.
   friend std::ostream& operator<<(std::ostream& out, const FileNode& node) {

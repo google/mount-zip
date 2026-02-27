@@ -34,7 +34,7 @@
 
 #ifdef __APPLE__
 
-#ifndef typeof // work around the -pedantic -std=c++20
+#ifndef typeof  // work around the -pedantic -std=c++20
 #define typeof(x) __typeof__(x)
 #endif
 
