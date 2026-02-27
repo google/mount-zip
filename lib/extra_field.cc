@@ -135,26 +135,26 @@ bool ExtraFields::Parse(FieldId const id, Bytes b, mode_t mode) try {
       const u8 flags = Read<u8>(b);
 
       if (flags & 1) {
-        mtime = {.tv_sec = Read<u32>(b)};
+        mtime = {.tv_sec = static_cast<time_t>(Read<u32>(b))};
         if (b.empty()) {
           return true;
         }
       }
 
       if (flags & 2) {
-        atime = {.tv_sec = Read<u32>(b)};
+        atime = {.tv_sec = static_cast<time_t>(Read<u32>(b))};
       }
 
       if (flags & 4) {
-        ctime = {.tv_sec = Read<u32>(b)};
+        ctime = {.tv_sec = static_cast<time_t>(Read<u32>(b))};
       }
 
       return true;
     }
 
     case FieldId::INFOZIP_UNIX_1:
-      atime = {.tv_sec = Read<u32>(b)};
-      mtime = {.tv_sec = Read<u32>(b)};
+      atime = {.tv_sec = static_cast<time_t>(Read<u32>(b))};
+      mtime = {.tv_sec = static_cast<time_t>(Read<u32>(b))};
       [[fallthrough]];
 
     case FieldId::INFOZIP_UNIX_2:
@@ -177,8 +177,8 @@ bool ExtraFields::Parse(FieldId const id, Bytes b, mode_t mode) try {
       return true;
 
     case FieldId::PKWARE_UNIX:
-      atime = {.tv_sec=Read<u32>(b)};
-      mtime = {.tv_sec=Read<u32>(b)};
+      atime = {.tv_sec = static_cast<time_t>(Read<u32>(b))};
+      mtime = {.tv_sec = static_cast<time_t>(Read<u32>(b))};
       uid = Read<u16>(b);
       gid = Read<u16>(b);
 
