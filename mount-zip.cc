@@ -653,8 +653,8 @@ int main(int argc, char* argv[]) try {
     return EXIT_FAILURE;
   }
 
-  DataNode::dmask = param.dmask & 0777;
-  DataNode::fmask = param.fmask & 0777;
+  DataNode::dmask = param.dmask & 07777;
+  DataNode::fmask = param.fmask & 07777;
 
   // No ZIP archive paths.
   if (param.paths.empty()) {

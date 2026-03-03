@@ -171,6 +171,17 @@ DataNode::operator Stat() const {
     st.st_uid = uid;
     st.st_gid = gid;
     st.st_mode = mode;
+    switch (GetFileType(mode)) {
+      case FileType::Directory:
+        st.st_mode &= ~dmask;
+        break;
+
+      case FileType::Symlink:
+        break;
+
+      default:
+        st.st_mode &= ~fmask;
+    }
   } else {
     st.st_uid = g_uid;
     st.st_gid = g_gid;
