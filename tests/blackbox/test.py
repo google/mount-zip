@@ -142,7 +142,7 @@ def MountZipAndGetTree(zip_names, options=[], password='', use_md5=True):
     ]
     logging.debug(f'Mounting {zip_paths!r} on {mount_point!r}...')
     subprocess.run(
-        [mount_program, *options] + zip_paths + [mount_point],
+        [mount_program, *options, '--', *zip_paths, mount_point],
         check=True,
         capture_output=True,
         input=password,
@@ -413,6 +413,15 @@ def TestZipWithDefaultOptions():
           },
       },
       'foobar.zip': {
+          '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
+          'foo': {
+              'nlink': 1,
+              'mtime': 1565484162000000000,
+              'size': 4,
+              'md5': 'c157a79031e1c40f85931829bc5fc552',
+          },
+      },
+      '--help': {
           '.': {'ino': 1, 'mode': 'drwxr-xr-x', 'nlink': 2},
           'foo': {
               'nlink': 1,
@@ -1856,7 +1865,7 @@ def TestBigZip(options=[]):
     zip_path = os.path.join(script_dir, 'data', zip_name)
     logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
     subprocess.run(
-        [mount_program] + options + [zip_path, mount_point],
+        [mount_program, *options, '--', zip_path, mount_point],
         check=True,
         capture_output=True,
         input='',
@@ -1916,7 +1925,7 @@ def TestBigZipNoCache(options=['-o', 'nocache']):
     zip_path = os.path.join(script_dir, 'data', zip_name)
     logging.debug(f'Mounting {zip_path!r} on {mount_point!r}...')
     subprocess.run(
-        [mount_program] + options + [zip_path, mount_point],
+        [mount_program, *options, '--', zip_path, mount_point],
         check=True,
         capture_output=True,
         input='',

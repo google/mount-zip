@@ -399,6 +399,7 @@ struct Operations : fuse_operations {
     cfg->use_ino = true;
     cfg->nullpath_ok = true;
     cfg->direct_io = g_direct_io;
+    LOG(DEBUG) << "Initialized FUSE server";
     return nullptr;
   }
 #endif
@@ -554,17 +555,16 @@ static int ProcessArg(void* data,
 
     case KEY_DEFAULT_PERMISSIONS:
       DataNode::original_permissions = true;
-      return KEEP;
+      return DISCARD;
 
 #if FUSE_USE_VERSION >= 30
     case KEY_DIRECT_IO:
       g_direct_io = true;
       return DISCARD;
 #endif
-
-    default:
-      return KEEP;
   }
+
+  return KEEP;
 }
 
 // Removes directory |dir| in destructor.
@@ -662,6 +662,23 @@ int main(int argc, char* argv[]) try {
     return EXIT_FAILURE;
   }
 
+  // Single-threaded operation.
+  fuse_opt_add_arg(&args, "-s");
+
+  // Mount read-only.
+  fuse_opt_add_arg(&args, "-r");
+
+#if FUSE_USE_VERSION < 30
+  // Respect inode numbers.
+  fuse_opt_add_arg(&args, "-o");
+  fuse_opt_add_arg(&args, "use_ino");
+#endif
+
+  if (DataNode::original_permissions) {
+    fuse_opt_add_arg(&args, "-o");
+    fuse_opt_add_arg(&args, "default_permissions");
+  }
+
   std::string mount_point;
   if (param.paths.size() > 1) {
     mount_point = std::move(param.paths.back());
@@ -731,18 +748,13 @@ int main(int argc, char* argv[]) try {
     }
   }
 
-  fuse_opt_add_arg(&args, mount_point.c_str());
-
-#if FUSE_USE_VERSION < 30
-  // Respect inode numbers.
-  fuse_opt_add_arg(&args, "-ouse_ino");
-#endif
-
-  // Read-only mounting.
-  fuse_opt_add_arg(&args, "-r");
-
-  // Single-threaded operation.
-  fuse_opt_add_arg(&args, "-s");
+  // The mount point is in place.
+  if (mount_point.starts_with('-')) {
+    // To prevent the mount point from being mistaken as a command line option.
+    fuse_opt_add_arg(&args, StrCat("./", mount_point).c_str());
+  } else {
+    fuse_opt_add_arg(&args, mount_point.c_str());
+  }
 
   return fuse_main(args.argc, args.argv, &operations, nullptr);
 } catch (const ZipError& e) {
