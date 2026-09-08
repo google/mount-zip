@@ -5,6 +5,31 @@ header: User Manual
 footer: mount-zip 1.17
 date: August 2026
 ---
+# ⚠️ REPOSITORY ARCHIVED & TRANSITIONED
+
+**This repository is no longer actively maintained by Google and has been officially archived.**
+
+The primary maintainer of `mount-zip` is continuing active development,
+maintenance, and community support under a new name in his personal repository:
+
+👉 **[github.com/fdegros/zipmount](https://github.com/fdegros/zipmount)**
+
+## What does this mean for you?
+
+* **Code & History:** The historical releases, issues, and code remain here for
+  reference.
+* **New Name & Active Home:** Active development is continuing at
+  [fdegros/zipmount](https://github.com/fdegros/zipmount).
+* **New Features & Bug Fixes:** All new development, dependencies uprevs, and
+  security hardening will occur exclusively in the new repository.
+* **Contributions:** Please submit all future bug reports, feature requests, and
+  pull requests to the new
+  [fdegros/zipmount](https://github.com/fdegros/zipmount) home.
+
+Thank you to everyone who has starred, used, or contributed to this project
+under the Google organization! We encourage you to head over, star, and follow
+the new repository to keep up with active updates.
+
 # NAME
 
 **mount-zip** - Mount ZIP archives as FUSE file systems.
